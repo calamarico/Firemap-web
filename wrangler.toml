@@ -1,0 +1,6 @@
+# Configuración del proyecto Cloudflare Pages (frontend estático + Functions).
+# El backend Express de server/ sigue existiendo para el dev clásico con
+# `npm run dev`; en Cloudflare lo sustituyen las Pages Functions de functions/.
+name = "firemap-web"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "client/dist"

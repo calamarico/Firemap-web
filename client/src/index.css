@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Popups de MapLibre en oscuro, a juego con el panel. */
+.maplibregl-popup-content {
+  background: theme('colors.slate.900');
+  color: theme('colors.slate.100');
+  border-radius: 0.5rem;
+  padding: 0;
+  box-shadow: 0 10px 25px rgb(0 0 0 / 0.45);
+}
+.maplibregl-popup-close-button {
+  color: theme('colors.slate.400');
+  font-size: 1.1rem;
+  padding: 0.15rem 0.45rem;
+}
+.maplibregl-popup-close-button:hover {
+  color: theme('colors.slate.100');
+  background: transparent;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: theme('colors.slate.900');
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: theme('colors.slate.900');
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: theme('colors.slate.900');
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: theme('colors.slate.900');
+}

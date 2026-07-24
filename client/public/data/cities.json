@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Madrid" }, "geometry": { "type": "Point", "coordinates": [-3.7038, 40.4168] } },
+    { "type": "Feature", "properties": { "name": "Barcelona" }, "geometry": { "type": "Point", "coordinates": [2.1734, 41.3851] } },
+    { "type": "Feature", "properties": { "name": "Valencia" }, "geometry": { "type": "Point", "coordinates": [-0.3763, 39.4699] } },
+    { "type": "Feature", "properties": { "name": "Sevilla" }, "geometry": { "type": "Point", "coordinates": [-5.9845, 37.3891] } },
+    { "type": "Feature", "properties": { "name": "Zaragoza" }, "geometry": { "type": "Point", "coordinates": [-0.8891, 41.6488] } },
+    { "type": "Feature", "properties": { "name": "Málaga" }, "geometry": { "type": "Point", "coordinates": [-4.4214, 36.7213] } },
+    { "type": "Feature", "properties": { "name": "Murcia" }, "geometry": { "type": "Point", "coordinates": [-1.1307, 37.9922] } },
+    { "type": "Feature", "properties": { "name": "Palma" }, "geometry": { "type": "Point", "coordinates": [2.6502, 39.5696] } },
+    { "type": "Feature", "properties": { "name": "Las Palmas de G. C." }, "geometry": { "type": "Point", "coordinates": [-15.4134, 28.0997] } },
+    { "type": "Feature", "properties": { "name": "Santa Cruz de Tenerife" }, "geometry": { "type": "Point", "coordinates": [-16.2518, 28.4636] } },
+    { "type": "Feature", "properties": { "name": "Bilbao" }, "geometry": { "type": "Point", "coordinates": [-2.935, 43.263] } },
+    { "type": "Feature", "properties": { "name": "Vitoria-Gasteiz" }, "geometry": { "type": "Point", "coordinates": [-2.6716, 42.8467] } },
+    { "type": "Feature", "properties": { "name": "Alicante" }, "geometry": { "type": "Point", "coordinates": [-0.481, 38.3452] } },
+    { "type": "Feature", "properties": { "name": "Córdoba" }, "geometry": { "type": "Point", "coordinates": [-4.7794, 37.8882] } },
+    { "type": "Feature", "properties": { "name": "Granada" }, "geometry": { "type": "Point", "coordinates": [-3.5986, 37.1773] } },
+    { "type": "Feature", "properties": { "name": "Valladolid" }, "geometry": { "type": "Point", "coordinates": [-4.7245, 41.6523] } },
+    { "type": "Feature", "properties": { "name": "Vigo" }, "geometry": { "type": "Point", "coordinates": [-8.7207, 42.2406] } },
+    { "type": "Feature", "properties": { "name": "A Coruña" }, "geometry": { "type": "Point", "coordinates": [-8.4115, 43.3623] } },
+    { "type": "Feature", "properties": { "name": "Santiago de Compostela" }, "geometry": { "type": "Point", "coordinates": [-8.5448, 42.8782] } },
+    { "type": "Feature", "properties": { "name": "Oviedo" }, "geometry": { "type": "Point", "coordinates": [-5.8442, 43.3619] } },
+    { "type": "Feature", "properties": { "name": "Santander" }, "geometry": { "type": "Point", "coordinates": [-3.8044, 43.4623] } },
+    { "type": "Feature", "properties": { "name": "Pamplona" }, "geometry": { "type": "Point", "coordinates": [-1.6432, 42.8125] } },
+    { "type": "Feature", "properties": { "name": "Logroño" }, "geometry": { "type": "Point", "coordinates": [-2.4449, 42.4627] } },
+    { "type": "Feature", "properties": { "name": "Toledo" }, "geometry": { "type": "Point", "coordinates": [-4.0273, 39.8628] } },
+    { "type": "Feature", "properties": { "name": "Mérida" }, "geometry": { "type": "Point", "coordinates": [-6.3437, 38.9161] } },
+    { "type": "Feature", "properties": { "name": "Ceuta" }, "geometry": { "type": "Point", "coordinates": [-5.3213, 35.8894] } },
+    { "type": "Feature", "properties": { "name": "Melilla" }, "geometry": { "type": "Point", "coordinates": [-2.938, 35.2923] } }
+  ]
+}

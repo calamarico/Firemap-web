@@ -1,0 +1,110 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { pointInPreparedRings, PreparedRings, prepareRings, Ring } from './geo';
+import { FireHotspot, MunicipalityImpact, RegionImpact } from './types';
+
+/**
+ * Ranking de localidades afectadas: join espacial de cada foco contra los
+ * polígonos de municipios y comunidades autónomas (geoBoundaries, en
+ * server/data/). Se hace en el proxy y viaja ya agregado: el cliente no
+ * necesita cargar ni un polígono para pintar la lista.
+ *
+ * Los ficheros se leen en runtime (no via import) para que tsc no tenga que
+ * tragarse 7,5 MB de JSON en cada typecheck; viven fuera de src/ y valen
+ * igual en dev (tsx) y en producción (dist/).
+ */
+
+interface IndexedArea {
+  name: string;
+  polygons: PreparedRings[];
+}
+
+// Desde src/ (dev con tsx) y desde dist/ (producción) es el mismo salto:
+// server/data/, fuera de src para que tsc no procese estos JSON enormes.
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
+
+let municipalities: IndexedArea[] | null = null;
+let regions: IndexedArea[] | null = null;
+let loadFailed = false;
+
+function loadAreas(file: string): IndexedArea[] {
+  const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')) as {
+    features: Array<{
+      properties: { name: string };
+      geometry: { type: string; coordinates: unknown };
+    }>;
+  };
+  return raw.features.map((f) => {
+    const coords = f.geometry.coordinates;
+    const polys: Ring[][] =
+      f.geometry.type === 'Polygon' ? [coords as Ring[]] : (coords as Ring[][]);
+    return { name: f.properties.name, polygons: polys.map(prepareRings) };
+  });
+}
+
+function ensureLoaded(): boolean {
+  if (municipalities && regions) return true;
+  if (loadFailed) return false;
+  try {
+    municipalities = loadAreas('municipios.json');
+    regions = loadAreas('ccaa.json');
+    return true;
+  } catch (err) {
+    // Sin polígonos no hay ranking, pero la app sigue: el campo impact irá vacío.
+    loadFailed = true;
+    console.error('No se pudieron cargar los polígonos para el ranking de localidades:', err);
+    return false;
+  }
+}
+
+function findArea(areas: IndexedArea[], lon: number, lat: number): string | null {
+  for (const area of areas) {
+    for (const polygon of area.polygons) {
+      if (pointInPreparedRings(lon, lat, polygon)) return area.name;
+    }
+  }
+  return null;
+}
+
+const MAX_MUNICIPALITIES_PER_REGION = 12;
+// Un único foco suele ser ruido (quema agrícola, industria, falso positivo):
+// solo entran en el ranking los municipios con al menos 2 detecciones.
+const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
+
+export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
+  if (!ensureLoaded() || !municipalities || !regions) return [];
+
+  // region → municipio → acumulado
+  const byRegion = new Map<string, Map<string, { count: number; maxFrp: number | null }>>();
+  for (const h of hotspots) {
+    const region = findArea(regions, h.longitude, h.latitude);
+    const municipality = region && findArea(municipalities, h.longitude, h.latitude);
+    // Un foco puede caer en un hueco entre polígonos simplificados: se omite
+    // del ranking (sigue contando en el total del mapa).
+    if (!region || !municipality) continue;
+
+    let munis = byRegion.get(region);
+    if (!munis) byRegion.set(region, (munis = new Map()));
+    const entry = munis.get(municipality) ?? { count: 0, maxFrp: null };
+    entry.count += 1;
+    if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
+    munis.set(municipality, entry);
+  }
+
+  const result: RegionImpact[] = [];
+  for (const [region, munis] of byRegion) {
+    const relevant: MunicipalityImpact[] = [...munis.entries()]
+      .map(([name, e]) => ({ name, count: e.count, maxFrp: e.maxFrp }))
+      .filter((m) => m.count >= MIN_HOTSPOTS_PER_MUNICIPALITY)
+      .sort((a, b) => b.count - a.count || (b.maxFrp ?? 0) - (a.maxFrp ?? 0));
+    if (relevant.length === 0) continue;
+    result.push({
+      name: region,
+      // El total regional cuenta solo los municipios que entran en el ranking,
+      // para que cuadre con lo que la lista muestra.
+      count: relevant.reduce((sum, m) => sum + m.count, 0),
+      municipalities: relevant.slice(0, MAX_MUNICIPALITIES_PER_REGION),
+    });
+  }
+  return result.sort((a, b) => b.count - a.count);
+}
