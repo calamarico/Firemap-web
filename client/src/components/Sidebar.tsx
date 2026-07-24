@@ -227,7 +227,19 @@ export default function Sidebar(props: SidebarProps) {
             Auto-refresco cada 2 min
           </p>
           {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
-          <p>Datos: NASA FIRMS · Copernicus EFFIS</p>
+          <p>
+            Datos: NASA FIRMS · Copernicus EFFIS
+            <span className="mx-1">·</span>
+            By{' '}
+            <a
+              href="https://github.com/calamarico"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+            >
+              Kalamarico
+            </a>
+          </p>
         </footer>
       </div>
     </aside>
