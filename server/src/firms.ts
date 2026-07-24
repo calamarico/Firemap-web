@@ -26,13 +26,13 @@ const MERGED_SENSORS = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT'
 const WINDOW_HOURS = 24;
 // FIRMS solo filtra por días naturales UTC: se piden 2 (hoy + ayer) y la
 // ventana de 24 h se recorta aquí, porque siempre cruza la medianoche UTC.
-// Coste por renovación: 6 peticiones (3 sensores × 2 áreas) cada ~2 min,
+// Coste por renovación: 6 peticiones (3 sensores × 2 áreas) cada ~5 min,
 // muy por debajo del límite de 5000/10 min.
 const FETCH_DAYS = 2;
 
 // Cache stale-while-revalidate: FIRMS limita a 5000 req/10 min por MAP_KEY y
 // sus datos NRT no cambian más rápido que unos minutos.
-// - fresco (< 2 min, alineado con el auto-refresco del frontend): se sirve de
+// - fresco (< 5 min, alineado con el auto-refresco del frontend): se sirve de
 //   memoria sin tocar FIRMS.
 // - caducado pero servible (< 30 min): se responde AL INSTANTE con lo último
 //   bueno y la renovación corre en segundo plano — ningún cliente paga la
@@ -41,7 +41,7 @@ const FETCH_DAYS = 2;
 // - una ronda PARCIAL (algún satélite caído) nunca sustituye a una foto
 //   completa anterior: mejor dato completo de hace unos minutos que uno
 //   incompleto de ahora.
-const FRESH_MS = 2 * 60 * 1000;
+const FRESH_MS = 5 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
 let cacheEntry: { response: FiresResponse; at: number } | null = null;
 let inFlight: Promise<FiresResponse> | null = null;

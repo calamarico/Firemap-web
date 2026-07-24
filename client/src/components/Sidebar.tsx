@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { MANUAL_REFRESH_COOLDOWN_MS, REFRESH_INTERVAL_MS } from '../config';
 import type { EffisView } from '../hooks/useEffisStatus';
 import type { FiresView } from '../hooks/useFires';
 import type { BasemapId } from '../map/layers';
@@ -34,6 +35,22 @@ export default function Sidebar(props: SidebarProps) {
   // Solo aplica en móvil (< md): la hoja arranca plegada para que mande el
   // mapa. En escritorio el panel es fijo y este estado se ignora vía CSS.
   const [collapsed, setCollapsed] = useState(true);
+
+  // Segundos restantes hasta poder refrescar a mano otra vez: cada pulsación
+  // gasta invocaciones del plan free de Cloudflare, así que no se permite
+  // encadenarlas.
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const id = window.setTimeout(() => setCooldownLeft((s) => s - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [cooldownLeft]);
+
+  const handleRefresh = () => {
+    if (isLoading || cooldownLeft > 0) return;
+    setCooldownLeft(Math.round(MANUAL_REFRESH_COOLDOWN_MS / 1000));
+    props.onRefresh();
+  };
 
   return (
     <aside
@@ -167,12 +184,16 @@ export default function Sidebar(props: SidebarProps) {
           />
 
           <button
-            onClick={props.onRefresh}
-            disabled={isLoading}
+            onClick={handleRefresh}
+            disabled={isLoading || cooldownLeft > 0}
             className="w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white
-              transition-colors hover:bg-orange-500 disabled:cursor-wait disabled:opacity-60"
+              transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? 'Actualizando…' : 'Refrescar ahora'}
+            {isLoading
+              ? 'Actualizando…'
+              : cooldownLeft > 0
+                ? `Refrescar (espera ${cooldownLeft} s)`
+                : 'Refrescar ahora'}
           </button>
         </section>
 
@@ -190,7 +211,7 @@ export default function Sidebar(props: SidebarProps) {
               <p className="mt-1 leading-relaxed">
                 El servicio europeo que cartografía las zonas quemadas no responde ahora mismo. Los
                 perímetros descargados en las últimas 24 horas se siguen mostrando; se reintenta
-                automáticamente cada minuto.
+                automáticamente cada pocos minutos.
               </p>
               <details className="mt-1.5 text-amber-300/70">
                 <summary className="cursor-pointer select-none">Detalles técnicos</summary>
@@ -232,7 +253,7 @@ export default function Sidebar(props: SidebarProps) {
               : 'Sin datos todavía'}
             {fires.data?.cached ? ' (cache del proxy)' : ''}
             <span className="mx-1">·</span>
-            Auto-refresco cada 2 min
+            Auto-refresco cada {Math.round(REFRESH_INTERVAL_MS / 60_000)} min
           </p>
           {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
           <p>

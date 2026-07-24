@@ -43,7 +43,7 @@ detecciones pegadas a la costa).
 
 1. Entra en <https://firms.modaps.eosdis.nasa.gov/api/map_key/>.
 2. Introduce tu email y envía el formulario; recibirás la clave al instante.
-3. La clave permite 5000 peticiones cada 10 minutos (el proxy renueva como mucho cada ~2 min
+3. La clave permite 5000 peticiones cada 10 minutos (el proxy renueva como mucho cada ~5 min
    con 6 peticiones por ronda: lejísimos de ese límite).
 
 ## 2. Configurar el entorno
@@ -131,8 +131,8 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
   el navegador; cada vista descarga solo sus teselas por HTTP Range, con más
   detalle que la versión GeoJSON a zoom alto. Regenerar:
   `tippecanoe -o municipios.pmtiles -Z6 -z12 --detect-shared-borders --coalesce-densest-as-needed -l municipios <adm3.geojson>`.
-- **Cache stale-while-revalidate en `/api/fires`**: fresco < 2 min se sirve de
-  memoria; entre 2 y 30 min se responde al instante con el último dato bueno y
+- **Cache stale-while-revalidate en `/api/fires`**: fresco < 5 min se sirve de
+  memoria; entre 5 y 30 min se responde al instante con el último dato bueno y
   la renovación corre en segundo plano; una ronda parcial (algún satélite
   caído) nunca sustituye a una foto completa anterior; single-flight para que N clientes
   simultáneos cuesten una sola ronda contra FIRMS.
@@ -186,7 +186,7 @@ disponible".
 └── client/               # React + Vite + TS + Tailwind
     ├── public/data/      # ccaa.json (límites autonómicos, geoBoundaries ADM1)
     └── src/
-        ├── hooks/        # useFires, useEffisStatus (carga + auto-refresco 2 min)
+        ├── hooks/        # useFires, useEffisStatus (carga + auto-refresco 5 min)
         ├── map/layers.ts # abstracción AppLayer (añadir fuentes nuevas = 1 función)
         └── components/   # MapView, Sidebar, Legend, FirePopup
 ```

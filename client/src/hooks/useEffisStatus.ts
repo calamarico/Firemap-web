@@ -7,13 +7,18 @@ export interface EffisView {
   error: string | null;
 }
 
-/** Reintento acelerado mientras el servicio de perímetros esté caído. */
-const RETRY_WHEN_DOWN_MS = 60 * 1000;
+/**
+ * Reintento acelerado mientras el servicio de perímetros esté caído. Sigue
+ * siendo más rápido que el refresco normal, pero sin bajar del margen que
+ * protege la quota de invocaciones del plan free (EFFIS puede pasarse horas
+ * caído y cada sondeo de cada visitante es una invocación).
+ */
+const RETRY_WHEN_DOWN_MS = 3 * 60 * 1000;
 
 /**
  * Consulta la disponibilidad de EFFIS al proxy. Si el servicio está caído, la
  * app sigue funcionando solo con FIRMS: este hook solo informa, nunca lanza.
- * El sondeo es adaptativo: cadencia normal con servicio vivo, cada minuto
+ * El sondeo es adaptativo: cadencia normal con servicio vivo, cada 3 minutos
  * cuando está caído (EFFIS se cae a menudo y queremos recuperarlo pronto).
  */
 export function useEffisStatus(refreshMs: number) {

@@ -22,7 +22,7 @@ const MERGED_SENSORS = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT'
 const WINDOW_HOURS = 24;
 const FETCH_DAYS = 2;
 
-const FRESH_MS = 2 * 60 * 1000;
+const FRESH_MS = 5 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
