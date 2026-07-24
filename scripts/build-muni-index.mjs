@@ -157,7 +157,17 @@ writeFileSync(
   JSON.stringify({
     grid: { x0: X0, y0: Y0, cell: CELL, cols: COLS, rows: ROWS },
     regions: regionNames,
-    municipalities: municipalities.map((m, i) => ({ n: m.name, r: muniRegion[i] })),
+    // c = centro del bbox del polígono mayor: destino de los deep links
+    // (?localidad=) del frontend.
+    municipalities: municipalities.map((m, i) => {
+      const [minX, minY, maxX, maxY] = m.polygons[0].bbox;
+      const round = (n) => Math.round(n * 1e4) / 1e4;
+      return {
+        n: m.name,
+        r: muniRegion[i],
+        c: [round((minX + maxX) / 2), round((minY + maxY) / 2)],
+      };
+    }),
   })
 );
 

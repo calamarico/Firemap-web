@@ -24,7 +24,8 @@ interface MuniIndex {
 interface MuniMetaFile {
   grid: { x0: number; y0: number; cell: number; cols: number; rows: number };
   regions: string[];
-  municipalities: Array<{ n: string; r: number }>;
+  /** c = centroide para los deep links del frontend; aquí no se usa. */
+  municipalities: Array<{ n: string; r: number; c?: [number, number] }>;
 }
 
 let indexPromise: Promise<MuniIndex | null> | null = null;

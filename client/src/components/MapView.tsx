@@ -69,6 +69,9 @@ export default function MapView({
       style: BASE_STYLE,
       center: MAP_CENTER,
       zoom: INITIAL_ZOOM,
+      // El encuadre vive en la URL (#map=zoom/lat/lon): cualquier vista es
+      // compartible y se restaura al recargar.
+      hash: 'map',
       // Limita el paneo al entorno de España (con margen para Canarias): no
       // se piden tiles del resto del mundo que nadie va a mirar.
       maxBounds: [
