@@ -13,6 +13,14 @@ export default defineConfig({
           maplibre: ['maplibre-gl'],
           react: ['react', 'react-dom'],
         },
+        // Marcador de generación (g2, g3...): subirlo rota la URL de TODOS
+        // los bundles a la vez. Existe porque el 2026-07-24 un deploy dejó
+        // cacheado en edge y navegadores un HTML servido como JS con
+        // "immutable, 1 año" (pantalla azul): al cambiar la URL, esas cachés
+        // envenenadas dejan de consultarse sin pedirle nada al visitante.
+        entryFileNames: 'assets/[name]-g2-[hash].js',
+        chunkFileNames: 'assets/[name]-g2-[hash].js',
+        assetFileNames: 'assets/[name]-g2-[hash][extname]',
       },
     },
   },
