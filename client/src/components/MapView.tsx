@@ -100,7 +100,19 @@ export default function MapView({
         [-21, 25.5],
         [7.5, 46.5],
       ],
+      // A z17 el satélite de Esri ya da ~1 m/px: más profundidad solo
+      // multiplica teselas (cada nivel duplica las peticiones por pantalla).
+      maxZoom: 17,
+      // Sin fundido al llegar cada tesela: con el fade de 300 ms por defecto
+      // los huecos blancos se ven aunque el dato ya esté descargado.
+      fadeDuration: 0,
+      // Mapa 2D puro: sin rotación ni pitch se evitan gestos accidentales
+      // caros (y en un mapa de incendios no aportan nada).
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
     });
+    map.touchZoomRotate.disableRotation();
     // Zoom abajo a la derecha: la esquina superior derecha la ocupa el panel
     // de localidades afectadas.
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');

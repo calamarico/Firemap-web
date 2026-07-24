@@ -344,19 +344,35 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
 
   const startPulse = (map: MapLibreMap) => {
     stopPulse();
-    // Accesibilidad: con "reducir movimiento" activo, la capa queda estática.
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // La capa queda estática con "reducir movimiento" (accesibilidad) y en
+    // pantallas táctiles: cada cambio de opacidad repinta el canvas entero,
+    // y ese repintado continuo es lo que hacía ir a tirones el mapa en móvil.
+    if (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
+      if (map.getLayer(EFFIS_LAYER_ID)) map.setPaintProperty(EFFIS_LAYER_ID, 'raster-opacity', 0.75);
+      return;
+    }
+    let lastApplied = 0;
     const tick = (now: number) => {
       if (!map.getLayer(EFFIS_LAYER_ID)) {
         pulseFrame = null;
         return;
       }
-      const phase = 0.5 + 0.5 * Math.sin((now / PULSE_PERIOD_MS) * 2 * Math.PI);
-      map.setPaintProperty(
-        EFFIS_LAYER_ID,
-        'raster-opacity',
-        PULSE_MIN + (PULSE_MAX - PULSE_MIN) * phase
-      );
+      // ~11 pasos/s bastan para una onda de 2,4 s (el salto de opacidad por
+      // paso es imperceptible) y evitan repintar a 60 fps con el mapa quieto.
+      // Durante un gesto tampoco se toca: el repintado ya lo paga el propio
+      // movimiento y esto solo añadiría invalidaciones de estilo.
+      if (now - lastApplied >= 90 && !map.isMoving()) {
+        lastApplied = now;
+        const phase = 0.5 + 0.5 * Math.sin((now / PULSE_PERIOD_MS) * 2 * Math.PI);
+        map.setPaintProperty(
+          EFFIS_LAYER_ID,
+          'raster-opacity',
+          PULSE_MIN + (PULSE_MAX - PULSE_MIN) * phase
+        );
+      }
       pulseFrame = requestAnimationFrame(tick);
     };
     pulseFrame = requestAnimationFrame(tick);
@@ -366,7 +382,16 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
     map.addSource(EFFIS_SOURCE_ID, {
       type: 'raster',
       tiles: [tilesUrl()],
-      tileSize: 256,
+      // Teselas de 512: cada GetMap cubre 4 veces más pantalla que una de 256,
+      // así que cada gesto dispara ~4 veces menos invocaciones del Worker (y
+      // la resolución sobra para un relleno translúcido de perímetros).
+      tileSize: 512,
+      // EFFIS cubre Europa, pero fuera de España+margen no interesa: sin
+      // bounds, panear hacia Francia seguiría gastando GetMaps (= quota).
+      bounds: [-19.5, 26.5, 5.5, 45],
+      // Más allá de z12 se estira la tesela de z12 (~10 m/px): de sobra para
+      // perímetros, y al acercar el zoom no se pide ni un GetMap más.
+      maxzoom: 12,
       attribution: '© <a href="https://forest-fire.emergency.copernicus.eu/">EFFIS / Copernicus</a>',
     });
     map.addLayer(
@@ -387,7 +412,7 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
   };
 
   const tilesUrl = () =>
-    `${window.location.origin}/api/effis/wms?range=${range}&width=256&height=256&bbox={bbox-epsg-3857}`;
+    `${window.location.origin}/api/effis/wms?range=${range}&width=512&height=512&bbox={bbox-epsg-3857}`;
 
   return {
     id: EFFIS_LAYER_ID,
