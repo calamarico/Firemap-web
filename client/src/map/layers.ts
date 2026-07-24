@@ -322,6 +322,13 @@ export function createCitiesLayer(): AppLayer {
 
 export interface EffisLayer extends AppLayer {
   setRange(map: MapLibreMap, range: EffisRange): void;
+  /**
+   * Recarga los tiles descartando lo ya pintado. Pensado para cuando EFFIS
+   * vuelve tras una caída: MapLibre nunca reintenta tiles por su cuenta, así
+   * que sin esto los huecos (o basura cacheada) durarían hasta el siguiente
+   * paneo a zona virgen.
+   */
+  refresh(map: MapLibreMap): void;
 }
 
 /**
@@ -334,6 +341,9 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
   let range = initialRange;
   let visible = true;
   let pulseFrame: number | null = null;
+  // Sube con cada refresh(): cambia la URL de tiles para saltarse el max-age
+  // del navegador (si no, tras una caída reaparecerían los tiles malos).
+  let epoch = 0;
 
   const PULSE_MIN = 0.4;
   const PULSE_MAX = 0.85;
@@ -416,7 +426,21 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
   };
 
   const tilesUrl = () =>
-    `${window.location.origin}/api/effis/wms?range=${range}&width=512&height=512&bbox={bbox-epsg-3857}`;
+    `${window.location.origin}/api/effis/wms?range=${range}&width=512&height=512&bbox={bbox-epsg-3857}` +
+    (epoch > 0 ? `&v=${epoch}` : '');
+
+  // La URL de tiles es inmutable en una fuente raster: recargar o cambiar de
+  // rango implica recrear fuente y capa. Se reinserta bajo las capas
+  // superiores (límites y focos) para mantener los polígonos debajo.
+  const rebuild = (map: MapLibreMap) => {
+    stopPulse();
+    if (map.getLayer(EFFIS_LAYER_ID)) map.removeLayer(EFFIS_LAYER_ID);
+    if (map.getSource(EFFIS_SOURCE_ID)) map.removeSource(EFFIS_SOURCE_ID);
+    const beforeId = [MUNICIPALITIES_LAYER_ID, BOUNDARIES_LAYER_ID, FIRES_LAYER_ID].find((id) =>
+      map.getLayer(id)
+    );
+    addSourceAndLayer(map, beforeId);
+  };
 
   return {
     id: EFFIS_LAYER_ID,
@@ -432,16 +456,11 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
     setRange(map, newRange) {
       if (newRange === range) return;
       range = newRange;
-      // La URL de tiles es inmutable en una fuente raster: se recrea la fuente.
-      // Se reinserta bajo las capas superiores (límites y focos) para mantener
-      // los polígonos debajo.
-      stopPulse();
-      if (map.getLayer(EFFIS_LAYER_ID)) map.removeLayer(EFFIS_LAYER_ID);
-      if (map.getSource(EFFIS_SOURCE_ID)) map.removeSource(EFFIS_SOURCE_ID);
-      const beforeId = [MUNICIPALITIES_LAYER_ID, BOUNDARIES_LAYER_ID, FIRES_LAYER_ID].find((id) =>
-        map.getLayer(id)
-      );
-      addSourceAndLayer(map, beforeId);
+      rebuild(map);
+    },
+    refresh(map) {
+      epoch += 1;
+      rebuild(map);
     },
   };
 }

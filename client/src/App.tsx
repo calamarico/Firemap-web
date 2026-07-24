@@ -1,5 +1,5 @@
 import type maplibregl from 'maplibre-gl';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ImpactPanel from './components/ImpactPanel';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
@@ -18,6 +18,20 @@ export default function App() {
 
   const { view: fires, refresh: refreshFires } = useFires(REFRESH_INTERVAL_MS);
   const { view: effis, refresh: refreshEffis } = useEffisStatus(REFRESH_INTERVAL_MS);
+
+  // EFFIS caído → recuperado: se fuerza la recarga de sus tiles. Sin esto, lo
+  // que el mapa pintó durante la caída (huecos) se quedaría congelado hasta
+  // panear a zona virgen, porque MapLibre nunca reintenta tiles ya resueltos.
+  const [effisRefreshToken, setEffisRefreshToken] = useState(0);
+  const prevEffisAvailable = useRef<boolean | null>(null);
+  const effisAvailable = effis.data?.available ?? null;
+  useEffect(() => {
+    if (effisAvailable === null) return; // aún sin dato: no cuenta como transición
+    if (prevEffisAvailable.current === false && effisAvailable) {
+      setEffisRefreshToken((t) => t + 1);
+    }
+    prevEffisAvailable.current = effisAvailable;
+  }, [effisAvailable]);
 
   const handleRefresh = useCallback(() => {
     refreshFires();
@@ -76,6 +90,7 @@ export default function App() {
         // La capa se mantiene aunque EFFIS esté caído: el proxy sirve los
         // últimos tiles buenos (stale hasta 24 h) y lo que falte queda vacío.
         showEffis={showEffis}
+        effisRefreshToken={effisRefreshToken}
         showBoundaries={showBoundaries}
         basemap={basemap}
         onMapReady={handleMapReady}

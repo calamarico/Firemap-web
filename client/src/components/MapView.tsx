@@ -23,6 +23,12 @@ interface MapViewProps {
   showFires: boolean;
   /** Ya combinado con la disponibilidad real de EFFIS (lo decide App). */
   showEffis: boolean;
+  /**
+   * Contador que App incrementa cuando EFFIS pasa de caído a disponible:
+   * cada incremento recarga los tiles de la capa (MapLibre no reintenta
+   * tiles por sí solo, y el navegador cachearía los de la caída).
+   */
+  effisRefreshToken?: number;
   showBoundaries: boolean;
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
@@ -72,6 +78,7 @@ export default function MapView({
   hotspots,
   showFires,
   showEffis,
+  effisRefreshToken = 0,
   showBoundaries,
   basemap,
   onMapReady,
@@ -176,6 +183,11 @@ export default function MapView({
     if (!mapReady || !mapRef.current || !layersRef.current) return;
     layersRef.current.effis.setVisible(mapRef.current, showEffis);
   }, [showEffis, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current || effisRefreshToken === 0) return;
+    layersRef.current.effis.refresh(mapRef.current);
+  }, [effisRefreshToken, mapReady]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !layersRef.current) return;
