@@ -7,8 +7,20 @@ interface ImpactListProps {
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
 }
 
+/** "hace 5 min", "hace 3 h", "hace 2 días": edad de la última detección. */
+function timeAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+}
+
 /**
- * Acordeón de localidades afectadas agrupadas por comunidad autónoma.
+ * Acordeón de localidades afectadas agrupadas por comunidad autónoma. Dentro
+ * de cada comunidad, la localidad con la detección más reciente va primero:
+ * así se ve a qué municipios está llegando el fuego ahora.
  * Se usa en dos contenedores: el panel flotante de escritorio (ImpactPanel)
  * y una sección de la hoja inferior en móvil (Sidebar).
  */
@@ -59,16 +71,20 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
                     <button
                       onClick={() => onSelectMunicipality(muni)}
                       title={`Ver ${muni.name} en el mapa`}
-                      className="flex w-full items-baseline justify-between gap-2 py-1 pl-9 pr-4
-                        text-left text-xs hover:bg-slate-900/60"
+                      className="w-full py-1.5 pl-9 pr-4 text-left text-xs hover:bg-slate-900/60"
                     >
-                      <span className="truncate text-slate-300 underline-offset-2 hover:underline">
-                        {muni.name}
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-slate-300 underline-offset-2 hover:underline">
+                          {muni.name}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-slate-400">
+                          {muni.count} {muni.count === 1 ? 'foco' : 'focos'}
+                        </span>
                       </span>
-                      <span className="shrink-0 tabular-nums text-slate-400">
-                        {muni.count} {muni.count === 1 ? 'foco' : 'focos'}
+                      <span className="mt-0.5 flex items-baseline justify-between gap-2 text-[11px] text-slate-500">
+                        <span>{muni.lastAcqAt ? `última detección ${timeAgo(muni.lastAcqAt)}` : ''}</span>
                         {muni.maxFrp !== null && (
-                          <span className="ml-1 text-slate-500">· máx {muni.maxFrp.toFixed(0)} MW</span>
+                          <span className="shrink-0 tabular-nums">máx {muni.maxFrp.toFixed(0)} MW</span>
                         )}
                       </span>
                     </button>

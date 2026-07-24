@@ -27,6 +27,8 @@ export interface MunicipalityImpact {
   name: string;
   count: number;
   maxFrp: number | null;
+  /** Última detección en el municipio (ISO 8601 UTC): ordena el ranking. */
+  lastAcqAt: string;
   /** Bounding box de LOS FOCOS del municipio [minLon, minLat, maxLon, maxLat]: el cliente vuela ahí. */
   bbox: [number, number, number, number];
 }

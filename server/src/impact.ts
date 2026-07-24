@@ -77,6 +77,7 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
   interface Accum {
     count: number;
     maxFrp: number | null;
+    lastAcqAt: string;
     bbox: [number, number, number, number];
   }
   // region → municipio → acumulado
@@ -92,9 +93,17 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
     if (!munis) byRegion.set(region, (munis = new Map()));
     const entry =
       munis.get(municipality) ??
-      ({ count: 0, maxFrp: null, bbox: [Infinity, Infinity, -Infinity, -Infinity] } as Accum);
+      ({
+        count: 0,
+        maxFrp: null,
+        lastAcqAt: '',
+        bbox: [Infinity, Infinity, -Infinity, -Infinity],
+      } as Accum);
     entry.count += 1;
     if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
+    // ISO de ancho fijo: comparar strings equivale a comparar instantes.
+    const acqAt = acqIso(h);
+    if (acqAt > entry.lastAcqAt) entry.lastAcqAt = acqAt;
     // bbox de los focos del municipio: es adonde vuela el mapa al hacer clic.
     if (h.longitude < entry.bbox[0]) entry.bbox[0] = h.longitude;
     if (h.latitude < entry.bbox[1]) entry.bbox[1] = h.latitude;
@@ -106,9 +115,23 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
   const result: RegionImpact[] = [];
   for (const [region, munis] of byRegion) {
     const relevant: MunicipalityImpact[] = [...munis.entries()]
-      .map(([name, e]) => ({ name, count: e.count, maxFrp: e.maxFrp, bbox: e.bbox }))
+      .map(([name, e]) => ({
+        name,
+        count: e.count,
+        maxFrp: e.maxFrp,
+        lastAcqAt: e.lastAcqAt,
+        bbox: e.bbox,
+      }))
       .filter((m) => m.count >= MIN_HOTSPOTS_PER_MUNICIPALITY)
-      .sort((a, b) => b.count - a.count || (b.maxFrp ?? 0) - (a.maxFrp ?? 0));
+      // Detección más reciente primero: cuenta la historia del fuego
+      // extendiéndose a nuevas localidades. A igual instante (los satélites
+      // barren zonas enteras a la vez), desempatan tamaño e intensidad.
+      .sort(
+        (a, b) =>
+          b.lastAcqAt.localeCompare(a.lastAcqAt) ||
+          b.count - a.count ||
+          (b.maxFrp ?? 0) - (a.maxFrp ?? 0)
+      );
     if (relevant.length === 0) continue;
     result.push({
       name: region,
@@ -119,4 +142,9 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
     });
   }
   return result.sort((a, b) => b.count - a.count);
+}
+
+/** "2026-07-24" + "1330" → "2026-07-24T13:30:00Z" (acqTime llega con cero inicial). */
+function acqIso(h: FireHotspot): string {
+  return `${h.acqDate}T${h.acqTime.slice(0, 2)}:${h.acqTime.slice(2)}:00Z`;
 }

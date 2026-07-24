@@ -236,14 +236,6 @@ export default function Sidebar(props: SidebarProps) {
           <Legend showEffis={props.showEffis} />
         </section>
 
-        {/* Nota metodológica: evita confundir detecciones con incendios confirmados */}
-        <section className="rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs leading-relaxed text-slate-400">
-          <strong className="text-slate-300">Nota:</strong> los focos son{' '}
-          <em>anomalías térmicas detectadas por satélite</em> (posibles incendios, pero también
-          quemas agrícolas, industria, etc.), no incendios oficialmente confirmados. Los perímetros
-          de área quemada son <em>estimaciones cartografiadas a posteriori</em> y pueden ir con
-          retraso respecto al tiempo real.
-        </section>
         </div>
 
         <footer className="space-y-0.5 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
