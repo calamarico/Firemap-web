@@ -45,6 +45,29 @@ function propertiesToHotspot(props: Record<string, unknown>): FireHotspot {
   };
 }
 
+/**
+ * Sincronización de la posición con la URL (#map=zoom/lat/lon, mismo formato
+ * que el hash nativo de MapLibre para no romper enlaces ya compartidos).
+ * A diferencia del hash nativo, la URL se mantiene limpia en la vista
+ * inicial: solo se escribe cuando la posición deja de ser la de arranque.
+ */
+const MAP_HASH_RE = /^#map=([\d.]+)\/(-?[\d.]+)\/(-?[\d.]+)/;
+
+function parseMapHash(): { center: [number, number]; zoom: number } | null {
+  const match = MAP_HASH_RE.exec(window.location.hash);
+  if (!match) return null;
+  const zoom = Number(match[1]);
+  const lat = Number(match[2]);
+  const lon = Number(match[3]);
+  if (![zoom, lat, lon].every(Number.isFinite)) return null;
+  return { center: [lon, lat], zoom };
+}
+
+function formatMapHash(map: maplibregl.Map): string {
+  const center = map.getCenter();
+  return `#map=${map.getZoom().toFixed(2)}/${center.lat.toFixed(4)}/${center.lng.toFixed(4)}`;
+}
+
 export default function MapView({
   hotspots,
   showFires,
@@ -64,14 +87,13 @@ export default function MapView({
   // los efectos de abajo (por eso este efecto no depende de las props).
   useEffect(() => {
     if (!containerRef.current) return;
+    // Si la URL trae posición (#map=...), el mapa arranca ahí.
+    const fromHash = parseMapHash();
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: BASE_STYLE,
-      center: MAP_CENTER,
-      zoom: INITIAL_ZOOM,
-      // El encuadre vive en la URL (#map=zoom/lat/lon): cualquier vista es
-      // compartible y se restaura al recargar.
-      hash: 'map',
+      center: fromHash?.center ?? MAP_CENTER,
+      zoom: fromHash?.zoom ?? INITIAL_ZOOM,
       // Limita el paneo al entorno de España (con margen para Canarias): no
       // se piden tiles del resto del mundo que nadie va a mirar.
       maxBounds: [
@@ -96,6 +118,20 @@ export default function MapView({
       cities.add(map); // ...referencias urbanas (sin toggle: son "mobiliario base")...
       fires.add(map); // ...y los focos arriba del todo
       bindFiresPopup(map);
+
+      // La URL solo refleja la posición cuando ya no es la de arranque (o si
+      // el usuario llegó con hash): la portada queda con URL limpia.
+      const initialHash = formatMapHash(map);
+      map.on('moveend', () => {
+        const hash = formatMapHash(map);
+        if (hash === initialHash && !window.location.hash) return;
+        window.history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${window.location.search}${hash}`
+        );
+      });
+
       setMapReady(true);
       onMapReady?.(map);
     });
