@@ -95,11 +95,16 @@ export default function MapView({
       center: fromHash?.center ?? MAP_CENTER,
       zoom: fromHash?.zoom ?? INITIAL_ZOOM,
       // Limita el paneo al entorno de España (con margen para Canarias): no
-      // se piden tiles del resto del mundo que nadie va a mirar.
+      // se piden tiles del resto del mundo que nadie va a mirar. El borde sur
+      // queda justo bajo Canarias (27.4°N): más abajo solo hay océano y Sáhara.
       maxBounds: [
-        [-21, 25.5],
+        [-21, 26.6],
         [7.5, 46.5],
       ],
+      // Sin esto se puede alejar hasta que el encuadre desborda maxBounds por
+      // arriba y por abajo a la vez, y ahí se ve lo que haya fuera (África, el
+      // Atlántico... o el hueco de una tesela sin cargar).
+      minZoom: 5,
       // A z17 el satélite de Esri ya da ~1 m/px: más profundidad solo
       // multiplica teselas (cada nivel duplica las peticiones por pantalla).
       maxZoom: 17,
@@ -183,7 +188,13 @@ export default function MapView({
   }, [basemap, mapReady]);
 
   return (
-    <div ref={containerRef} className="h-full w-full" aria-label="Mapa de focos de calor en España" />
+    // Mismo azul océano que la capa background del estilo: cubre el instante
+    // inicial, antes de que el estilo del mapa exista.
+    <div
+      ref={containerRef}
+      className="h-full w-full bg-[#0b1420]"
+      aria-label="Mapa de focos de calor en España"
+    />
   );
 }
 

@@ -73,6 +73,10 @@ export const BASE_STYLE: StyleSpecification = {
     },
   },
   layers: [
+    // Fondo bajo las teselas: azul océano profundo. Es lo que asoma mientras
+    // una tesela no ha llegado (o si el proveedor falla); sin esto asomaría
+    // el blanco por defecto de MapLibre, que es un fogonazo sobre UI oscura.
+    { id: 'background', type: 'background', paint: { 'background-color': '#0b1420' } },
     { id: 'basemap-satellite', type: 'raster', source: 'satellite' },
     { id: 'basemap-dark', type: 'raster', source: 'carto-dark', layout: { visibility: 'none' } },
   ],

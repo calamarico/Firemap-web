@@ -145,11 +145,38 @@ async function probe(candidate: EffisCandidate): Promise<boolean> {
     const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     const contentType = res.headers.get('content-type') ?? '';
     // MapServer devuelve HTTP 200 con HTML/XML cuando falla: solo cuenta
-    // como vivo si responde una imagen de verdad.
-    return res.ok && contentType.startsWith('image/');
+    // como vivo si responde una imagen de verdad. Y no cualquier imagen:
+    // degradado emite PNG opacos (blancos) ignorando TRANSPARENT=TRUE.
+    if (!res.ok || !contentType.startsWith('image/')) return false;
+    return pngCanBeTransparent(await res.arrayBuffer());
   } catch {
     return false;
   }
+}
+
+/**
+ * true si el PNG puede contener transparencia: canal alfa (color types 4/6)
+ * o chunk tRNS. Cuando EFFIS degrada, su WMS ignora TRANSPARENT=TRUE y emite
+ * PNG opacos blancos con 200: pintarlos taparía el mapa entero, así que un
+ * tile sin capacidad de transparencia se trata como fallo. Solo se lee la
+ * cabecera y la lista de chunks — nada que descomprimir, coste ~0.
+ */
+function pngCanBeTransparent(buf: ArrayBuffer): boolean {
+  const b = new Uint8Array(buf);
+  const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (b.length < 26 || !SIG.every((v, i) => b[i] === v)) return false;
+  const colorType = b[25]; // byte fijo de IHDR (primer chunk obligatorio)
+  if (colorType === 4 || colorType === 6) return true;
+  // Gris/RGB/paleta sin alfa: solo transparente si declara tRNS antes de IDAT.
+  let off = 8;
+  while (off + 8 <= b.length) {
+    const len = ((b[off] << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3]) >>> 0;
+    const type = String.fromCharCode(b[off + 4], b[off + 5], b[off + 6], b[off + 7]);
+    if (type === 'tRNS') return true;
+    if (type === 'IDAT' || type === 'IEND') return false;
+    off += 12 + len; // longitud + tipo + datos + CRC
+  }
+  return false;
 }
 
 // El upstream puede pasar la sonda y aun así no rendir tiles reales (visto en
@@ -230,7 +257,13 @@ async function fetchTileOnce(url: string, timeoutMs: number): Promise<CachedTile
     const detail = (await res.text().catch(() => '')).slice(0, 200);
     throw new ApiError(502, 'EFFIS_ERROR', `EFFIS devolvió una respuesta no válida: ${detail}`);
   }
-  return { body: Buffer.from(await res.arrayBuffer()), contentType, at: Date.now() };
+  const raw = await res.arrayBuffer();
+  if (!pngCanBeTransparent(raw)) {
+    // Tile opaco = el modo degradado de EFFIS. Mejor no pintar nada (y no
+    // cachearlo) que tapar el mapa con placas blancas.
+    throw new ApiError(502, 'EFFIS_OPAQUE', 'EFFIS devolvió un tile opaco (modo degradado).');
+  }
+  return { body: Buffer.from(raw), contentType, at: Date.now() };
 }
 
 function buildGetMapUrl(
