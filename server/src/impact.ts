@@ -74,8 +74,13 @@ const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
   if (!ensureLoaded() || !municipalities || !regions) return [];
 
+  interface Accum {
+    count: number;
+    maxFrp: number | null;
+    bbox: [number, number, number, number];
+  }
   // region → municipio → acumulado
-  const byRegion = new Map<string, Map<string, { count: number; maxFrp: number | null }>>();
+  const byRegion = new Map<string, Map<string, Accum>>();
   for (const h of hotspots) {
     const region = findArea(regions, h.longitude, h.latitude);
     const municipality = region && findArea(municipalities, h.longitude, h.latitude);
@@ -85,16 +90,23 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
 
     let munis = byRegion.get(region);
     if (!munis) byRegion.set(region, (munis = new Map()));
-    const entry = munis.get(municipality) ?? { count: 0, maxFrp: null };
+    const entry =
+      munis.get(municipality) ??
+      ({ count: 0, maxFrp: null, bbox: [Infinity, Infinity, -Infinity, -Infinity] } as Accum);
     entry.count += 1;
     if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
+    // bbox de los focos del municipio: es adonde vuela el mapa al hacer clic.
+    if (h.longitude < entry.bbox[0]) entry.bbox[0] = h.longitude;
+    if (h.latitude < entry.bbox[1]) entry.bbox[1] = h.latitude;
+    if (h.longitude > entry.bbox[2]) entry.bbox[2] = h.longitude;
+    if (h.latitude > entry.bbox[3]) entry.bbox[3] = h.latitude;
     munis.set(municipality, entry);
   }
 
   const result: RegionImpact[] = [];
   for (const [region, munis] of byRegion) {
     const relevant: MunicipalityImpact[] = [...munis.entries()]
-      .map(([name, e]) => ({ name, count: e.count, maxFrp: e.maxFrp }))
+      .map(([name, e]) => ({ name, count: e.count, maxFrp: e.maxFrp, bbox: e.bbox }))
       .filter((m) => m.count >= MIN_HOTSPOTS_PER_MUNICIPALITY)
       .sort((a, b) => b.count - a.count || (b.maxFrp ?? 0) - (a.maxFrp ?? 0));
     if (relevant.length === 0) continue;

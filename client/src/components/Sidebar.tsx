@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { EffisView } from '../hooks/useEffisStatus';
 import type { FiresView } from '../hooks/useFires';
 import type { BasemapId } from '../map/layers';
-import type { RegionImpact } from '../types';
+import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import Legend from './Legend';
 
@@ -15,6 +15,7 @@ interface SidebarProps {
   fires: FiresView;
   effis: EffisView;
   impact: RegionImpact[];
+  onSelectMunicipality: (municipality: MunicipalityImpact) => void;
   showFires: boolean;
   onShowFiresChange: (value: boolean) => void;
   showEffis: boolean;
@@ -114,7 +115,14 @@ export default function Sidebar(props: SidebarProps) {
             Localidades más afectadas
           </h2>
           <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/40">
-            <ImpactList impact={props.impact} />
+            <ImpactList
+              impact={props.impact}
+              onSelectMunicipality={(muni) => {
+                // Pliega la hoja para que el vuelo del mapa se vea.
+                setCollapsed(true);
+                props.onSelectMunicipality(muni);
+              }}
+            />
           </div>
         </section>
 

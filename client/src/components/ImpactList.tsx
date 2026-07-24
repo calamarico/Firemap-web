@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import type { RegionImpact } from '../types';
+import type { MunicipalityImpact, RegionImpact } from '../types';
+
+interface ImpactListProps {
+  impact: RegionImpact[];
+  /** Al pulsar una localidad, el mapa vuela a sus focos. */
+  onSelectMunicipality: (municipality: MunicipalityImpact) => void;
+}
 
 /**
  * Acordeón de localidades afectadas agrupadas por comunidad autónoma.
  * Se usa en dos contenedores: el panel flotante de escritorio (ImpactPanel)
  * y una sección de la hoja inferior en móvil (Sidebar).
  */
-export default function ImpactList({ impact }: { impact: RegionImpact[] }) {
+export default function ImpactList({ impact, onSelectMunicipality }: ImpactListProps) {
   const [openRegions, setOpenRegions] = useState<ReadonlySet<string>>(new Set());
 
   const toggleRegion = (name: string) => {
@@ -49,19 +55,23 @@ export default function ImpactList({ impact }: { impact: RegionImpact[] }) {
             {open && (
               <ul className="pb-2">
                 {region.municipalities.map((muni) => (
-                  <li
-                    key={muni.name}
-                    className="flex items-baseline justify-between gap-2 py-1 pl-9 pr-4 text-xs"
-                  >
-                    <span className="truncate text-slate-300" title={muni.name}>
-                      {muni.name}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-slate-400">
-                      {muni.count} {muni.count === 1 ? 'foco' : 'focos'}
-                      {muni.maxFrp !== null && (
-                        <span className="ml-1 text-slate-500">· máx {muni.maxFrp.toFixed(0)} MW</span>
-                      )}
-                    </span>
+                  <li key={muni.name}>
+                    <button
+                      onClick={() => onSelectMunicipality(muni)}
+                      title={`Ver ${muni.name} en el mapa`}
+                      className="flex w-full items-baseline justify-between gap-2 py-1 pl-9 pr-4
+                        text-left text-xs hover:bg-slate-900/60"
+                    >
+                      <span className="truncate text-slate-300 underline-offset-2 hover:underline">
+                        {muni.name}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-slate-400">
+                        {muni.count} {muni.count === 1 ? 'foco' : 'focos'}
+                        {muni.maxFrp !== null && (
+                          <span className="ml-1 text-slate-500">· máx {muni.maxFrp.toFixed(0)} MW</span>
+                        )}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>

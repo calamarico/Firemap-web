@@ -58,16 +58,28 @@ const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null): RegionImpact[] {
   if (!index) return [];
 
-  const byMuni = new Map<number, { count: number; maxFrp: number | null }>();
+  interface Accum {
+    count: number;
+    maxFrp: number | null;
+    bbox: [number, number, number, number];
+  }
+  const byMuni = new Map<number, Accum>();
   for (const h of hotspots) {
     const col = Math.floor((h.longitude - index.x0) / index.cell);
     const row = Math.floor((h.latitude - index.y0) / index.cell);
     if (col < 0 || col >= index.cols || row < 0 || row >= index.rows) continue;
     const id = index.grid[row * index.cols + col];
     if (id === 0) continue; // celda sin municipio (mar, hueco de simplificación)
-    const entry = byMuni.get(id) ?? { count: 0, maxFrp: null };
+    const entry =
+      byMuni.get(id) ??
+      ({ count: 0, maxFrp: null, bbox: [Infinity, Infinity, -Infinity, -Infinity] } as Accum);
     entry.count += 1;
     if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
+    // bbox de los focos del municipio: es adonde vuela el mapa al hacer clic.
+    if (h.longitude < entry.bbox[0]) entry.bbox[0] = h.longitude;
+    if (h.latitude < entry.bbox[1]) entry.bbox[1] = h.latitude;
+    if (h.longitude > entry.bbox[2]) entry.bbox[2] = h.longitude;
+    if (h.latitude > entry.bbox[3]) entry.bbox[3] = h.latitude;
     byMuni.set(id, entry);
   }
 
@@ -77,7 +89,7 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
     const muni = index.municipalities[id - 1];
     if (!muni || muni.r < 0) continue;
     const list = byRegion.get(muni.r) ?? [];
-    list.push({ name: muni.n, count: e.count, maxFrp: e.maxFrp });
+    list.push({ name: muni.n, count: e.count, maxFrp: e.maxFrp, bbox: e.bbox });
     byRegion.set(muni.r, list);
   }
 

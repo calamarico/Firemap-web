@@ -25,6 +25,8 @@ interface MapViewProps {
   showEffis: boolean;
   showBoundaries: boolean;
   basemap: BasemapId;
+  /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
+  onMapReady?: (map: maplibregl.Map) => void;
 }
 
 /** Convierte las properties del feature (tipadas como unknown) en un FireHotspot. */
@@ -49,6 +51,7 @@ export default function MapView({
   showEffis,
   showBoundaries,
   basemap,
+  onMapReady,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -91,6 +94,7 @@ export default function MapView({
       fires.add(map); // ...y los focos arriba del todo
       bindFiresPopup(map);
       setMapReady(true);
+      onMapReady?.(map);
     });
 
     mapRef.current = map;

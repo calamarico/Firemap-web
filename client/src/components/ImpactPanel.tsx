@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import type { RegionImpact } from '../types';
+import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
+
+interface ImpactPanelProps {
+  impact: RegionImpact[];
+  onSelectMunicipality: (municipality: MunicipalityImpact) => void;
+}
 
 /**
  * Panel flotante de escritorio con el ranking de localidades afectadas.
  * En móvil no se renderiza: la misma lista vive dentro de la hoja inferior
  * (sección de Sidebar), para no apilar dos paneles sobre un mapa pequeño.
  */
-export default function ImpactPanel({ impact }: { impact: RegionImpact[] }) {
+export default function ImpactPanel({ impact, onSelectMunicipality }: ImpactPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -27,7 +32,7 @@ export default function ImpactPanel({ impact }: { impact: RegionImpact[] }) {
 
       {!collapsed && (
         <div className="overflow-y-auto border-t border-slate-800">
-          <ImpactList impact={impact} />
+          <ImpactList impact={impact} onSelectMunicipality={onSelectMunicipality} />
         </div>
       )}
     </aside>

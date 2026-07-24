@@ -24,8 +24,10 @@ const FETCH_DAYS = 2;
 
 const FRESH_MS = 2 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
-// Clave sintética para la Cache API (el host es irrelevante: es un espacio de nombres).
-const CACHE_KEY = 'https://firemap.cache/api/fires-v1';
+// Clave sintética para la Cache API (el host es irrelevante: es un espacio de
+// nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
+// sube la versión y las entradas viejas quedan huérfanas.
+const CACHE_KEY = 'https://firemap.cache/api/fires-v2';
 
 let cacheEntry: { response: FiresResponse; at: number } | null = null;
 let inFlight: Promise<FiresResponse> | null = null;
