@@ -1,6 +1,6 @@
 {
-  "name": "Focos de calor · España",
-  "short_name": "Focos de calor",
+  "name": "Firemaps España",
+  "short_name": "Firemaps",
   "description": "Focos de calor detectados por satélite y perímetros de área quemada en España, en tiempo casi real",
   "lang": "es",
   "display": "standalone",

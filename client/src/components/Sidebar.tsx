@@ -46,7 +46,7 @@ export default function Sidebar(props: SidebarProps) {
         aria-expanded={!collapsed}
         className="flex items-center justify-between gap-3 px-4 py-3 text-left md:hidden"
       >
-        <span className="text-sm font-bold leading-tight">Focos de calor · España</span>
+        <span className="text-sm font-bold leading-tight">Firemaps España</span>
         <span className="flex items-center gap-2">
           {isLoading && (
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
@@ -60,7 +60,7 @@ export default function Sidebar(props: SidebarProps) {
 
       <div className={`${collapsed ? 'hidden' : 'flex'} min-h-0 flex-col md:flex md:min-h-0 md:flex-1`}>
         <header className="hidden border-b border-slate-800 px-5 py-4 md:block">
-          <h1 className="text-lg font-bold leading-tight">Focos de calor · España</h1>
+          <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
           <p className="mt-1 text-xs text-slate-400">
             Detección por satélite en tiempo casi real
           </p>
