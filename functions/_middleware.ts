@@ -21,5 +21,23 @@ export const onRequest: PagesFunction = async (ctx) => {
     url.hostname = CANONICAL_HOST;
     return Response.redirect(url.toString(), 301);
   }
+
+  // Antiveneno de caché: si un bundle con hash no existe (p. ej. una petición
+  // que cruza justo con un deploy), Pages responde el fallback SPA — HTML con
+  // el Cache-Control "immutable, 1 año" que _headers asigna a /assets/*. El
+  // edge de Cloudflare cachearía ese HTML como si fuera el JS durante un año
+  // (pasó el 2026-07-24: pantalla azul persistente). Un 404 sin caché deja el
+  // fallo en transitorio: el siguiente intento ya encuentra el fichero real.
+  if (url.pathname.startsWith('/assets/')) {
+    const res = await ctx.next();
+    if ((res.headers.get('content-type') ?? '').startsWith('text/html')) {
+      return new Response('Asset no encontrado en este deploy.', {
+        status: 404,
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
+    return res;
+  }
+
   return ctx.next();
 };
