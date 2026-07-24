@@ -1,8 +1,9 @@
 {
   "name": "Firemaps España",
   "short_name": "Firemaps",
-  "description": "Focos de calor detectados por satélite y perímetros de área quemada en España, en tiempo casi real",
+  "description": "Mapa de incendios en España en tiempo real: focos de calor por satélite, área quemada y municipios afectados",
   "lang": "es",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#020617",
   "background_color": "#020617",

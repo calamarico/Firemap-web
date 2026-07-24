@@ -6,6 +6,9 @@
 
 export const LOCALITY_PARAM = 'localidad';
 
+/** Debe coincidir con el <title> de index.html. */
+const DEFAULT_TITLE = 'Mapa de incendios en España en tiempo real · Firemaps España';
+
 interface MuniMetaFile {
   municipalities: Array<{ n: string; c?: [number, number] }>;
 }
@@ -37,12 +40,16 @@ export async function findLocalityCenter(name: string): Promise<[number, number]
   return hit?.c ?? null;
 }
 
-/** Refleja la localidad elegida en la URL (sin ensuciar el historial). */
+/**
+ * Refleja la localidad elegida en la URL (sin ensuciar el historial) y en el
+ * título del documento — así lo que se comparte lleva un título descriptivo.
+ */
 export function setLocalityParam(name: string | null): void {
   const url = new URL(window.location.href);
   if (name) url.searchParams.set(LOCALITY_PARAM, name);
   else url.searchParams.delete(LOCALITY_PARAM);
   window.history.replaceState(null, '', url);
+  document.title = name ? `Incendios en ${name} · Firemaps España` : DEFAULT_TITLE;
 }
 
 export function getLocalityParam(): string | null {

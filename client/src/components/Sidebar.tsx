@@ -63,7 +63,7 @@ export default function Sidebar(props: SidebarProps) {
         <header className="hidden border-b border-slate-800 px-5 py-4 md:block">
           <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
           <p className="mt-1 text-xs text-slate-400">
-            Detección por satélite en tiempo casi real
+            Mapa de incendios en España · satélite en tiempo casi real
           </p>
         </header>
 

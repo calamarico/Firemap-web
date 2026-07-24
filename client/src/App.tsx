@@ -33,8 +33,12 @@ export default function App() {
     const locality = getLocalityParam();
     if (locality) {
       void findLocalityCenter(locality).then((center) => {
-        if (center) map.flyTo({ center, zoom: 12, duration: 1800 });
-        else setLocalityParam(null); // nombre desconocido: se limpia la URL
+        if (center) {
+          map.flyTo({ center, zoom: 12, duration: 1800 });
+          setLocalityParam(locality); // fija también el título del documento
+        } else {
+          setLocalityParam(null); // nombre desconocido: se limpia la URL
+        }
       });
     }
 

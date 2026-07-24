@@ -3,7 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Firemaps España</title>
+
+    <!-- SEO: título con la keyword principal delante y la marca detrás -->
+    <title>Mapa de incendios en España en tiempo real · Firemaps España</title>
+    <meta
+      name="description"
+      content="Mapa de incendios en España actualizado en tiempo casi real: focos de calor detectados por satélite (NASA), perímetros de área quemada (Copernicus) y ranking de municipios afectados en las últimas 24 horas."
+    />
+    <link rel="canonical" href="https://firemapsspain.online/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Open Graph (WhatsApp, Facebook, LinkedIn...) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Firemaps España" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content="Mapa de incendios en España en tiempo real · Firemaps España" />
+    <meta
+      property="og:description"
+      content="Focos de calor por satélite, área quemada y municipios afectados, actualizado cada pocos minutos."
+    />
+    <meta property="og:url" content="https://firemapsspain.online/" />
+    <meta property="og:image" content="https://firemapsspain.online/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Firemaps España: mapa de incendios en España en tiempo real" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mapa de incendios en España en tiempo real · Firemaps España" />
+    <meta
+      name="twitter:description"
+      content="Focos de calor por satélite, área quemada y municipios afectados, actualizado cada pocos minutos."
+    />
+    <meta name="twitter:image" content="https://firemapsspain.online/og-image.png" />
+
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -12,18 +45,65 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180x180.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#020617" />
-    <meta
-      name="description"
-      content="Focos de calor detectados por satélite y perímetros de área quemada en España, en tiempo casi real"
-    />
+
     <!-- Preconexión a los servidores de tiles/glifos: ahorra el handshake TLS
          en la primera petición de cada uno -->
     <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin />
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
     <link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin />
+
+    <!-- Datos estructurados: la app como WebApplication gratuita en español -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Firemaps España",
+        "alternateName": "Mapa de incendios en España",
+        "url": "https://firemapsspain.online/",
+        "description": "Mapa de incendios en España en tiempo casi real: focos de calor detectados por satélite, área quemada y municipios afectados en las últimas 24 horas.",
+        "applicationCategory": "Map",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requiere JavaScript",
+        "inLanguage": "es",
+        "isAccessibleForFree": true,
+        "image": "https://firemapsspain.online/og-image.png",
+        "author": {
+          "@type": "Person",
+          "name": "Kalamarico",
+          "url": "https://github.com/calamarico"
+        }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Contenido estático indexable y pantalla de carga: React lo
+           sustituye al montar la aplicación. -->
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          background: #020617;
+          color: #e2e8f0;
+          font-family: system-ui, sans-serif;
+          text-align: center;
+          padding: 2rem;
+        "
+      >
+        <h1 style="font-size: 1.6rem; margin: 0">Mapa de incendios en España en tiempo real</h1>
+        <p style="max-width: 42rem; color: #94a3b8; margin: 0; line-height: 1.6">
+          Firemaps España muestra los incendios activos en España sobre un mapa por satélite:
+          focos de calor de las últimas 24 horas detectados por la NASA (satélites VIIRS),
+          perímetros de área quemada del programa europeo Copernicus y el ranking de municipios
+          más afectados, actualizado cada pocos minutos. Gratuito y sin registro.
+        </p>
+        <p style="color: #64748b; margin: 0">Cargando el mapa de incendios…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

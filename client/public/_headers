@@ -1,0 +1,15 @@
+# Cabeceras servidas por Cloudflare Pages (equivalen a las que pone Express
+# en el despliegue Node).
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/*
+  Cache-Control: public, max-age=86400
+
+/og-image.png
+  Cache-Control: public, max-age=86400
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
