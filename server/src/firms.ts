@@ -22,11 +22,21 @@ const AREAS = [
  * satélite pasa sobre España a horas distintas, así que fusionarlos da la foto
  * más completa de lo que está ardiendo ahora.
  */
-const MERGED_SENSORS = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT'] as const;
+// Los tres VIIRS comparten plano orbital: pasan sobre España casi a la misma
+// hora solar (~13:30 y ~01:30 locales), así que dejan un hueco de ~11 h por la
+// tarde-noche. MODIS (Terra + Aqua, en el mismo id de sensor) pasa a otras
+// horas —Terra sobre las 22:30 locales— y rellena justo ese hueco. Resolución
+// 1 km frente a los 375 m de VIIRS: menos fino, pero cubre cuando no hay nada.
+const MERGED_SENSORS = [
+  'VIIRS_SNPP_NRT',
+  'VIIRS_NOAA20_NRT',
+  'VIIRS_NOAA21_NRT',
+  'MODIS_NRT',
+] as const;
 const WINDOW_HOURS = 24;
 // FIRMS solo filtra por días naturales UTC: se piden 2 (hoy + ayer) y la
 // ventana de 24 h se recorta aquí, porque siempre cruza la medianoche UTC.
-// Coste por renovación: 6 peticiones (3 sensores × 2 áreas) cada ~5 min,
+// Coste por renovación: 8 peticiones (4 sensores × 2 áreas) cada ~5 min,
 // muy por debajo del límite de 5000/10 min.
 const FETCH_DAYS = 2;
 

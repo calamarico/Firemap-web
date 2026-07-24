@@ -138,6 +138,8 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
       // El total regional cuenta solo los municipios que entran en el ranking,
       // para que cuadre con lo que la lista muestra.
       count: relevant.reduce((sum, m) => sum + m.count, 0),
+      // Ya ordenados por fecha descendente: el primero es el más reciente.
+      lastAcqAt: relevant[0].lastAcqAt,
       municipalities: relevant.slice(0, MAX_MUNICIPALITIES_PER_REGION),
     });
   }

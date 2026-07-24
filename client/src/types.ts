@@ -32,6 +32,8 @@ export interface RegionImpact {
   /** Comunidad autónoma. */
   name: string;
   count: number;
+  /** Detección más reciente de la comunidad (ISO 8601 UTC): la edad se muestra aquí. */
+  lastAcqAt: string;
   municipalities: MunicipalityImpact[];
 }
 

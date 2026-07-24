@@ -2,7 +2,8 @@
 
 Aplicación web centrada en el **momento actual**: muestra en un mapa los
 **focos de calor** detectados por satélite en las **últimas 24 horas**
-(NASA FIRMS, unión de los tres satélites VIIRS: S-NPP, NOAA-20 y NOAA-21) y
+(NASA FIRMS, unión de los tres satélites VIIRS —S-NPP, NOAA-20 y NOAA-21— más
+MODIS/Terra-Aqua, que cubre el hueco de la tarde-noche) y
 los **perímetros de área quemada** recientes (EFFIS / Copernicus) en España
 (península, Baleares, Canarias, Ceuta y Melilla). No hay vistas históricas:
 una sola vista, siempre al día.
@@ -120,7 +121,7 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 
 | Endpoint | Descripción |
 |---|---|
-| `GET /api/fires` | Focos de España en las últimas 24 h (3 satélites VIIRS fusionados) + ranking de localidades afectadas |
+| `GET /api/fires` | Focos de España en las últimas 24 h (3 satélites VIIRS + MODIS fusionados) + ranking de localidades afectadas |
 | `GET /api/effis/status` | Disponibilidad del WMS de EFFIS (sonda con fallback de endpoints) |
 | `GET /api/effis/wms?range=7d&bbox=…` | Proxy del `GetMap` WMS de EFFIS (tiles raster para MapLibre) |
 | `GET /api/health` | Comprobación de vida |
@@ -176,7 +177,7 @@ disponible".
 │   ├── data/             # municipios.json + ccaa.json para el join del ranking
 │   └── src/
 │       ├── index.ts      # rutas /api/*, estáticos del cliente en producción
-│       ├── firms.ts      # FIRMS: fusión 3 satélites, ventana 24 h, SWR + single-flight
+│       ├── firms.ts      # FIRMS: fusión 4 sensores, ventana 24 h, SWR + single-flight
 │       ├── effis.ts      # EFFIS: sonda de salud, fallback y proxy de tiles WMS
 │       ├── impact.ts     # ranking de localidades (join espacial foco→municipio→CCAA)
 │       ├── geo.ts        # point-in-polygon (contorno de España + utilidades)

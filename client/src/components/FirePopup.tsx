@@ -11,16 +11,37 @@ export function formatAcqTime(acqTime: string): string {
   return `${padded.slice(0, 2)}:${padded.slice(2)} UTC`;
 }
 
+/**
+ * VIIRS informa la confianza por letras (l/n/h) y MODIS con un porcentaje:
+ * el número se muestra tal cual con su unidad, sin inventar una equivalencia.
+ */
 export function confidenceLabel(confidence: string): string {
-  return CONFIDENCE_LABELS[confidence.toLowerCase()] ?? confidence;
+  const known = CONFIDENCE_LABELS[confidence.toLowerCase()];
+  if (known) return known;
+  return /^\d+$/.test(confidence.trim()) ? `${confidence.trim()} %` : confidence;
+}
+
+/** Instante de la detección; FIRMS lo da en UTC (acqDate + acqTime HHMM). */
+function acqInstant(fire: FireHotspot): Date | null {
+  const time = fire.acqTime.padStart(4, '0');
+  const date = new Date(`${fire.acqDate}T${time.slice(0, 2)}:${time.slice(2)}:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /** Contenido del popup de un foco de calor (se monta dentro del popup de MapLibre). */
 export default function FirePopup({ fire }: { fire: FireHotspot }) {
+  // Fecha y hora en local, como en el ranking de localidades: mezclar UTC aquí
+  // y local allí para el mismo foco solo confunde.
+  const instant = acqInstant(fire);
   const rows: Array<[string, string]> = [
     ['Coordenadas', `${fire.latitude.toFixed(4)}, ${fire.longitude.toFixed(4)}`],
-    ['Fecha', fire.acqDate],
-    ['Hora', formatAcqTime(fire.acqTime)],
+    ['Fecha', instant ? instant.toLocaleDateString('es-ES') : fire.acqDate],
+    [
+      'Hora',
+      instant
+        ? instant.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : formatAcqTime(fire.acqTime),
+    ],
     ['Confianza', confidenceLabel(fire.confidence)],
     ['FRP', fire.frp !== null ? `${fire.frp.toFixed(1)} MW` : '—'],
     ['Satélite', fire.satellite || '—'],

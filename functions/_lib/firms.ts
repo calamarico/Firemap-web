@@ -18,7 +18,17 @@ const AREAS = [
   { name: 'canarias', bbox: '-18.40,27.40,-13.30,29.50' },
 ] as const;
 
-const MERGED_SENSORS = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT'] as const;
+// Los tres VIIRS comparten plano orbital: pasan sobre España casi a la misma
+// hora solar (~13:30 y ~01:30 locales), así que dejan un hueco de ~11 h por la
+// tarde-noche. MODIS (Terra + Aqua, en el mismo id de sensor) pasa a otras
+// horas —Terra sobre las 22:30 locales— y rellena justo ese hueco. Resolución
+// 1 km frente a los 375 m de VIIRS: menos fino, pero cubre cuando no hay nada.
+const MERGED_SENSORS = [
+  'VIIRS_SNPP_NRT',
+  'VIIRS_NOAA20_NRT',
+  'VIIRS_NOAA21_NRT',
+  'MODIS_NRT',
+] as const;
 const WINDOW_HOURS = 24;
 const FETCH_DAYS = 2;
 
@@ -32,7 +42,7 @@ const AREA_DEADLINE_MS = 26_000;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
-const CACHE_KEY = 'https://firemap.cache/api/fires-v3';
+const CACHE_KEY = 'https://firemap.cache/api/fires-v4';
 
 let cacheEntry: { response: FiresResponse; at: number } | null = null;
 let inFlight: Promise<FiresResponse> | null = null;

@@ -117,6 +117,8 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
     result.push({
       name: index.regions[regionIdx],
       count: municipalities.reduce((sum, m) => sum + m.count, 0),
+      // Ya ordenados por fecha descendente: el primero es el más reciente.
+      lastAcqAt: municipalities[0]?.lastAcqAt ?? '',
       municipalities: municipalities.slice(0, MAX_MUNICIPALITIES_PER_REGION),
     });
   }
