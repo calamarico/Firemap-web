@@ -24,6 +24,11 @@ const FETCH_DAYS = 2;
 
 const FRESH_MS = 5 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
+// Presupuesto de tiempo del fan-out. Cloudflare corta con 524 si la Function
+// no responde, así que una ronda con un satélite colgado no puede quedarse
+// esperando: pasado el plazo se responde con lo que haya llegado (partial).
+const AREA_TIMEOUT_MS = 12_000;
+const AREA_DEADLINE_MS = 26_000;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
@@ -111,7 +116,7 @@ async function refreshFires(mapKey: string, env: Env): Promise<FiresResponse> {
   const jobs: Array<Promise<FireHotspot[]>> = [];
   for (const sensor of MERGED_SENSORS) {
     for (const area of AREAS) {
-      jobs.push(fetchArea(mapKey, sensor, area.bbox));
+      jobs.push(withDeadline(fetchArea(mapKey, sensor, area.bbox)));
     }
   }
   const [settled, index] = await Promise.all([Promise.allSettled(jobs), loadIndex(env)]);
@@ -141,6 +146,28 @@ async function refreshFires(mapKey: string, env: Env): Promise<FiresResponse> {
   };
 }
 
+/**
+ * Tope duro por trabajo, cubriendo intento + reintento. Sin esto, el peor caso
+ * del fan-out se acumula y la Function puede pasar del límite de Cloudflare y
+ * devolver 524: mejor una foto parcial a tiempo que un error.
+ */
+function withDeadline(job: Promise<FireHotspot[]>): Promise<FireHotspot[]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<FireHotspot[]>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new ApiError(504, 'FIRMS_TIMEOUT', 'FIRMS agotó el plazo de la ronda.')),
+      AREA_DEADLINE_MS
+    );
+  });
+  // El clearTimeout evita que un temporizador vivo alargue la invocación.
+  return Promise.race([
+    job.finally(() => {
+      if (timer !== undefined) clearTimeout(timer);
+    }),
+    deadline,
+  ]);
+}
+
 async function fetchArea(mapKey: string, sensor: string, bbox: string): Promise<FireHotspot[]> {
   try {
     return await fetchAreaOnce(mapKey, sensor, bbox);
@@ -154,7 +181,7 @@ async function fetchAreaOnce(mapKey: string, sensor: string, bbox: string): Prom
   const url = `${FIRMS_BASE}/${mapKey}/${sensor}/${bbox}/${FETCH_DAYS}`;
   let res: Response;
   try {
-    res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    res = await fetch(url, { signal: AbortSignal.timeout(AREA_TIMEOUT_MS) });
   } catch {
     throw new ApiError(504, 'FIRMS_UNREACHABLE', 'No se pudo contactar con NASA FIRMS.');
   }

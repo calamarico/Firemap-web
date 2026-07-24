@@ -87,9 +87,10 @@ export default function App() {
       <MapView
         hotspots={fires.data?.hotspots ?? []}
         showFires={showFires}
-        // La capa se mantiene aunque EFFIS esté caído: el proxy sirve los
-        // últimos tiles buenos (stale hasta 24 h) y lo que falte queda vacío.
-        showEffis={showEffis}
+        // Con EFFIS confirmado caído se deja de pedir teselas: cada una es una
+        // invocación del Worker que ya sabemos que va a fallar (y quota del
+        // plan free). Mientras el estado se comprueba, la capa sigue activa.
+        showEffis={showEffis && effis.data?.available !== false}
         effisRefreshToken={effisRefreshToken}
         showBoundaries={showBoundaries}
         basemap={basemap}

@@ -53,6 +53,11 @@ const CANDIDATES: EffisCandidate[] = [
  */
 const PROBE_BBOX = '-560000,4880000,-380000,5000000';
 const PROBE_SIZE = 256;
+// Cuando EFFIS cae no rechaza la conexión: la deja abierta sin contestar nada
+// (medido el 2026-07-24: 25 s, cero bytes). Timeouts cortos a propósito — es
+// tiempo que alguien está esperando por una capa secundaria.
+const PROBE_TIMEOUT_MS = 6_000;
+const TILE_TIMEOUT_MS = 8_000;
 
 const BBOX_RE = /^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/;
 const RANGES: ReadonlySet<string> = new Set(['7d', '30d', 'season']);
@@ -89,6 +94,15 @@ function storeTile(key: string, tile: CachedTile): void {
 
 let activeCandidate: EffisCandidate | null = null;
 
+/** Último estado conocido, aunque haya caducado: base del stale-while-revalidate. */
+let lastStatus: EffisStatus | null = null;
+
+/**
+ * Estado de EFFIS con stale-while-revalidate: caducado el TTL se responde con
+ * el estado anterior y la sonda corre de fondo. EFFIS caído no rechaza la
+ * conexión, la deja colgada, así que esperar la sonda son segundos de espera
+ * para el cliente por una capa secundaria.
+ */
 export async function getEffisStatus(): Promise<EffisStatus> {
   const cached = statusCache.get('status');
   if (cached) return cached;
@@ -98,6 +112,10 @@ export async function getEffisStatus(): Promise<EffisStatus> {
     statusInFlight = probeCandidates().finally(() => {
       statusInFlight = null;
     });
+  }
+  if (lastStatus) {
+    void statusInFlight.catch(() => {}); // se deja corriendo, sin esperarla
+    return lastStatus;
   }
   return statusInFlight;
 }
@@ -124,6 +142,7 @@ async function probeCandidates(): Promise<EffisStatus> {
           'actual (últimos 30 días) y no admite filtrar por rango.',
     };
     statusCache.set('status', status, STATUS_OK_TTL);
+    lastStatus = status;
     return status;
   }
   activeCandidate = null;
@@ -136,13 +155,14 @@ async function probeCandidates(): Promise<EffisStatus> {
       CANDIDATES.map((c) => `${c.base} (${c.layer})`).join('; '),
   };
   statusCache.set('status', status, STATUS_FAIL_TTL);
+  lastStatus = status;
   return status;
 }
 
 async function probe(candidate: EffisCandidate): Promise<boolean> {
   const url = buildGetMapUrl(candidate, '7d', PROBE_BBOX, PROBE_SIZE, PROBE_SIZE);
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const contentType = res.headers.get('content-type') ?? '';
     // MapServer devuelve HTTP 200 con HTML/XML cuando falla: solo cuenta
     // como vivo si responde una imagen de verdad. Y no cualquier imagen:
@@ -234,7 +254,12 @@ export async function fetchEffisTile(
   const url = buildGetMapUrl(activeCandidate, range, bbox, width, height);
   try {
     // Upstream inestable: dos intentos cortos rinden más que uno largo.
-    const tile = await fetchTileOnce(url, 12_000).catch(() => fetchTileOnce(url, 12_000));
+    const tile = await fetchTileOnce(url, TILE_TIMEOUT_MS).catch((err) => {
+      // Si el fallo fue un timeout, EFFIS está colgado y reintentar solo suma
+      // otros 8 s de espera al cliente. Solo se reintenta cuando contestó algo.
+      if (err instanceof ApiError && err.code === 'EFFIS_UNREACHABLE') throw err;
+      return fetchTileOnce(url, TILE_TIMEOUT_MS);
+    });
     reportTileOutcome(true);
     storeTile(key, tile);
     return tile;

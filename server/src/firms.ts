@@ -41,6 +41,12 @@ const FETCH_DAYS = 2;
 // - una ronda PARCIAL (algún satélite caído) nunca sustituye a una foto
 //   completa anterior: mejor dato completo de hace unos minutos que uno
 //   incompleto de ahora.
+// Presupuesto de tiempo del fan-out: un satélite colgado no puede dejar la
+// petición esperando indefinidamente; pasado el plazo se responde con lo que
+// haya llegado y se marca partial.
+const AREA_TIMEOUT_MS = 12_000;
+const AREA_DEADLINE_MS = 26_000;
+
 const FRESH_MS = 5 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
 let cacheEntry: { response: FiresResponse; at: number } | null = null;
@@ -90,11 +96,23 @@ export async function getFires(): Promise<FiresResponse> {
   return inFlight;
 }
 
+/** Tope duro por trabajo, cubriendo intento + reintento. */
+function withDeadline(job: Promise<FireHotspot[]>): Promise<FireHotspot[]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<FireHotspot[]>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new ApiError(504, 'FIRMS_TIMEOUT', 'FIRMS agotó el plazo de la ronda.')),
+      AREA_DEADLINE_MS
+    );
+  });
+  return Promise.race([job.finally(() => clearTimeout(timer)), deadline]);
+}
+
 async function refreshFires(mapKey: string): Promise<FiresResponse> {
   const jobs: Array<Promise<FireHotspot[]>> = [];
   for (const sensor of MERGED_SENSORS) {
     for (const area of AREAS) {
-      jobs.push(fetchArea(mapKey, sensor, area.bbox, FETCH_DAYS));
+      jobs.push(withDeadline(fetchArea(mapKey, sensor, area.bbox, FETCH_DAYS)));
     }
   }
   // allSettled: la caída transitoria de un satélite no tumba la vista entera;
@@ -166,7 +184,7 @@ async function fetchAreaOnce(
   const url = `${FIRMS_BASE}/${mapKey}/${sensor}/${bbox}/${days}`;
   let res: Response;
   try {
-    res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    res = await fetch(url, { signal: AbortSignal.timeout(AREA_TIMEOUT_MS) });
   } catch {
     throw new ApiError(
       504,

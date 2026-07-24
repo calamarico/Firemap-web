@@ -37,6 +37,11 @@ const CANDIDATES: EffisCandidate[] = [
 
 const PROBE_BBOX = '-560000,4880000,-380000,5000000';
 const PROBE_SIZE = 256;
+// Cuando EFFIS cae no rechaza la conexión: la deja abierta sin contestar nada
+// (medido el 2026-07-24: 25 s, cero bytes). El timeout es corto a propósito —
+// es tiempo que alguien está esperando, y un EFFIS lento no debe costar nada.
+const PROBE_TIMEOUT_MS = 6_000;
+const TILE_TIMEOUT_MS = 8_000;
 
 const BBOX_RE = /^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/;
 const RANGES: ReadonlySet<string> = new Set(['7d', '30d', 'season']);
@@ -60,12 +65,25 @@ const tileStore = new Map<string, CachedTile>();
 const TILE_FAILURE_THRESHOLD = 3;
 let tileFailureStreak = 0;
 
-export async function getEffisStatus(): Promise<EffisStatus> {
-  if (statusEntry && Date.now() < statusEntry.expiresAt) return statusEntry.status;
+/**
+ * Estado de EFFIS con stale-while-revalidate: si hay un estado anterior
+ * (aunque caducado) se responde AL INSTANTE y la sonda corre en segundo plano.
+ * Antes, cada expiración obligaba a un cliente a esperar la ronda de sondas
+ * completa contra un upstream que se cuelga sin contestar — de ahí los 30 s de
+ * espera y algún 524. Solo el primer sondeo de un isolate frío espera.
+ */
+export function getEffisStatus(waitUntil?: (p: Promise<unknown>) => void): Promise<EffisStatus> {
+  const entry = statusEntry;
+  if (entry && Date.now() < entry.expiresAt) return Promise.resolve(entry.status);
+
   if (!statusInFlight) {
     statusInFlight = probeCandidates().finally(() => {
       statusInFlight = null;
     });
+  }
+  if (entry && waitUntil) {
+    waitUntil(statusInFlight.catch(() => {}));
+    return Promise.resolve(entry.status);
   }
   return statusInFlight;
 }
@@ -108,7 +126,7 @@ async function probeCandidates(): Promise<EffisStatus> {
 async function probe(candidate: EffisCandidate): Promise<boolean> {
   const url = buildGetMapUrl(candidate, '7d', PROBE_BBOX, PROBE_SIZE, PROBE_SIZE);
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const contentType = res.headers.get('content-type') ?? '';
     if (!res.ok || !contentType.startsWith('image/')) return false;
     // No basta con "es una imagen": degradado, EFFIS responde 200 con un PNG
@@ -151,7 +169,9 @@ function reportTileOutcome(ok: boolean): void {
   }
   tileFailureStreak += 1;
   if (tileFailureStreak >= TILE_FAILURE_THRESHOLD) {
-    statusEntry = null;
+    // Se marca caducado, no se borra: así el siguiente cliente recibe este
+    // estado al instante mientras la sonda se rehace de fondo.
+    if (statusEntry) statusEntry = { ...statusEntry, expiresAt: 0 };
     tileFailureStreak = 0;
   }
 }
@@ -160,7 +180,8 @@ export async function fetchEffisTile(
   rangeRaw: string,
   bbox: string,
   widthRaw: string,
-  heightRaw: string
+  heightRaw: string,
+  waitUntil?: (p: Promise<unknown>) => void
 ): Promise<CachedTile> {
   if (!RANGES.has(rangeRaw)) {
     throw new ApiError(400, 'BAD_RANGE', 'El parámetro "range" debe ser 7d, 30d o season.');
@@ -181,7 +202,9 @@ export async function fetchEffisTile(
   if (hit && now - hit.at < TILE_FRESH_MS) return hit;
   const staleUsable = hit && now - hit.at < TILE_STALE_MAX_MS ? hit : undefined;
 
-  const status = await getEffisStatus();
+  // Con el servicio caído esto corta aquí sin tocar el upstream: la petición
+  // se resuelve en milisegundos en vez de colgarse hasta el timeout.
+  const status = await getEffisStatus(waitUntil);
   if (!status.available || !activeCandidate) {
     if (staleUsable) return staleUsable;
     throw new ApiError(503, 'EFFIS_UNAVAILABLE', status.note ?? 'EFFIS no disponible.');
@@ -189,7 +212,12 @@ export async function fetchEffisTile(
 
   const url = buildGetMapUrl(activeCandidate, range, bbox, width, height);
   try {
-    const tile = await fetchTileOnce(url, 12_000).catch(() => fetchTileOnce(url, 12_000));
+    const tile = await fetchTileOnce(url, TILE_TIMEOUT_MS).catch((err) => {
+      // Si el fallo fue un timeout, EFFIS está colgado y reintentar solo suma
+      // otros 8 s de espera al cliente. Solo se reintenta cuando contestó algo.
+      if (err instanceof ApiError && err.code === 'EFFIS_UNREACHABLE') throw err;
+      return fetchTileOnce(url, TILE_TIMEOUT_MS);
+    });
     reportTileOutcome(true);
     storeTile(key, tile);
     return tile;
