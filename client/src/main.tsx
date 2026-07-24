@@ -11,6 +11,21 @@ import './index.css';
 // teselas de su viewport en lugar del GeoJSON completo de municipios.
 maplibregl.addProtocol('pmtiles', new Protocol().tile);
 
+// Easter egg para quien abra la consola.
+console.log(
+  `%c Designed by:\n` +
+    `%c` +
+    ` ██╗  ██╗ █████╗ ██╗      █████╗ ███╗   ███╗ █████╗ ██████╗ ██╗ ██████╗ ██████╗ \n` +
+    ` ██║ ██╔╝██╔══██╗██║     ██╔══██╗████╗ ████║██╔══██╗██╔══██╗██║██╔════╝██╔═══██╗\n` +
+    ` █████╔╝ ███████║██║     ███████║██╔████╔██║███████║██████╔╝██║██║     ██║   ██║\n` +
+    ` ██╔═██╗ ██╔══██║██║     ██╔══██║██║╚██╔╝██║██╔══██║██╔══██╗██║██║     ██║   ██║\n` +
+    ` ██║  ██╗██║  ██║███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║  ██║██║╚██████╗╚██████╔╝\n` +
+    ` ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═════╝ \n\n` +
+    ` 🔗 @calamarico\n`,
+  'color: #aaa; font-size: 14px; font-weight: normal;',
+  'color: #e0a0ff; font-size: 10px; font-family: monospace; font-weight: bold;'
+);
+
 const container = document.getElementById('root');
 if (!container) {
   throw new Error('No existe el elemento #root en index.html');

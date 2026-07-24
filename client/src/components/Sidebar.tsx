@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import logoUrl from '../assets/logo.png';
 import { MANUAL_REFRESH_COOLDOWN_MS, REFRESH_INTERVAL_MS } from '../config';
 import type { EffisView } from '../hooks/useEffisStatus';
@@ -36,6 +36,44 @@ export default function Sidebar(props: SidebarProps) {
   // Solo aplica en móvil (< md): la hoja arranca plegada para que mande el
   // mapa. En escritorio el panel es fijo y este estado se ignora vía CSS.
   const [collapsed, setCollapsed] = useState(true);
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  // Con la hoja desplegada, tocar fuera de ella (el mapa) la pliega: es el
+  // gesto natural de una bottom sheet. Solo en móvil; en escritorio el panel
+  // es fijo y el estado collapsed ni se pinta.
+  useEffect(() => {
+    if (collapsed) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (window.matchMedia('(min-width: 768px)').matches) return; // md+: panel fijo
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) {
+        setCollapsed(true);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [collapsed]);
+
+  // Arrastre vertical sobre la barra: deslizar hacia arriba despliega, hacia
+  // abajo pliega. El tap sigue funcionando vía onClick; 30 px de umbral
+  // separan un gesto real de un dedo que tiembla.
+  const touchStartY = useRef<number | null>(null);
+  const onBarTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const onBarTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy < -30) {
+      setCollapsed(false);
+      touchStartY.current = null;
+    } else if (dy > 30) {
+      setCollapsed(true);
+      touchStartY.current = null;
+    }
+  };
+  const onBarTouchEnd = () => {
+    touchStartY.current = null;
+  };
 
   // Segundos restantes hasta poder refrescar a mano otra vez: cada pulsación
   // gasta invocaciones del plan free de Cloudflare, así que no se permite
@@ -55,16 +93,25 @@ export default function Sidebar(props: SidebarProps) {
 
   return (
     <aside
+      ref={asideRef}
       className="absolute bottom-0 left-0 z-10 flex w-full flex-col overflow-hidden
         bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur
         md:top-0 md:h-full md:w-96"
     >
-      {/* Barra compacta de la hoja inferior (solo móvil) */}
+      {/* Barra compacta de la hoja inferior (solo móvil): tap o arrastre */}
       <button
         onClick={() => setCollapsed((c) => !c)}
+        onTouchStart={onBarTouchStart}
+        onTouchMove={onBarTouchMove}
+        onTouchEnd={onBarTouchEnd}
         aria-expanded={!collapsed}
-        className="flex items-center justify-between gap-3 px-4 py-3 text-left md:hidden"
+        className="relative flex touch-none items-center justify-between gap-3 px-4 pb-3 pt-4 text-left md:hidden"
       >
+        {/* Asa de arrastre: la pastilla estándar de las bottom sheets */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1.5 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-600"
+        />
         <span className="flex items-center gap-2">
           <img src={logoUrl} alt="" className="h-7 w-7" />
           <span className="text-sm font-bold leading-tight">Firemaps España</span>
