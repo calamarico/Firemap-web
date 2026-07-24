@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import logoUrl from '../assets/logo.png';
 import { MANUAL_REFRESH_COOLDOWN_MS, REFRESH_INTERVAL_MS } from '../config';
 import type { EffisView } from '../hooks/useEffisStatus';
@@ -12,6 +12,9 @@ const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
   { value: 'satellite', label: 'Satélite' },
   { value: 'dark', label: 'Oscuro' },
 ];
+
+/** Duración del deslizamiento de la hoja; debe coincidir con duration-300. */
+const SHEET_ANIM_MS = 300;
 
 interface SidebarProps {
   fires: FiresView;
@@ -33,46 +36,97 @@ export default function Sidebar(props: SidebarProps) {
   const { fires, effis } = props;
   const count = fires.data?.count ?? null;
   const isLoading = fires.status === 'loading';
-  // Solo aplica en móvil (< md): la hoja arranca plegada para que mande el
-  // mapa. En escritorio el panel es fijo y este estado se ignora vía CSS.
+  // Hoja inferior; solo aplica en móvil (< md): arranca plegada para que mande
+  // el mapa. En escritorio el panel es fijo y md:translate-y-0 neutraliza todo
+  // el desplazamiento, así que nada de esto afecta a ese layout.
   const [collapsed, setCollapsed] = useState(true);
   const asideRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(() => !window.matchMedia('(min-width: 768px)').matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Altura de la parte plegable = cuánto hay que bajar la hoja para dejar solo
+  // la barra a la vista. Se mide en vez de fijarla a ojo, y se re-mide cuando
+  // el contenido cambia de alto (avisos, ranking, spinner de carga...).
+  // useLayoutEffect: la medida entra antes del primer pintado, si no la hoja
+  // asomaría desplegada un frame al cargar.
+  const [contentHeight, setContentHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const measure = () => setContentHeight(el.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // La transición se activa solo durante un plegado/desplegado real: si
+  // estuviera siempre puesta, cualquier cambio de altura del contenido (el
+  // "Actualizando datos…" que aparece cada 5 min) haría bailar la hoja.
+  const [animating, setAnimating] = useState(false);
+  const animTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(animTimer.current), []);
+
+  const setCollapsedAnimated = (next: boolean) => {
+    setAnimating(true);
+    setCollapsed(next);
+    window.clearTimeout(animTimer.current);
+    animTimer.current = window.setTimeout(() => setAnimating(false), SHEET_ANIM_MS + 20);
+  };
 
   // Con la hoja desplegada, tocar fuera de ella (el mapa) la pliega: es el
-  // gesto natural de una bottom sheet. Solo en móvil; en escritorio el panel
-  // es fijo y el estado collapsed ni se pinta.
+  // gesto natural de una bottom sheet.
   useEffect(() => {
-    if (collapsed) return;
+    if (collapsed || !isMobile) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (window.matchMedia('(min-width: 768px)').matches) return; // md+: panel fijo
       if (asideRef.current && !asideRef.current.contains(e.target as Node)) {
-        setCollapsed(true);
+        setCollapsedAnimated(true);
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [collapsed]);
+  }, [collapsed, isMobile]);
 
-  // Arrastre vertical sobre la barra: deslizar hacia arriba despliega, hacia
-  // abajo pliega. El tap sigue funcionando vía onClick; 30 px de umbral
-  // separan un gesto real de un dedo que tiembla.
-  const touchStartY = useRef<number | null>(null);
+  // Arrastre vertical de la barra: la hoja sigue al dedo (sin transición, para
+  // que no vaya a remolque) y al soltar cae al estado más cercano.
+  const [dragY, setDragY] = useState<number | null>(null);
+  const drag = useRef<{ startY: number; base: number; y: number; moved: boolean } | null>(null);
+
   const onBarTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
+    const base = collapsed ? contentHeight : 0;
+    drag.current = { startY: e.touches[0].clientY, base, y: base, moved: false };
+    setAnimating(false);
   };
   const onBarTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (dy < -30) {
-      setCollapsed(false);
-      touchStartY.current = null;
-    } else if (dy > 30) {
-      setCollapsed(true);
-      touchStartY.current = null;
-    }
+    const d = drag.current;
+    if (!d) return;
+    const dy = e.touches[0].clientY - d.startY;
+    if (Math.abs(dy) > 4) d.moved = true;
+    d.y = Math.min(contentHeight, Math.max(0, d.base + dy));
+    setDragY(d.y);
   };
   const onBarTouchEnd = () => {
-    touchStartY.current = null;
+    const d = drag.current;
+    drag.current = null;
+    setDragY(null);
+    // Sin recorrido real fue un tap: lo resuelve onClick, que sí alterna.
+    if (!d || !d.moved) return;
+    // Umbral generoso: un arrastre corto pero claro ya cambia de estado, sin
+    // obligar a recorrer media pantalla.
+    const threshold = Math.min(80, contentHeight * 0.3);
+    setCollapsedAnimated(d.base === 0 ? d.y > threshold : d.y > contentHeight - threshold);
+  };
+  const handleBarClick = () => {
+    // Un arrastre acaba disparando click: si hubo gesto, ya se decidió estado.
+    if (drag.current?.moved) return;
+    setCollapsedAnimated(!collapsed);
   };
 
   // Segundos restantes hasta poder refrescar a mano otra vez: cada pulsación
@@ -91,19 +145,31 @@ export default function Sidebar(props: SidebarProps) {
     props.onRefresh();
   };
 
+  // Con la hoja plegada su contenido queda fuera de pantalla pero seguiría
+  // siendo enfocable: inert lo saca del tabulado y de los lectores de pantalla
+  // (solo en móvil; en escritorio el panel está siempre a la vista).
+  const inertProps = (
+    isMobile && collapsed && dragY === null ? { inert: '' } : {}
+  ) as React.HTMLAttributes<HTMLDivElement>;
+
+  const sheetY = dragY ?? (collapsed ? contentHeight : 0);
+
   return (
     <aside
       ref={asideRef}
-      className="absolute bottom-0 left-0 z-10 flex w-full flex-col overflow-hidden
-        bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur
-        md:top-0 md:h-full md:w-96"
+      style={{ '--sheet-y': `${sheetY}px` } as React.CSSProperties}
+      className={`absolute bottom-0 left-0 z-10 flex w-full translate-y-[var(--sheet-y)] flex-col
+        overflow-hidden bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur
+        md:top-0 md:h-full md:w-96 md:translate-y-0
+        ${animating ? 'transition-transform duration-300 ease-out motion-reduce:transition-none' : ''}`}
     >
       {/* Barra compacta de la hoja inferior (solo móvil): tap o arrastre */}
       <button
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={handleBarClick}
         onTouchStart={onBarTouchStart}
         onTouchMove={onBarTouchMove}
         onTouchEnd={onBarTouchEnd}
+        onTouchCancel={onBarTouchEnd}
         aria-expanded={!collapsed}
         className="relative flex touch-none items-center justify-between gap-3 px-4 pb-3 pt-4 text-left md:hidden"
       >
@@ -123,11 +189,19 @@ export default function Sidebar(props: SidebarProps) {
           <span className="rounded-full bg-orange-500/20 px-2.5 py-0.5 text-sm font-bold tabular-nums text-orange-300">
             {count ?? '—'}
           </span>
-          <span className="text-xs text-slate-400">{collapsed ? '▲' : '▼'}</span>
+          <span
+            aria-hidden="true"
+            className={`text-xs text-slate-400 transition-transform duration-300 ease-out
+              motion-reduce:transition-none ${collapsed ? '' : 'rotate-180'}`}
+          >
+            ▲
+          </span>
         </span>
       </button>
 
-      <div className={`${collapsed ? 'hidden' : 'flex'} min-h-0 flex-col md:flex md:min-h-0 md:flex-1`}>
+      {/* Siempre montado: el plegado es un desplazamiento, no un display:none
+          (si no, no habría nada que animar). */}
+      <div ref={contentRef} {...inertProps} className="flex min-h-0 flex-col md:min-h-0 md:flex-1">
         <header className="hidden items-center gap-3 border-b border-slate-800 px-5 py-4 md:flex">
           <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
           <div>
