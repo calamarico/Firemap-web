@@ -108,11 +108,13 @@ Pasos:
    ilimitados). El mayor consumidor son los tiles de EFFIS.
 
 Prueba local del build de Cloudflare: `cp server/.env .dev.vars && npm run
-preview:cf` (sirve en :8788 con workerd real). Aviso: el servidor de assets de
-`wrangler dev` no soporta peticiones Range en local, así que la capa de
-municipios (PMTiles) solo se comporta bien en producción; si el CDN de Pages
-diera problemas con Range, el plan B es mover los dos `.pmtiles` a R2 (también
-gratuito).
+preview:cf` (sirve en :8788 con workerd real).
+
+Nota sobre PMTiles: el asset server de Pages no soporta peticiones HTTP Range,
+que son la base de PMTiles. Lo resuelve `functions/data/[[path]].ts`: una
+Function intercepta los `.pmtiles`, los mantiene en memoria del isolate y emula
+el byte serving (206 + Content-Range). Si el volumen de teselas creciera, la
+evolución natural es moverlas a R2 (Range nativo, también free plan).
 
 ## Endpoints del proxy
 

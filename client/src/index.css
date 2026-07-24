@@ -9,6 +9,22 @@ body,
   margin: 0;
 }
 
+/* En móvil, 100% no cuenta la barra de URL retráctil de iOS/Android: dvh sí. */
+@supports (height: 100dvh) {
+  #root {
+    height: 100dvh;
+  }
+}
+
+/* Móvil: la hoja inferior plegada mide ~48 px; se suben los controles del
+   mapa (zoom, escala, atribución) para que no queden debajo. */
+@media (max-width: 767px) {
+  .maplibregl-ctrl-bottom-left,
+  .maplibregl-ctrl-bottom-right {
+    bottom: 52px;
+  }
+}
+
 /* Popups de MapLibre en oscuro, a juego con el panel. */
 .maplibregl-popup-content {
   background: theme('colors.slate.900');

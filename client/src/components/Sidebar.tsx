@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import type { EffisView } from '../hooks/useEffisStatus';
 import type { FiresView } from '../hooks/useFires';
 import type { BasemapId } from '../map/layers';
+import type { RegionImpact } from '../types';
+import ImpactList from './ImpactList';
 import Legend from './Legend';
 
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
@@ -11,6 +14,7 @@ const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
 interface SidebarProps {
   fires: FiresView;
   effis: EffisView;
+  impact: RegionImpact[];
   showFires: boolean;
   onShowFiresChange: (value: boolean) => void;
   showEffis: boolean;
@@ -26,21 +30,43 @@ export default function Sidebar(props: SidebarProps) {
   const { fires, effis } = props;
   const count = fires.data?.count ?? null;
   const isLoading = fires.status === 'loading';
+  // Solo aplica en móvil (< md): la hoja arranca plegada para que mande el
+  // mapa. En escritorio el panel es fijo y este estado se ignora vía CSS.
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <aside
-      className="absolute bottom-0 left-0 z-10 flex max-h-[55vh] w-full flex-col overflow-y-auto
+      className="absolute bottom-0 left-0 z-10 flex w-full flex-col overflow-hidden
         bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur
-        md:top-0 md:h-full md:max-h-full md:w-96"
+        md:top-0 md:h-full md:w-96"
     >
-      <header className="border-b border-slate-800 px-5 py-4">
-        <h1 className="text-lg font-bold leading-tight">Focos de calor · España</h1>
-        <p className="mt-1 text-xs text-slate-400">
-          Detección por satélite en tiempo casi real
-        </p>
-      </header>
+      {/* Barra compacta de la hoja inferior (solo móvil) */}
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        className="flex items-center justify-between gap-3 px-4 py-3 text-left md:hidden"
+      >
+        <span className="text-sm font-bold leading-tight">Focos de calor · España</span>
+        <span className="flex items-center gap-2">
+          {isLoading && (
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+          )}
+          <span className="rounded-full bg-orange-500/20 px-2.5 py-0.5 text-sm font-bold tabular-nums text-orange-300">
+            {count ?? '—'}
+          </span>
+          <span className="text-xs text-slate-400">{collapsed ? '▲' : '▼'}</span>
+        </span>
+      </button>
 
-      <div className="flex-1 space-y-5 px-5 py-4">
+      <div className={`${collapsed ? 'hidden' : 'flex'} min-h-0 flex-col md:flex md:min-h-0 md:flex-1`}>
+        <header className="hidden border-b border-slate-800 px-5 py-4 md:block">
+          <h1 className="text-lg font-bold leading-tight">Focos de calor · España</h1>
+          <p className="mt-1 text-xs text-slate-400">
+            Detección por satélite en tiempo casi real
+          </p>
+        </header>
+
+        <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
         {/* Contador + estado de la capa de focos */}
         <section>
           <div className="flex items-baseline justify-between">
@@ -79,6 +105,17 @@ export default function Sidebar(props: SidebarProps) {
               Actualizando datos…
             </p>
           )}
+        </section>
+
+        {/* Ranking de localidades: en móvil vive aquí; en escritorio, en el
+            panel flotante de la derecha (ImpactPanel) */}
+        <section className="md:hidden">
+          <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Localidades más afectadas
+          </h2>
+          <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/40">
+            <ImpactList impact={props.impact} />
+          </div>
         </section>
 
         {/* Controles */}
@@ -178,20 +215,21 @@ export default function Sidebar(props: SidebarProps) {
           de área quemada son <em>estimaciones cartografiadas a posteriori</em> y pueden ir con
           retraso respecto al tiempo real.
         </section>
-      </div>
+        </div>
 
-      <footer className="space-y-0.5 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
-        <p>
-          {fires.lastUpdated
-            ? `Última actualización: ${fires.lastUpdated.toLocaleTimeString('es-ES')}`
-            : 'Sin datos todavía'}
-          {fires.data?.cached ? ' (cache del proxy)' : ''}
-          <span className="mx-1">·</span>
-          Auto-refresco cada 2 min
-        </p>
-        {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
-        <p>Datos: NASA FIRMS · Copernicus EFFIS</p>
-      </footer>
+        <footer className="space-y-0.5 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
+          <p>
+            {fires.lastUpdated
+              ? `Última actualización: ${fires.lastUpdated.toLocaleTimeString('es-ES')}`
+              : 'Sin datos todavía'}
+            {fires.data?.cached ? ' (cache del proxy)' : ''}
+            <span className="mx-1">·</span>
+            Auto-refresco cada 2 min
+          </p>
+          {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
+          <p>Datos: NASA FIRMS · Copernicus EFFIS</p>
+        </footer>
+      </div>
     </aside>
   );
 }

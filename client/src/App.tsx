@@ -35,6 +35,7 @@ export default function App() {
       <Sidebar
         fires={fires}
         effis={effis}
+        impact={fires.data?.impact ?? []}
         showFires={showFires}
         onShowFiresChange={setShowFires}
         showEffis={showEffis}
