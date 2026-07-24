@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import logoUrl from '../assets/logo.png';
 import { MANUAL_REFRESH_COOLDOWN_MS, REFRESH_INTERVAL_MS } from '../config';
 import type { EffisView } from '../hooks/useEffisStatus';
 import type { FiresView } from '../hooks/useFires';
@@ -64,7 +65,10 @@ export default function Sidebar(props: SidebarProps) {
         aria-expanded={!collapsed}
         className="flex items-center justify-between gap-3 px-4 py-3 text-left md:hidden"
       >
-        <span className="text-sm font-bold leading-tight">Firemaps España</span>
+        <span className="flex items-center gap-2">
+          <img src={logoUrl} alt="" className="h-7 w-7" />
+          <span className="text-sm font-bold leading-tight">Firemaps España</span>
+        </span>
         <span className="flex items-center gap-2">
           {isLoading && (
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
@@ -77,11 +81,14 @@ export default function Sidebar(props: SidebarProps) {
       </button>
 
       <div className={`${collapsed ? 'hidden' : 'flex'} min-h-0 flex-col md:flex md:min-h-0 md:flex-1`}>
-        <header className="hidden border-b border-slate-800 px-5 py-4 md:block">
-          <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
-          <p className="mt-1 text-xs text-slate-400">
-            Mapa de incendios en España · satélite en tiempo casi real
-          </p>
+        <header className="hidden items-center gap-3 border-b border-slate-800 px-5 py-4 md:flex">
+          <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
+          <div>
+            <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
+            <p className="mt-1 text-xs text-slate-400">
+              Mapa de incendios en España · satélite en tiempo casi real
+            </p>
+          </div>
         </header>
 
         <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
