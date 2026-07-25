@@ -14,7 +14,8 @@
     "preview:cf": "npm run build -w client && wrangler pages dev client/dist",
     "start": "npm run start -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client && tsc -p functions --noEmit",
-    "build:muni-index": "node scripts/build-muni-index.mjs"
+    "build:muni-index": "node scripts/build-muni-index.mjs",
+    "build:wind-grid": "node scripts/build-wind-grid.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260724.1",

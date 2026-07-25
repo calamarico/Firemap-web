@@ -34,6 +34,8 @@ interface SidebarProps {
   onShowEffisChange: (value: boolean) => void;
   showBoundaries: boolean;
   onShowBoundariesChange: (value: boolean) => void;
+  showWind: boolean;
+  onShowWindChange: (value: boolean) => void;
   basemap: BasemapId;
   onBasemapChange: (basemap: BasemapId) => void;
   onRefresh: () => void;
@@ -291,6 +293,13 @@ export default function Sidebar(props: SidebarProps) {
             swatch="var(--fm-burnt-fill)"
           />
           <LayerToggle
+            label="Viento"
+            checked={props.showWind}
+            onChange={props.onShowWindChange}
+            swatch="var(--fm-map-wind-fire)"
+            description="Dirección y velocidad · Open-Meteo"
+          />
+          <LayerToggle
             label="Límites administrativos"
             checked={props.showBoundaries}
             onChange={props.onShowBoundariesChange}
@@ -338,7 +347,7 @@ export default function Sidebar(props: SidebarProps) {
         </section>
 
         <section>
-          <Legend showEffis={props.showEffis} />
+          <Legend showEffis={props.showEffis} showWind={props.showWind} />
         </section>
 
         </div>
@@ -354,7 +363,15 @@ export default function Sidebar(props: SidebarProps) {
           </p>
           {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
           <p>
-            Datos: NASA FIRMS · Copernicus EFFIS
+            Datos: NASA FIRMS · Copernicus EFFIS ·{' '}
+            <a
+              href="https://open-meteo.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
+            >
+              Open-Meteo
+            </a>
             <span className="mx-1">·</span>
             By{' '}
             <a

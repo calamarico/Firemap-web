@@ -117,8 +117,11 @@ export function registerEffisTileProtocol(): void {
     } catch (err) {
       if (abortController.signal.aborted) throw err;
       const cached = cache ? await readFresh(cache, key) : null;
-      if (cached) return { data: cached };
-      throw err;
+      // Sin copia local: tesela transparente en vez de error. Relanzar solo
+      // llenaría la consola (un error por tesela durante toda la caída) y no
+      // cambia el reintento, que ya lo gobierna la recarga por época al
+      // recuperarse el servicio.
+      return { data: cached ?? TRANSPARENT_PNG };
     }
   });
 

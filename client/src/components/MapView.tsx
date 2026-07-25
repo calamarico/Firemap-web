@@ -10,12 +10,14 @@ import {
   createCitiesLayer,
   createEffisLayer,
   createFiresLayer,
+  createWindLayer,
   EffisLayer,
   FIRES_LAYER_ID,
   FiresLayer,
   setBasemap,
+  WindLayer,
 } from '../map/layers';
-import type { FireHotspot } from '../types';
+import type { FireHotspot, WindPoint } from '../types';
 import FirePopup from './FirePopup';
 
 interface MapViewProps {
@@ -30,6 +32,9 @@ interface MapViewProps {
    */
   effisRefreshToken?: number;
   showBoundaries: boolean;
+  showWind: boolean;
+  /** Muestras de viento (rejilla + junto a focos) ya combinadas por useWind. */
+  wind: WindPoint[];
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
   onMapReady?: (map: maplibregl.Map) => void;
@@ -80,14 +85,19 @@ export default function MapView({
   showEffis,
   effisRefreshToken = 0,
   showBoundaries,
+  showWind,
+  wind,
   basemap,
   onMapReady,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const layersRef = useRef<{ fires: FiresLayer; effis: EffisLayer; boundaries: AppLayer } | null>(
-    null
-  );
+  const layersRef = useRef<{
+    fires: FiresLayer;
+    effis: EffisLayer;
+    boundaries: AppLayer;
+    wind: WindLayer;
+  } | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Inicialización única del mapa; los cambios posteriores se sincronizan en
@@ -134,13 +144,17 @@ export default function MapView({
     const effis = createEffisLayer('7d');
     const boundaries = createBoundariesLayer();
     const cities = createCitiesLayer();
-    layersRef.current = { fires, effis, boundaries };
+    const wind = createWindLayer();
+    layersRef.current = { fires, effis, boundaries, wind };
 
     map.on('load', () => {
       effis.add(map); // polígonos de área quemada al fondo...
       boundaries.add(map); // ...límites y nombres autonómicos encima...
       cities.add(map); // ...referencias urbanas (sin toggle: son "mobiliario base")...
-      fires.add(map); // ...y los focos arriba del todo
+      fires.add(map); // ...los focos arriba...
+      // ...y el viento el último: su rejilla se auto-inserta bajo las
+      // referencias urbanas; las flechas junto a focos quedan encima de todo.
+      wind.add(map);
       bindFiresPopup(map);
 
       // La URL solo refleja la posición cuando ya no es la de arranque (o si
@@ -193,6 +207,16 @@ export default function MapView({
     if (!mapReady || !mapRef.current || !layersRef.current) return;
     layersRef.current.boundaries.setVisible(mapRef.current, showBoundaries);
   }, [showBoundaries, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current) return;
+    layersRef.current.wind.setData(mapRef.current, wind);
+  }, [wind, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current) return;
+    layersRef.current.wind.setVisible(mapRef.current, showWind);
+  }, [showWind, mapReady]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;

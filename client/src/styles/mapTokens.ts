@@ -23,4 +23,12 @@ export const MAP = {
   cityDotStroke: 'rgba(15,23,42,0.70)',
   label: '#ffffff',
   labelHalo: '#000000',
+  // Viento: la rejilla ambiental comparte familia con los límites; las
+  // flechas junto a los focos van en cian (--fm-accent-300), inconfundible
+  // con la banda ámbar/roja reservada a la severidad FRP. La etiqueta km/h
+  // usa un azul más marcado (--fm-accent-400): misma familia que la flecha
+  // pero distinto tono, e inconfundible con el blanco de los topónimos.
+  windGrid: 'rgba(226,232,240,0.5)',
+  windFire: '#7fddf2',
+  windLabel: '#38c7e6',
 } as const;

@@ -133,6 +133,9 @@
   --fm-map-city-dot-stroke: rgb(15 23 42 / 0.7);
   --fm-map-label: #ffffff;
   --fm-map-label-halo: #000000;
+  --fm-map-wind-grid: rgb(226 232 240 / 0.5);
+  --fm-map-wind-fire: var(--fm-accent-300);
+  --fm-map-wind-label: var(--fm-accent-400);
 
   /* ============ Tipografía ============ */
   --fm-font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;

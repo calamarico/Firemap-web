@@ -1,12 +1,14 @@
 import type maplibregl from 'maplibre-gl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ImpactPanel from './components/ImpactPanel';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
 import { REFRESH_INTERVAL_MS } from './config';
 import { useEffisStatus } from './hooks/useEffisStatus';
 import { useFires } from './hooks/useFires';
+import { useWind } from './hooks/useWind';
 import { findLocalityCenter, getLocalityParam, setLocalityParam } from './lib/locality';
+import { deriveFireWindPoints } from './lib/windPoints';
 import { setEffisDown } from './map/effisTileCache';
 import type { BasemapId } from './map/layers';
 import type { MunicipalityImpact } from './types';
@@ -15,10 +17,18 @@ export default function App() {
   const [showFires, setShowFires] = useState(true);
   const [showEffis, setShowEffis] = useState(true);
   const [showBoundaries, setShowBoundaries] = useState(true);
+  const [showWind, setShowWind] = useState(true);
   const [basemap, setBasemapId] = useState<BasemapId>('satellite');
 
   const { view: fires, refresh: refreshFires } = useFires(REFRESH_INTERVAL_MS);
   const { view: effis, refresh: refreshEffis } = useEffisStatus(REFRESH_INTERVAL_MS);
+
+  // Viento junto a los clusters de focos + rejilla general (dentro del hook).
+  // Cadencia propia: no se engancha al botón "Refrescar ahora" porque
+  // Open-Meteo no actualiza su dato más rápido de ~15 min.
+  const impact = fires.data?.impact;
+  const fireWindPoints = useMemo(() => deriveFireWindPoints(impact ?? []), [impact]);
+  const wind = useWind(showWind, fireWindPoints);
 
   // El protocolo de teselas necesita saber si EFFIS está caído: con caída
   // confirmada sirve solo la copia local (Cache API) sin lanzar peticiones,
@@ -103,6 +113,8 @@ export default function App() {
         showEffis={showEffis}
         effisRefreshToken={effisRefreshToken}
         showBoundaries={showBoundaries}
+        showWind={showWind}
+        wind={wind.points}
         basemap={basemap}
         onMapReady={handleMapReady}
       />
@@ -117,6 +129,8 @@ export default function App() {
         onShowEffisChange={setShowEffis}
         showBoundaries={showBoundaries}
         onShowBoundariesChange={setShowBoundaries}
+        showWind={showWind}
+        onShowWindChange={setShowWind}
         basemap={basemap}
         onBasemapChange={setBasemapId}
         onRefresh={handleRefresh}

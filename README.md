@@ -1,4 +1,4 @@
-# 🔥 Focos de calor · España
+# 🔥 Firemaps · España
 
 Aplicación web centrada en el **momento actual**: muestra en un mapa los
 **focos de calor** detectados por satélite en las **últimas 24 horas**
