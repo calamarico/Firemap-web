@@ -4,3 +4,9 @@
 name = "firemap-web"
 compatibility_date = "2026-07-01"
 pages_build_output_dir = "client/dist"
+
+# Cache global de /api/fires: módulo y Cache API son locales a cada datacenter;
+# KV es lo que permite que el cron de keep-warm caliente todos los colos.
+[[kv_namespaces]]
+binding = "FIRES_KV"
+id = "cd729ecaa93c4cec8e8b703a71ba9f37"

@@ -75,4 +75,7 @@ export class ApiError extends Error {
 export interface Env {
   FIRMS_MAP_KEY?: string;
   ASSETS: Fetcher;
+  // Cache global de la respuesta de /api/fires (opcional: sin el binding, la
+  // app funciona solo con las caches por datacenter).
+  FIRES_KV?: KVNamespace;
 }

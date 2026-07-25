@@ -7,8 +7,11 @@ import { ApiError, Env, FireHotspot, FiresResponse } from './types';
  * - CSV parseado a mano (sin papaparse): el CSV de FIRMS no lleva comas
  *   embebidas y el parser propio gasta una fracción del CPU — importa con el
  *   límite de 10 ms/invocación del free plan.
- * - Cache en dos niveles: variable de módulo (válida mientras el isolate viva)
- *   + Cache API de Cloudflare para calentar isolates fríos sin ir a FIRMS.
+ * - Cache en tres niveles: variable de módulo (válida mientras el isolate
+ *   viva) + Cache API para isolates fríos + KV para datacenters fríos. Las dos
+ *   primeras son locales a cada datacenter de Cloudflare; KV es la única capa
+ *   global, y es la que mantiene fresco el cron de keep-warm (/api/warm)
+ *   aunque pinche desde un colo distinto al de los usuarios.
  */
 
 const FIRMS_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
@@ -52,9 +55,20 @@ const RETRY_PAUSE_MS = 1_500;
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
 const CACHE_KEY = 'https://firemap.cache/api/fires-v4';
+const KV_KEY = 'api-fires-v4';
+// Guarda de escritura en KV: el free plan da 1000 escrituras/día y todos los
+// datacenters comparten la clave. Si lo que hay en KV tiene menos de este
+// margen, la escritura se ahorra: techo global ~360/día.
+const KV_MIN_WRITE_MS = 4 * 60 * 1000;
+// Más allá de STALE_MAX_MS el dato ya no se sirve; el TTL solo limpia.
+const KV_TTL_S = 3600;
 
 let cacheEntry: { response: FiresResponse; at: number } | null = null;
 let inFlight: Promise<FiresResponse> | null = null;
+
+function isFresh(): boolean {
+  return cacheEntry !== null && Date.now() - cacheEntry.at < FRESH_MS && !cacheEntry.response.partial;
+}
 
 export async function getFires(env: Env, waitUntil: (p: Promise<unknown>) => void): Promise<FiresResponse> {
   const mapKey = env.FIRMS_MAP_KEY;
@@ -71,17 +85,24 @@ export async function getFires(env: Env, waitUntil: (p: Promise<unknown>) => voi
   // de pagar el fan-out a FIRMS.
   if (!cacheEntry) await warmFromCacheApi();
 
-  const now = Date.now();
-  if (cacheEntry && now - cacheEntry.at < FRESH_MS && !cacheEntry.response.partial) {
-    return { ...cacheEntry.response, cached: true };
+  // KV es la única capa global: si aquí no hay dato fresco, otro datacenter —o
+  // el cron de keep-warm— puede haber dejado uno hace segundos. Leerlo cuesta
+  // milisegundos; el fan-out a FIRMS, segundos. Con una renovación ya en
+  // marcha no se consulta: su resultado va a llegar de todos modos.
+  if (!isFresh() && !inFlight) await warmFromKv(env);
+
+  if (isFresh()) {
+    return { ...cacheEntry!.response, cached: true };
   }
 
+  const now = Date.now();
   if (!inFlight) {
     inFlight = refreshFires(mapKey, env)
       .then((response) => {
         if (!response.partial || !cacheEntry || cacheEntry.response.partial) {
           cacheEntry = { response, at: Date.now() };
           waitUntil(saveToCacheApi(response));
+          waitUntil(saveToKv(env, response));
         }
         return response;
       })
@@ -126,6 +147,42 @@ async function saveToCacheApi(response: FiresResponse): Promise<void> {
         },
       })
     );
+  } catch {
+    // idem: mejor-esfuerzo
+  }
+}
+
+async function warmFromKv(env: Env): Promise<void> {
+  if (!env.FIRES_KV) return;
+  try {
+    const response = await env.FIRES_KV.get<FiresResponse>(KV_KEY, 'json');
+    if (!response) return;
+    const at = Date.parse(response.fetchedAt);
+    if (!Number.isFinite(at)) return;
+    // Solo se adopta si mejora lo que hay: más nuevo, y nunca un parcial por
+    // encima de una foto completa (misma regla que la cache de módulo).
+    if (cacheEntry && at <= cacheEntry.at) return;
+    if (response.partial && cacheEntry && !cacheEntry.response.partial) return;
+    cacheEntry = { response, at };
+  } catch {
+    // KV es mejor-esfuerzo, como la Cache API
+  }
+}
+
+async function saveToKv(env: Env, response: FiresResponse): Promise<void> {
+  if (!env.FIRES_KV) return;
+  try {
+    const existing = await env.FIRES_KV.get<FiresResponse>(KV_KEY, 'json');
+    if (existing) {
+      const existingAt = Date.parse(existing.fetchedAt);
+      if (Number.isFinite(existingAt)) {
+        const age = Date.now() - existingAt;
+        if (age < KV_MIN_WRITE_MS) return;
+        // Un parcial no pisa una foto completa mientras esta siga servible.
+        if (response.partial && !existing.partial && age < STALE_MAX_MS) return;
+      }
+    }
+    await env.FIRES_KV.put(KV_KEY, JSON.stringify(response), { expirationTtl: KV_TTL_S });
   } catch {
     // idem: mejor-esfuerzo
   }
