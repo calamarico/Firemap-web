@@ -36,8 +36,8 @@ const MERGED_SENSORS = [
 const WINDOW_HOURS = 24;
 // FIRMS solo filtra por días naturales UTC: se piden 2 (hoy + ayer) y la
 // ventana de 24 h se recorta aquí, porque siempre cruza la medianoche UTC.
-// Coste por renovación: 8 peticiones (4 sensores × 2 áreas) cada ~5 min,
-// muy por debajo del límite de 5000/10 min.
+// Coste por renovación: 8 peticiones (4 sensores × 2 áreas, hasta 16 con
+// hedges) cada ~5 min, muy por debajo del límite de 5000/10 min.
 const FETCH_DAYS = 2;
 
 // Cache stale-while-revalidate: FIRMS limita a 5000 req/10 min por MAP_KEY y
@@ -55,7 +55,16 @@ const FETCH_DAYS = 2;
 // petición esperando indefinidamente; pasado el plazo se responde con lo que
 // haya llegado y se marca partial.
 const AREA_TIMEOUT_MS = 12_000;
-const AREA_DEADLINE_MS = 26_000;
+const AREA_DEADLINE_MS = 20_000;
+// Petición cubierta (hedge): si el primer intento no responde en este plazo se
+// lanza un duplicado y gana el que llegue antes. El cupo de FIRMS (5000
+// transacciones/10 min; un refresh completo ronda las 64) hace que el
+// duplicado salga gratis.
+const HEDGE_DELAY_MS = 4_000;
+// Pausa antes del duplicado cuando el primer intento FALLA (en vez de
+// colgarse): FIRMS rechaza a veces ráfagas concurrentes y reintentar en el
+// acto suele tropezar con la misma ráfaga.
+const RETRY_PAUSE_MS = 1_500;
 
 const FRESH_MS = 5 * 60 * 1000;
 const STALE_MAX_MS = 30 * 60 * 1000;
@@ -106,7 +115,10 @@ export async function getFires(): Promise<FiresResponse> {
   return inFlight;
 }
 
-/** Tope duro por trabajo, cubriendo intento + reintento. */
+/**
+ * Tope duro por trabajo, cubriendo el intento y su hedge (peor caso real
+ * ~17,5 s: fallo justo antes del hedge + pausa + timeout).
+ */
 function withDeadline(job: Promise<FireHotspot[]>): Promise<FireHotspot[]> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<FireHotspot[]>((_, reject) => {
@@ -167,22 +179,49 @@ function acqTimestamp(h: FireHotspot): number {
 }
 
 /**
- * FIRMS falla esporádicamente ante ráfagas de peticiones concurrentes (aquí
- * van 6 a la vez): un único reintento con pausa corta elimina casi todos los
- * "partial" sin comprometer el rate limit.
+ * FIRMS deja peticiones colgadas 10-20 s de vez en cuando. En lugar del antiguo
+ * reintento secuencial (peor caso ~25,5 s), se cubre la petición: a los
+ * HEDGE_DELAY_MS sin respuesta —o tras RETRY_PAUSE_MS si falla antes— se lanza
+ * un duplicado idéntico y resuelve el primero que responda bien. Solo se
+ * duplica una vez; si ambos intentos fallan, se propaga el primer error.
  */
-async function fetchArea(
+function fetchArea(
   mapKey: string,
   sensor: string,
   bbox: string,
   days: number
 ): Promise<FireHotspot[]> {
-  try {
-    return await fetchAreaOnce(mapKey, sensor, bbox, days);
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    return fetchAreaOnce(mapKey, sensor, bbox, days);
-  }
+  return new Promise((resolve, reject) => {
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    let pending = 0;
+    let hedged = false;
+    let failure: { reason: unknown } | null = null;
+
+    const attempt = () => {
+      pending++;
+      fetchAreaOnce(mapKey, sensor, bbox, days).then(
+        (hotspots) => {
+          timers.forEach(clearTimeout);
+          resolve(hotspots);
+        },
+        (err) => {
+          pending--;
+          failure ??= { reason: err };
+          if (!hedged) hedge(RETRY_PAUSE_MS);
+          else if (pending === 0) reject(failure.reason);
+        }
+      );
+    };
+
+    const hedge = (delayMs: number) => {
+      hedged = true;
+      timers.forEach(clearTimeout);
+      timers.push(setTimeout(attempt, delayMs));
+    };
+
+    attempt();
+    timers.push(setTimeout(() => hedge(0), HEDGE_DELAY_MS));
+  });
 }
 
 async function fetchAreaOnce(
