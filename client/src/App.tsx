@@ -7,6 +7,7 @@ import { REFRESH_INTERVAL_MS } from './config';
 import { useEffisStatus } from './hooks/useEffisStatus';
 import { useFires } from './hooks/useFires';
 import { findLocalityCenter, getLocalityParam, setLocalityParam } from './lib/locality';
+import { setEffisDown } from './map/effisTileCache';
 import type { BasemapId } from './map/layers';
 import type { MunicipalityImpact } from './types';
 
@@ -19,9 +20,18 @@ export default function App() {
   const { view: fires, refresh: refreshFires } = useFires(REFRESH_INTERVAL_MS);
   const { view: effis, refresh: refreshEffis } = useEffisStatus(REFRESH_INTERVAL_MS);
 
+  // El protocolo de teselas necesita saber si EFFIS está caído: con caída
+  // confirmada sirve solo la copia local (Cache API) sin lanzar peticiones,
+  // que serían invocaciones del Worker condenadas a fallar (y quota del free).
+  const effisDown = effis.status === 'error' || effis.data?.available === false;
+  useEffect(() => {
+    setEffisDown(effisDown);
+  }, [effisDown]);
+
   // EFFIS caído → recuperado: se fuerza la recarga de sus tiles. Sin esto, lo
-  // que el mapa pintó durante la caída (huecos) se quedaría congelado hasta
-  // panear a zona virgen, porque MapLibre nunca reintenta tiles ya resueltos.
+  // que el mapa pintó durante la caída (la copia local) se quedaría congelado
+  // hasta panear a zona virgen, porque MapLibre nunca reintenta tiles ya
+  // resueltos.
   const [effisRefreshToken, setEffisRefreshToken] = useState(0);
   const prevEffisAvailable = useRef<boolean | null>(null);
   const effisAvailable = effis.data?.available ?? null;
@@ -87,10 +97,10 @@ export default function App() {
       <MapView
         hotspots={fires.data?.hotspots ?? []}
         showFires={showFires}
-        // Con EFFIS confirmado caído se deja de pedir teselas: cada una es una
-        // invocación del Worker que ya sabemos que va a fallar (y quota del
-        // plan free). Mientras el estado se comprueba, la capa sigue activa.
-        showEffis={showEffis && effis.data?.available !== false}
+        // La capa sigue visible con EFFIS caído: el protocolo effis-tiles
+        // pinta la copia local guardada en el navegador (y en ese estado no
+        // lanza peticiones, así que la caída no gasta invocaciones).
+        showEffis={showEffis}
         effisRefreshToken={effisRefreshToken}
         showBoundaries={showBoundaries}
         basemap={basemap}

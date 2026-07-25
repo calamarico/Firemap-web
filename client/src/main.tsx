@@ -10,11 +10,16 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { registerEffisTileProtocol } from './map/effisTileCache';
 
 // Protocolo pmtiles: teselas vectoriales servidas desde un único fichero
 // estático mediante peticiones HTTP Range — cada vista descarga solo las
 // teselas de su viewport en lugar del GeoJSON completo de municipios.
 maplibregl.addProtocol('pmtiles', new Protocol().tile);
+
+// Protocolo effis-tiles: las teselas de área quemada se guardan en la Cache
+// API del navegador y se sirven desde ahí cuando EFFIS está caído.
+registerEffisTileProtocol();
 
 // Easter egg para quien abra la consola.
 console.log(

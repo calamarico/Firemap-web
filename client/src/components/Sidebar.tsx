@@ -322,9 +322,9 @@ export default function Sidebar(props: SidebarProps) {
               title="Servicio de área quemada inestable"
               details={effis.error ?? effis.data?.note ?? 'El servicio no responde.'}
             >
-              El servicio europeo que cartografía las zonas quemadas no responde ahora mismo. Los
-              perímetros descargados en las últimas 24 horas se siguen mostrando; se reintenta
-              automáticamente cada pocos minutos.
+              El servicio europeo que cartografía las zonas quemadas no responde ahora mismo. Se
+              muestran los perímetros que este navegador descargó en las últimas 24 horas; se
+              reintenta automáticamente cada pocos minutos.
             </StatusNote>
           )}
           {effis.data?.available && (

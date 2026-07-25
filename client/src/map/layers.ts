@@ -2,6 +2,7 @@ import type { FeatureCollection, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
 import { MAP, SEVERITY } from '../styles/mapTokens';
 import type { EffisRange, FireHotspot } from '../types';
+import { EFFIS_TILE_PROTOCOL } from './effisTileCache';
 
 /**
  * Abstracción mínima de capa de la aplicación: cada fuente de datos (FIRMS,
@@ -426,8 +427,11 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
     if (visible) startPulse(map);
   };
 
+  // El protocolo effis-tiles:// (effisTileCache.ts) guarda copia local de
+  // cada tesela y la sirve si el servicio falla: por eso la capa puede seguir
+  // pintándose durante una caída de EFFIS.
   const tilesUrl = () =>
-    `${window.location.origin}/api/effis/wms?range=${range}&width=512&height=512&bbox={bbox-epsg-3857}` +
+    `${EFFIS_TILE_PROTOCOL}://${window.location.origin}/api/effis/wms?range=${range}&width=512&height=512&bbox={bbox-epsg-3857}` +
     (epoch > 0 ? `&v=${epoch}` : '');
 
   // La URL de tiles es inmutable en una fuente raster: recargar o cambiar de
