@@ -28,7 +28,12 @@ export default function App() {
   // Open-Meteo no actualiza su dato más rápido de ~15 min.
   const impact = fires.data?.impact;
   const fireWindPoints = useMemo(() => deriveFireWindPoints(impact ?? []), [impact]);
-  const wind = useWind(showWind, fireWindPoints);
+  // El primer fetch espera a que los focos se resuelvan (dato o error): sin
+  // esto cada carga hacía DOS llamadas a Open-Meteo (rejilla sola + rejilla
+  // con focos al llegar el impact), y el cupo diario por IP pondera cada
+  // ubicación de la petición como una llamada.
+  const windReady = fires.data !== null || fires.status === 'error';
+  const wind = useWind(showWind && windReady, fireWindPoints);
 
   // El protocolo de teselas necesita saber si EFFIS está caído: con caída
   // confirmada sirve solo la copia local (Cache API) sin lanzar peticiones,

@@ -1,7 +1,9 @@
 /**
- * Genera la rejilla de puntos sobre tierra donde el cliente muestrea el viento
- * (Open-Meteo admite hasta 1000 ubicaciones por llamada; con ~0,75° salen
- * ~100 puntos: una sola petición cubre España entera).
+ * Genera la rejilla de puntos sobre tierra donde el cliente muestrea el viento.
+ * Open-Meteo admite 1000 ubicaciones por llamada, pero su cupo diario pondera
+ * ~1 llamada POR UBICACIÓN: la rejilla se mantiene deliberadamente escasa
+ * (1° ≈ 65 puntos) para que una pestaña abierta el día entero no agote las
+ * 10.000 diarias por IP del visitante.
  *
  *   client/src/map/windGrid.json   { spacingDeg, points: [[lon, lat], ...] }
  *
@@ -24,7 +26,7 @@ const X0 = -18.4;
 const Y0 = 27.4;
 const X1 = 4.4;
 const Y1 = 43.95;
-const STEP = 0.75;
+const STEP = 1.0;
 
 function loadAreas(file) {
   const raw = JSON.parse(readFileSync(path.join(root, 'server', 'data', file), 'utf8'));

@@ -93,6 +93,4 @@ export interface WindPoint {
   speedKmh: number;
   /** Grados meteorológicos: de dónde VIENE el viento (la flecha se rota 180°). */
   directionFrom: number;
-  /** Racha a 10 m (km/h). */
-  gustKmh: number | null;
 }

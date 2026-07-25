@@ -511,26 +511,26 @@ function windToGeoJSON(points: WindPoint[]): FeatureCollection<Point, WindArrowP
 }
 
 /**
- * Variantes de cometa por velocidad: misma cabeza, cuerpo más largo cuanto
- * más viento. Los umbrales (km/h) siguen a grandes rasgos la escala Beaufort
+ * Variantes de ráfaga por velocidad: mismos trazos, más largos cuanto más
+ * viento. Los umbrales (km/h) siguen a grandes rasgos la escala Beaufort
  * (brisa suave / moderada / fresca / fuerte).
  */
 const WIND_SPEED_STEPS = [10, 20, 35] as const;
-const WIND_COMET_IMAGES = ['wind-comet-l0', 'wind-comet-l1', 'wind-comet-l2', 'wind-comet-l3'];
-const WIND_COMET_LENGTHS = [26, 36, 46, 56]; // px de punta a cola en el canvas de 64
+const WIND_GUST_IMAGES = ['wind-gust-l0', 'wind-gust-l1', 'wind-gust-l2', 'wind-gust-l3'];
+const WIND_GUST_LENGTHS = [26, 36, 46, 56]; // px de punta a cola en el canvas de 64
 const WIND_GRID_ARROW_IMAGE = 'wind-arrow-grid';
 
-/** Icono según velocidad; lo comparten el cometa ancla y el del barrido. */
-const windCometBySpeed: ExpressionSpecification = [
+/** Icono según velocidad; lo comparten la ráfaga ancla y la del barrido. */
+const windGustBySpeed: ExpressionSpecification = [
   'step',
   ['get', 'speed'],
-  WIND_COMET_IMAGES[0],
+  WIND_GUST_IMAGES[0],
   WIND_SPEED_STEPS[0],
-  WIND_COMET_IMAGES[1],
+  WIND_GUST_IMAGES[1],
   WIND_SPEED_STEPS[1],
-  WIND_COMET_IMAGES[2],
+  WIND_GUST_IMAGES[2],
   WIND_SPEED_STEPS[2],
-  WIND_COMET_IMAGES[3],
+  WIND_GUST_IMAGES[3],
 ];
 
 /** '#rrggbb' → 'rgba(...)' para los stops con alfa de los degradados. */
@@ -583,22 +583,20 @@ function addWindGridArrowImage(map: MapLibreMap): void {
 }
 
 /**
- * Cometas de los focos: dardo apuntando al norte con cabeza luminosa, cuerpo
- * cian y cola que se funde con el fondo, más un glow suave. Van pre-tintados
- * (RGBA, no SDF) porque el SDF corta el alfa en un umbral y no admite ni
- * degradados ni glow horneado; a cambio, las capas que los usan no pueden
- * aplicar icon-color.
+ * Ráfagas de los focos: dos/tres trazos paralelos escalonados —el líder con
+ * punta de flecha— apuntando al norte, el lenguaje clásico del viento (💨).
+ * La versión anterior (cometa abombado) se leía como gota de lluvia. Van
+ * pre-tintadas (RGBA, no SDF) porque el SDF corta el alfa en un umbral y no
+ * admite ni degradados ni glow horneado; a cambio, las capas que las usan no
+ * pueden aplicar icon-color.
  */
-function addWindCometImages(map: MapLibreMap): void {
-  if (map.hasImage(WIND_COMET_IMAGES[0])) return;
+function addWindGustImages(map: MapLibreMap): void {
+  if (map.hasImage(WIND_GUST_IMAGES[0])) return;
   const size = 64;
-  for (const [i, name] of WIND_COMET_IMAGES.entries()) {
-    const length = WIND_COMET_LENGTHS[i];
+  for (const [i, name] of WIND_GUST_IMAGES.entries()) {
+    const length = WIND_GUST_LENGTHS[i];
     const top = 32 - length / 2;
     const bottom = 32 + length / 2;
-    // El vientre (anchura máxima) va cerca de la cabeza; de ahí a la cola el
-    // cuerpo se afila: silueta de ráfaga, no de rotulador.
-    const belly = top + length * 0.28;
 
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -606,26 +604,47 @@ function addWindCometImages(map: MapLibreMap): void {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Mismo degradado para punta y astas: luminoso delante, se apaga detrás.
     const gradient = ctx.createLinearGradient(0, top, 0, bottom);
     gradient.addColorStop(0, MAP.windCometHead);
     gradient.addColorStop(0.4, MAP.windFire);
     gradient.addColorStop(0.75, withAlpha(MAP.windCometTail, 0.8));
     gradient.addColorStop(1, withAlpha(MAP.windCometTail, 0));
 
-    ctx.beginPath();
-    ctx.moveTo(32, top);
-    ctx.quadraticCurveTo(40.5, top + length * 0.18, 39.5, belly);
-    ctx.quadraticCurveTo(36, top + length * 0.65, 33.8, bottom);
-    ctx.lineTo(30.2, bottom);
-    ctx.quadraticCurveTo(28, top + length * 0.65, 24.5, belly);
-    ctx.quadraticCurveTo(23.5, top + length * 0.18, 32, top);
-    ctx.closePath();
-
     ctx.shadowColor = MAP.windFire;
-    ctx.shadowBlur = 7;
+    ctx.shadowBlur = 6;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = gradient;
     ctx.fillStyle = gradient;
-    ctx.fill();
-    ctx.fill(); // segunda pasada: intensifica el glow del shadowBlur
+
+    const drawGust = () => {
+      // Trazo líder con punta de flecha: es lo que mata la lectura "gota"
+      // (las gotas no tienen barbas).
+      ctx.beginPath();
+      ctx.moveTo(32, top);
+      ctx.lineTo(25, top + 11);
+      ctx.lineTo(39, top + 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(32, top + 8);
+      ctx.lineTo(32, bottom);
+      ctx.stroke();
+
+      // Trazos de acompañamiento escalonados, como el emoji 💨.
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(24, top + length * 0.25);
+      ctx.lineTo(24, bottom - length * 0.08);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(40, top + length * 0.45);
+      ctx.lineTo(40, bottom - length * 0.16);
+      ctx.stroke();
+    };
+    drawGust();
+    drawGust(); // segunda pasada: intensifica el glow del shadowBlur
 
     map.addImage(name, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
   }
@@ -647,12 +666,12 @@ const SWEEP_HOURS = 0.25;
  * real sin ajustar nada más.
  */
 const SWEEP_PERIOD_MS = 2400;
-/** A partir de aquí el cometa se desvanece hasta reaparecer en el foco. */
+/** A partir de aquí la ráfaga se desvanece hasta reaparecer en el foco. */
 const SWEEP_FADE_FROM = 0.7;
 const SWEEP_OPACITY = 0.95;
 /**
- * Estela de motion-blur: fantasmas del cometa a fases anteriores del
- * recorrido, cada vez más tenues. Las fases negativas se omiten: el cometa
+ * Estela de motion-blur: fantasmas de la ráfaga a fases anteriores del
+ * recorrido, cada vez más tenues. Las fases negativas se omiten: la ráfaga
  * "nace" en el foco sin cola y la despliega al avanzar.
  */
 const SWEEP_TRAIL = [
@@ -685,10 +704,10 @@ interface SweepSeed {
  * - Corredor de humo: franja degradada desde cada foco hacia sotavento que
  *   marca el alcance del humo en 15 min. Estática: es la pista de alcance
  *   que queda cuando la animación está desactivada.
- * - Ancla junto a cada foco: cometa fijo con su "NN km/h", encima de todo
+ * - Ancla junto a cada foco: ráfaga fija con su "NN km/h", encima de todo
  *   (los símbolos no capturan eventos: el popup de focos no se ve afectado).
  *   La longitud del icono crece con la velocidad.
- * - Barrido: una copia del cometa "sopla" desde el foco recorriendo el
+ * - Barrido: una copia de la ráfaga "sopla" desde el foco recorriendo el
  *   corredor con estela de motion-blur, y se desvanece. Distancia geográfica,
  *   no de pantalla: al acercar el zoom se ve el alcance real sobre el
  *   terreno. Animación por setData de una fuente GeoJSON minúscula (≤180
@@ -773,7 +792,7 @@ export function createWindLayer(): WindLayer {
     id: WIND_GRID_LAYER_ID,
     add(map) {
       addWindGridArrowImage(map);
-      addWindCometImages(map);
+      addWindGustImages(map);
       map.addSource(WIND_SOURCE_ID, {
         type: 'geojson',
         data: EMPTY_WIND,
@@ -835,13 +854,13 @@ export function createWindLayer(): WindLayer {
         FIRES_LAYER_ID
       );
       // Barrido bajo el ancla: al reaparecer en el origen queda cubierto por
-      // el cometa fijo y el reinicio del ciclo no produce un parpadeo.
+      // la ráfaga fija y el reinicio del ciclo no produce un parpadeo.
       map.addLayer({
         id: WIND_SWEEP_LAYER_ID,
         type: 'symbol',
         source: WIND_SWEEP_SOURCE_ID,
         layout: {
-          'icon-image': windCometBySpeed,
+          'icon-image': windGustBySpeed,
           'icon-rotate': ['get', 'directionTo'],
           'icon-rotation-alignment': 'map',
           'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
@@ -859,7 +878,7 @@ export function createWindLayer(): WindLayer {
         source: WIND_SOURCE_ID,
         filter: ['==', ['get', 'kind'], 'fire' satisfies WindPointKind],
         layout: {
-          'icon-image': windCometBySpeed,
+          'icon-image': windGustBySpeed,
           'icon-rotate': ['get', 'directionTo'],
           'icon-rotation-alignment': 'map',
           'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
@@ -871,7 +890,7 @@ export function createWindLayer(): WindLayer {
           'text-size': 11,
           'text-anchor': 'top',
           'text-offset': [0, 1.1],
-          // El cometa siempre se pinta; el texto cede si no cabe.
+          // La ráfaga siempre se pinta; el texto cede si no cabe.
           'text-optional': true,
           'text-rotation-alignment': 'viewport',
         },

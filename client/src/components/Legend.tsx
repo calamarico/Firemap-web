@@ -30,7 +30,7 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
         <div>
           <h3 className="fm-eyebrow mb-1.5">Viento</h3>
           <div className="flex items-center gap-2 text-sm">
-            {/* Mismo concepto que en el mapa: cometa sobre su corredor. */}
+            {/* Mismo glifo que en el mapa: ráfaga de trazos con punta de flecha. */}
             <svg
               viewBox="0 0 16 16"
               width={14}
@@ -38,15 +38,13 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
               aria-hidden="true"
               className="shrink-0 text-[color:var(--fm-map-wind-fire)]"
             >
+              <path d="M8 0.5 5.4 4.5h5.2Z" fill="currentColor" />
               <path
-                d="M8 12.5v2M8 12.5v2"
-                stroke="var(--fm-map-wind-corridor)"
-                strokeWidth="3"
+                d="M8 3.5V13M4.5 5.5V12M11.5 7.5V11"
+                stroke="currentColor"
+                strokeWidth="1.6"
                 strokeLinecap="round"
-              />
-              <path
-                d="M8 1c1.2 1.8 1.6 3 1.4 4.6L8.6 12h-1.2L6.6 5.6C6.4 4 6.8 2.8 8 1Z"
-                fill="currentColor"
+                fill="none"
               />
             </svg>
             <span className="text-ink-secondary">
