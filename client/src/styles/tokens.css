@@ -136,6 +136,9 @@
   --fm-map-wind-grid: rgb(226 232 240 / 0.5);
   --fm-map-wind-fire: var(--fm-accent-300);
   --fm-map-wind-label: var(--fm-accent-400);
+  --fm-map-wind-corridor: rgb(127 221 242 / 0.35);
+  --fm-map-wind-comet-head: var(--fm-accent-200);
+  --fm-map-wind-comet-tail: var(--fm-accent-500);
 
   /* ============ Tipografía ============ */
   --fm-font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;

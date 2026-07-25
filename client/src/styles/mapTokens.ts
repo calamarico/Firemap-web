@@ -23,12 +23,19 @@ export const MAP = {
   cityDotStroke: 'rgba(15,23,42,0.70)',
   label: '#ffffff',
   labelHalo: '#000000',
-  // Viento: la rejilla ambiental comparte familia con los límites; las
-  // flechas junto a los focos van en cian (--fm-accent-300), inconfundible
-  // con la banda ámbar/roja reservada a la severidad FRP. La etiqueta km/h
-  // usa un azul más marcado (--fm-accent-400): misma familia que la flecha
-  // pero distinto tono, e inconfundible con el blanco de los topónimos.
+  // Viento: la rejilla ambiental comparte familia con los límites; junto a
+  // los focos todo va en la familia cian, inconfundible con la banda
+  // ámbar/roja reservada a la severidad FRP. La etiqueta km/h usa un azul
+  // más marcado (--fm-accent-400), distinto del blanco de los topónimos.
   windGrid: 'rgba(226,232,240,0.5)',
   windFire: '#7fddf2',
   windLabel: '#38c7e6',
+  // Corredor de humo: franja que marca el alcance (15 min) desde el foco. El
+  // final es transparente en el MISMO tono para que el degradado no vire.
+  windCorridor: 'rgba(127,221,242,0.35)',
+  windCorridorEnd: 'rgba(127,221,242,0)',
+  // Cometa (horneado en canvas, no SDF): cabeza luminosa (--fm-accent-200),
+  // cuerpo windFire y cola que se funde (--fm-accent-500).
+  windCometHead: '#b3ecfa',
+  windCometTail: '#12a9cc',
 } as const;

@@ -30,7 +30,7 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
         <div>
           <h3 className="fm-eyebrow mb-1.5">Viento</h3>
           <div className="flex items-center gap-2 text-sm">
-            {/* Misma silueta que el icono del mapa: asta + punta, apuntando arriba. */}
+            {/* Mismo concepto que en el mapa: cometa sobre su corredor. */}
             <svg
               viewBox="0 0 16 16"
               width={14}
@@ -39,11 +39,19 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
               className="shrink-0 text-[color:var(--fm-map-wind-fire)]"
             >
               <path
-                d="M8 1.5 4.5 7.5h2.3v7h2.4v-7h2.3Z"
+                d="M8 12.5v2M8 12.5v2"
+                stroke="var(--fm-map-wind-corridor)"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <path
+                d="M8 1c1.2 1.8 1.6 3 1.4 4.6L8.6 12h-1.2L6.6 5.6C6.4 4 6.8 2.8 8 1Z"
                 fill="currentColor"
               />
             </svg>
-            <span className="text-ink-secondary">Apunta hacia donde sopla · más larga = más viento</span>
+            <span className="text-ink-secondary">
+              Apunta hacia donde sopla · el haz = alcance del humo en ~15 min
+            </span>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { FeatureCollection, Point } from 'geojson';
+import type { FeatureCollection, LineString, Point } from 'geojson';
 import type {
   ExpressionSpecification,
   GeoJSONSource,
@@ -40,9 +40,11 @@ const CITIES_DOTS_LAYER_ID = 'cities-dots';
 const CITIES_LABELS_LAYER_ID = 'cities-text';
 const WIND_SOURCE_ID = 'wind';
 const WIND_SWEEP_SOURCE_ID = 'wind-sweep';
+const WIND_CORRIDOR_SOURCE_ID = 'wind-corridor';
 const WIND_GRID_LAYER_ID = 'wind-grid-arrows';
 const WIND_FIRES_LAYER_ID = 'wind-fire-arrows';
 const WIND_SWEEP_LAYER_ID = 'wind-fire-sweep';
+const WIND_CORRIDOR_LAYER_ID = 'wind-fire-corridor';
 
 export type BasemapId = 'satellite' | 'dark';
 
@@ -509,70 +511,123 @@ function windToGeoJSON(points: WindPoint[]): FeatureCollection<Point, WindArrowP
 }
 
 /**
- * Variantes de flecha por velocidad: misma punta, asta más larga cuanto más
- * viento. Los umbrales (km/h) siguen a grandes rasgos la escala Beaufort
+ * Variantes de cometa por velocidad: misma cabeza, cuerpo más largo cuanto
+ * más viento. Los umbrales (km/h) siguen a grandes rasgos la escala Beaufort
  * (brisa suave / moderada / fresca / fuerte).
  */
 const WIND_SPEED_STEPS = [10, 20, 35] as const;
-const WIND_ARROW_IMAGES = ['wind-arrow-l0', 'wind-arrow-l1', 'wind-arrow-l2', 'wind-arrow-l3'];
-const WIND_ARROW_LENGTHS = [26, 36, 46, 56]; // px de asta+punta en el canvas de 64
+const WIND_COMET_IMAGES = ['wind-comet-l0', 'wind-comet-l1', 'wind-comet-l2', 'wind-comet-l3'];
+const WIND_COMET_LENGTHS = [26, 36, 46, 56]; // px de punta a cola en el canvas de 64
+const WIND_GRID_ARROW_IMAGE = 'wind-arrow-grid';
 
-/** Icono según velocidad; lo comparten la flecha ancla y la de barrido. */
-const windArrowBySpeed: ExpressionSpecification = [
+/** Icono según velocidad; lo comparten el cometa ancla y el del barrido. */
+const windCometBySpeed: ExpressionSpecification = [
   'step',
   ['get', 'speed'],
-  WIND_ARROW_IMAGES[0],
+  WIND_COMET_IMAGES[0],
   WIND_SPEED_STEPS[0],
-  WIND_ARROW_IMAGES[1],
+  WIND_COMET_IMAGES[1],
   WIND_SPEED_STEPS[1],
-  WIND_ARROW_IMAGES[2],
+  WIND_COMET_IMAGES[2],
   WIND_SPEED_STEPS[2],
-  WIND_ARROW_IMAGES[3],
+  WIND_COMET_IMAGES[3],
 ];
 
+/** '#rrggbb' → 'rgba(...)' para los stops con alfa de los degradados. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 /**
- * Flechas apuntando al norte, dibujadas en canvas y registradas como SDF: un
- * único dibujo que cada capa tinta con icon-color. El volcado con blur no es
+ * Flecha de la rejilla ambiental, apuntando al norte, registrada como SDF
+ * para que la capa la tinte con icon-color. El volcado con blur no es
  * capricho: MapLibre corta el borde SDF en alfa ≈ 0.75, y sin gradiente de
  * alfa el contorno saldría dentado.
  */
-function addWindArrowImages(map: MapLibreMap): void {
-  if (map.hasImage(WIND_ARROW_IMAGES[0])) return;
+function addWindGridArrowImage(map: MapLibreMap): void {
+  if (map.hasImage(WIND_GRID_ARROW_IMAGE)) return;
   const size = 64;
-  for (const [i, name] of WIND_ARROW_IMAGES.entries()) {
-    const length = WIND_ARROW_LENGTHS[i];
+  const draw = document.createElement('canvas');
+  draw.width = size;
+  draw.height = size;
+  const ctx = draw.getContext('2d');
+  if (!ctx) return;
+
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); // asta
+  ctx.moveTo(32, 50);
+  ctx.lineTo(32, 32);
+  ctx.stroke();
+  ctx.beginPath(); // punta
+  ctx.moveTo(32, 14);
+  ctx.lineTo(20, 36);
+  ctx.lineTo(44, 36);
+  ctx.closePath();
+  ctx.fill();
+
+  const out = document.createElement('canvas');
+  out.width = size;
+  out.height = size;
+  const outCtx = out.getContext('2d');
+  if (!outCtx) return;
+  outCtx.filter = 'blur(1.5px)';
+  outCtx.drawImage(draw, 0, 0);
+  map.addImage(WIND_GRID_ARROW_IMAGE, outCtx.getImageData(0, 0, size, size), {
+    sdf: true,
+    pixelRatio: 2,
+  });
+}
+
+/**
+ * Cometas de los focos: dardo apuntando al norte con cabeza luminosa, cuerpo
+ * cian y cola que se funde con el fondo, más un glow suave. Van pre-tintados
+ * (RGBA, no SDF) porque el SDF corta el alfa en un umbral y no admite ni
+ * degradados ni glow horneado; a cambio, las capas que los usan no pueden
+ * aplicar icon-color.
+ */
+function addWindCometImages(map: MapLibreMap): void {
+  if (map.hasImage(WIND_COMET_IMAGES[0])) return;
+  const size = 64;
+  for (const [i, name] of WIND_COMET_IMAGES.entries()) {
+    const length = WIND_COMET_LENGTHS[i];
     const top = 32 - length / 2;
     const bottom = 32 + length / 2;
+    // El vientre (anchura máxima) va cerca de la cabeza; de ahí a la cola el
+    // cuerpo se afila: silueta de ráfaga, no de rotulador.
+    const belly = top + length * 0.28;
 
-    const draw = document.createElement('canvas');
-    draw.width = size;
-    draw.height = size;
-    const ctx = draw.getContext('2d');
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 7;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); // asta
-    ctx.moveTo(32, bottom);
-    ctx.lineTo(32, top + 18);
-    ctx.stroke();
-    ctx.beginPath(); // punta
-    ctx.moveTo(32, top);
-    ctx.lineTo(20, top + 22);
-    ctx.lineTo(44, top + 22);
-    ctx.closePath();
-    ctx.fill();
+    const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+    gradient.addColorStop(0, MAP.windCometHead);
+    gradient.addColorStop(0.4, MAP.windFire);
+    gradient.addColorStop(0.75, withAlpha(MAP.windCometTail, 0.8));
+    gradient.addColorStop(1, withAlpha(MAP.windCometTail, 0));
 
-    const out = document.createElement('canvas');
-    out.width = size;
-    out.height = size;
-    const outCtx = out.getContext('2d');
-    if (!outCtx) return;
-    outCtx.filter = 'blur(1.5px)';
-    outCtx.drawImage(draw, 0, 0);
-    map.addImage(name, outCtx.getImageData(0, 0, size, size), { sdf: true, pixelRatio: 2 });
+    ctx.beginPath();
+    ctx.moveTo(32, top);
+    ctx.quadraticCurveTo(40.5, top + length * 0.18, 39.5, belly);
+    ctx.quadraticCurveTo(36, top + length * 0.65, 33.8, bottom);
+    ctx.lineTo(30.2, bottom);
+    ctx.quadraticCurveTo(28, top + length * 0.65, 24.5, belly);
+    ctx.quadraticCurveTo(23.5, top + length * 0.18, 32, top);
+    ctx.closePath();
+
+    ctx.shadowColor = MAP.windFire;
+    ctx.shadowBlur = 7;
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.fill(); // segunda pasada: intensifica el glow del shadowBlur
+
+    map.addImage(name, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
   }
 }
 
@@ -591,10 +646,20 @@ const SWEEP_HOURS = 0.25;
  * con los km/h, la velocidad aparente de cada flecha queda proporcional a la
  * real sin ajustar nada más.
  */
-const SWEEP_PERIOD_MS = 3000;
-/** A partir de aquí la flecha se desvanece hasta reaparecer en el foco. */
+const SWEEP_PERIOD_MS = 2400;
+/** A partir de aquí el cometa se desvanece hasta reaparecer en el foco. */
 const SWEEP_FADE_FROM = 0.7;
 const SWEEP_OPACITY = 0.95;
+/**
+ * Estela de motion-blur: fantasmas del cometa a fases anteriores del
+ * recorrido, cada vez más tenues. Las fases negativas se omiten: el cometa
+ * "nace" en el foco sin cola y la despliega al avanzar.
+ */
+const SWEEP_TRAIL = [
+  { lag: 0, dim: 1 },
+  { lag: 0.05, dim: 0.45 },
+  { lag: 0.1, dim: 0.2 },
+] as const;
 
 const KM_PER_DEG_LAT = 110.574;
 const KM_PER_DEG_LON_EQ = 111.32;
@@ -613,29 +678,32 @@ interface SweepSeed {
 }
 
 /**
- * Viento actual en tres capas de símbolos (la colisión y el orden de pila
- * son por capa, no por feature):
+ * Viento actual en cuatro capas (la colisión y el orden de pila son por
+ * capa, no por feature):
  * - Rejilla ambiental: flechas sutiles bajo las referencias urbanas, para que
  *   los topónimos ganen la colisión y MapLibre aclare la rejilla en zoom bajo.
- * - Ancla junto a cada foco: flecha cian fija con su "NN km/h", encima de
- *   todo (los símbolos no capturan eventos: el popup de focos no se ve
- *   afectado). La longitud del icono crece con la velocidad.
- * - Barrido: una copia de la flecha "sopla" desde el foco hacia sotavento
- *   recorriendo la distancia del humo en 15 min, y se desvanece. Distancia
- *   geográfica, no de pantalla: al acercar el zoom se ve el alcance real
- *   sobre el terreno. Animación por setData de una fuente GeoJSON minúscula
- *   (≤60 puntos); queda estática con "reducir movimiento" y en pantallas
- *   táctiles (mismo criterio que el latido de EFFIS: el repintado continuo
- *   hace tartamudear el móvil).
+ * - Corredor de humo: franja degradada desde cada foco hacia sotavento que
+ *   marca el alcance del humo en 15 min. Estática: es la pista de alcance
+ *   que queda cuando la animación está desactivada.
+ * - Ancla junto a cada foco: cometa fijo con su "NN km/h", encima de todo
+ *   (los símbolos no capturan eventos: el popup de focos no se ve afectado).
+ *   La longitud del icono crece con la velocidad.
+ * - Barrido: una copia del cometa "sopla" desde el foco recorriendo el
+ *   corredor con estela de motion-blur, y se desvanece. Distancia geográfica,
+ *   no de pantalla: al acercar el zoom se ve el alcance real sobre el
+ *   terreno. Animación por setData de una fuente GeoJSON minúscula (≤180
+ *   features), a ~30 fps en escritorio y ~20 en táctil; solo se detiene con
+ *   "reducir movimiento" (accesibilidad), y entonces el corredor estático
+ *   sigue contando el alcance.
  */
 export function createWindLayer(): WindLayer {
   let visible = true;
   let sweepFrame: number | null = null;
   let seeds: SweepSeed[] = [];
 
-  const motionOk = () =>
-    !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
-    !window.matchMedia('(pointer: coarse)').matches;
+  // Solo "reducir movimiento" (preferencia de accesibilidad) desactiva el
+  // barrido; en táctil corre, pero a menos fps (ver startSweep).
+  const motionOk = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const stopSweep = () => {
     if (sweepFrame !== null) {
@@ -644,40 +712,49 @@ export function createWindLayer(): WindLayer {
     }
   };
 
+  const fadeAt = (phase: number) =>
+    phase < SWEEP_FADE_FROM
+      ? SWEEP_OPACITY
+      : SWEEP_OPACITY * (1 - (phase - SWEEP_FADE_FROM) / (1 - SWEEP_FADE_FROM));
+
   const sweepGeoJSON = (now: number): FeatureCollection<Point, { [k: string]: unknown }> => ({
     type: 'FeatureCollection',
-    features: seeds.map((s) => {
+    features: seeds.flatMap((s) => {
       const phase = ((now + s.phaseMs) % SWEEP_PERIOD_MS) / SWEEP_PERIOD_MS;
-      return {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          // Avance lineal: el humo no acelera ni frena, viaja con el viento.
-          coordinates: [s.lon + phase * s.dLon, s.lat + phase * s.dLat],
-        },
-        properties: {
-          directionTo: s.directionTo,
-          speed: s.speed,
-          opacity:
-            phase < SWEEP_FADE_FROM
-              ? SWEEP_OPACITY
-              : SWEEP_OPACITY * (1 - (phase - SWEEP_FADE_FROM) / (1 - SWEEP_FADE_FROM)),
-        },
-      };
+      return SWEEP_TRAIL.filter(({ lag }) => phase - lag >= 0).map(({ lag, dim }) => {
+        const p = phase - lag;
+        return {
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            // Avance lineal: el humo no acelera ni frena, viaja con el viento.
+            coordinates: [s.lon + p * s.dLon, s.lat + p * s.dLat],
+          },
+          properties: {
+            directionTo: s.directionTo,
+            speed: s.speed,
+            opacity: fadeAt(p) * dim,
+          },
+        };
+      });
     }),
   });
 
   const startSweep = (map: MapLibreMap) => {
     if (sweepFrame !== null || seeds.length === 0 || !motionOk()) return;
+    // ~30 fps bastan para un desplazamiento suave; en táctil se baja a ~20:
+    // cada frame repinta el canvas entero y así se recorta ese coste (y la
+    // batería) sin que se note en un recorrido de 2,4 s.
+    const frameMs = window.matchMedia('(pointer: coarse)').matches ? 50 : 33;
     let lastFrame = 0;
     const tick = (now: number) => {
       if (!map.getLayer(WIND_SWEEP_LAYER_ID)) {
         sweepFrame = null;
         return;
       }
-      // ~30 fps bastan para un desplazamiento suave, y durante un gesto no se
-      // toca la fuente: el repintado ya lo paga el propio movimiento del mapa.
-      if (now - lastFrame >= 33 && !map.isMoving()) {
+      // Durante un gesto no se toca la fuente: el repintado ya lo paga el
+      // propio movimiento del mapa.
+      if (now - lastFrame >= frameMs && !map.isMoving()) {
         lastFrame = now;
         const source = map.getSource(WIND_SWEEP_SOURCE_ID) as GeoJSONSource | undefined;
         source?.setData(sweepGeoJSON(now));
@@ -695,7 +772,8 @@ export function createWindLayer(): WindLayer {
   return {
     id: WIND_GRID_LAYER_ID,
     add(map) {
-      addWindArrowImages(map);
+      addWindGridArrowImage(map);
+      addWindCometImages(map);
       map.addSource(WIND_SOURCE_ID, {
         type: 'geojson',
         data: EMPTY_WIND,
@@ -705,6 +783,12 @@ export function createWindLayer(): WindLayer {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
+      map.addSource(WIND_CORRIDOR_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        // line-progress (el degradado del corredor) exige métricas de línea.
+        lineMetrics: true,
+      });
       map.addLayer(
         {
           id: WIND_GRID_LAYER_ID,
@@ -712,7 +796,7 @@ export function createWindLayer(): WindLayer {
           source: WIND_SOURCE_ID,
           filter: ['==', ['get', 'kind'], 'grid' satisfies WindPointKind],
           layout: {
-            'icon-image': WIND_ARROW_IMAGES[1],
+            'icon-image': WIND_GRID_ARROW_IMAGE,
             'icon-rotate': ['get', 'directionTo'],
             // La flecha es geográfica: fija al norte del mapa, no al de la
             // pantalla (aunque este mapa no rota, el intent queda explícito).
@@ -724,26 +808,50 @@ export function createWindLayer(): WindLayer {
         },
         CITIES_DOTS_LAYER_ID
       );
+      // Corredor bajo los círculos de focos: la franja marca el alcance sin
+      // taparlos, y sigue visible cuando la animación está desactivada
+      // (móvil, "reducir movimiento"), donde es la única pista del alcance.
+      map.addLayer(
+        {
+          id: WIND_CORRIDOR_LAYER_ID,
+          type: 'line',
+          source: WIND_CORRIDOR_SOURCE_ID,
+          layout: { 'line-cap': 'round' },
+          paint: {
+            'line-gradient': [
+              'interpolate',
+              ['linear'],
+              ['line-progress'],
+              0,
+              MAP.windCorridor,
+              1,
+              MAP.windCorridorEnd,
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2, 12, 7],
+            // Borde difuso: haz de humo, no carretera.
+            'line-blur': 2,
+          },
+        },
+        FIRES_LAYER_ID
+      );
       // Barrido bajo el ancla: al reaparecer en el origen queda cubierto por
-      // la flecha fija y el reinicio del ciclo no produce un parpadeo.
+      // el cometa fijo y el reinicio del ciclo no produce un parpadeo.
       map.addLayer({
         id: WIND_SWEEP_LAYER_ID,
         type: 'symbol',
         source: WIND_SWEEP_SOURCE_ID,
         layout: {
-          'icon-image': windArrowBySpeed,
+          'icon-image': windCometBySpeed,
           'icon-rotate': ['get', 'directionTo'],
           'icon-rotation-alignment': 'map',
-          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.8, 60, 1.05],
+          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
           // Sin colisión ni empujar a nadie: una fuente que cambia 30 veces
           // por segundo no puede disputar hueco a las etiquetas.
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
         },
-        paint: {
-          'icon-color': MAP.windFire,
-          'icon-opacity': ['get', 'opacity'],
-        },
+        // El tinte y el glow van horneados en el icono (no SDF): solo opacidad.
+        paint: { 'icon-opacity': ['get', 'opacity'] },
       });
       map.addLayer({
         id: WIND_FIRES_LAYER_ID,
@@ -751,10 +859,10 @@ export function createWindLayer(): WindLayer {
         source: WIND_SOURCE_ID,
         filter: ['==', ['get', 'kind'], 'fire' satisfies WindPointKind],
         layout: {
-          'icon-image': windArrowBySpeed,
+          'icon-image': windCometBySpeed,
           'icon-rotate': ['get', 'directionTo'],
           'icon-rotation-alignment': 'map',
-          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.8, 60, 1.05],
+          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
           'icon-allow-overlap': true,
           // Con aglomeración, el viento más fuerte coloca su etiqueta primero.
           'symbol-sort-key': ['*', -1, ['get', 'speed']],
@@ -763,14 +871,11 @@ export function createWindLayer(): WindLayer {
           'text-size': 11,
           'text-anchor': 'top',
           'text-offset': [0, 1.1],
-          // La flecha siempre se pinta; el texto cede si no cabe.
+          // El cometa siempre se pinta; el texto cede si no cabe.
           'text-optional': true,
           'text-rotation-alignment': 'viewport',
         },
         paint: {
-          'icon-color': MAP.windFire,
-          'icon-halo-color': MAP.labelHalo,
-          'icon-halo-width': 1,
           'text-color': MAP.windLabel,
           'text-halo-color': MAP.labelHalo,
           'text-halo-width': 2,
@@ -783,6 +888,7 @@ export function createWindLayer(): WindLayer {
       map.setLayoutProperty(WIND_GRID_LAYER_ID, 'visibility', value);
       map.setLayoutProperty(WIND_FIRES_LAYER_ID, 'visibility', value);
       map.setLayoutProperty(WIND_SWEEP_LAYER_ID, 'visibility', value);
+      map.setLayoutProperty(WIND_CORRIDOR_LAYER_ID, 'visibility', value);
       if (v) startSweep(map);
       else stopSweep();
     },
@@ -808,6 +914,24 @@ export function createWindLayer(): WindLayer {
             phaseMs: Math.abs(Math.sin(p.lon * 12.9898 + p.lat * 78.233)) * SWEEP_PERIOD_MS,
           };
         });
+
+      // El corredor es estático: se reconstruye solo aquí, nunca por frame.
+      const corridor = map.getSource(WIND_CORRIDOR_SOURCE_ID) as GeoJSONSource | undefined;
+      const corridorData: FeatureCollection<LineString> = {
+        type: 'FeatureCollection',
+        features: seeds.map((s) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [s.lon, s.lat],
+              [s.lon + s.dLon, s.lat + s.dLat],
+            ],
+          },
+          properties: {},
+        })),
+      };
+      corridor?.setData(corridorData);
 
       if (seeds.length === 0) {
         stopSweep();
