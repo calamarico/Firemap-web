@@ -1,4 +1,9 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
+// Montserrat (display/marca); el cuerpo sigue con la pila del sistema.
+import '@fontsource/montserrat/400.css';
+import '@fontsource/montserrat/500.css';
+import '@fontsource/montserrat/600.css';
+import '@fontsource/montserrat/700.css';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import { StrictMode } from 'react';
@@ -22,8 +27,10 @@ console.log(
     ` ██║  ██╗██║  ██║███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║  ██║██║╚██████╗╚██████╔╝\n` +
     ` ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═════╝ \n\n` +
     ` 🔗 @calamarico\n`,
-  'color: #aaa; font-size: 14px; font-weight: normal;',
-  'color: #e0a0ff; font-size: 10px; font-family: monospace; font-weight: bold;'
+  // Colores CSS con nombre: el criterio "cero hex fuera de tokens" también
+  // aplica aquí, aunque solo lo vea quien abra la consola.
+  'color: darkgray; font-size: 14px; font-weight: normal;',
+  'color: plum; font-size: 10px; font-family: monospace; font-weight: bold;'
 );
 
 const container = document.getElementById('root');

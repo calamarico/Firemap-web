@@ -1,6 +1,6 @@
 import type { FeatureCollection, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
-import { FRP_SCALE } from '../config';
+import { MAP, SEVERITY } from '../styles/mapTokens';
 import type { EffisRange, FireHotspot } from '../types';
 
 /**
@@ -76,7 +76,7 @@ export const BASE_STYLE: StyleSpecification = {
     // Fondo bajo las teselas: azul océano profundo. Es lo que asoma mientras
     // una tesela no ha llegado (o si el proveedor falla); sin esto asomaría
     // el blanco por defecto de MapLibre, que es un fogonazo sobre UI oscura.
-    { id: 'background', type: 'background', paint: { 'background-color': '#0b1420' } },
+    { id: 'background', type: 'background', paint: { 'background-color': MAP.void } },
     { id: 'basemap-satellite', type: 'raster', source: 'satellite' },
     { id: 'basemap-dark', type: 'raster', source: 'carto-dark', layout: { visibility: 'none' } },
   ],
@@ -108,8 +108,8 @@ export interface FiresLayer extends AppLayer {
 }
 
 export function createFiresLayer(): FiresLayer {
-  // La misma escala FRP alimenta la leyenda: un solo sitio que mantener.
-  const [low, mid, high, extreme] = FRP_SCALE;
+  // La misma escala de severidad alimenta la leyenda: un solo sitio que mantener.
+  const [low, mid, high, extreme] = SEVERITY;
   return {
     id: FIRES_LAYER_ID,
     add(map) {
@@ -125,16 +125,17 @@ export function createFiresLayer(): FiresLayer {
             ['coalesce', ['get', 'frp'], 0],
             0,
             low.color,
-            low.upTo ?? 5,
+            low.upTo,
             mid.color,
-            mid.upTo ?? 20,
+            mid.upTo,
             high.color,
-            high.upTo ?? 50,
+            high.upTo,
             extreme.color,
           ],
           'circle-radius': ['interpolate', ['linear'], ['coalesce', ['get', 'frp'], 0], 0, 5, 50, 11],
-          'circle-opacity': 0.85,
-          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.9,
+          // El alfa del trazo (0.85) va dentro del propio color del token.
+          'circle-stroke-color': MAP.severityStroke,
           'circle-stroke-width': 1,
         },
       });
@@ -192,7 +193,7 @@ export function createBoundariesLayer(): AppLayer {
         'source-layer': 'municipios',
         minzoom: 7,
         paint: {
-          'line-color': 'rgba(226, 232, 240, 0.22)',
+          'line-color': MAP.boundaryMuni,
           'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.4, 13, 1.1],
         },
       });
@@ -202,7 +203,7 @@ export function createBoundariesLayer(): AppLayer {
         source: PROVINCES_SOURCE_ID,
         minzoom: 6.5,
         paint: {
-          'line-color': 'rgba(226, 232, 240, 0.35)',
+          'line-color': MAP.boundaryProv,
           'line-width': ['interpolate', ['linear'], ['zoom'], 6.5, 0.6, 11, 1.2],
         },
       });
@@ -211,7 +212,7 @@ export function createBoundariesLayer(): AppLayer {
         type: 'line',
         source: BOUNDARIES_SOURCE_ID,
         paint: {
-          'line-color': 'rgba(226, 232, 240, 0.55)',
+          'line-color': MAP.boundaryCcaa,
           'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.8, 10, 1.6],
         },
       });
@@ -227,8 +228,8 @@ export function createBoundariesLayer(): AppLayer {
           'text-size': ['interpolate', ['linear'], ['zoom'], 8.5, 11, 13, 14],
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': '#000000',
+          'text-color': MAP.label,
+          'text-halo-color': MAP.labelHalo,
           'text-halo-width': 2,
         },
       });
@@ -245,9 +246,9 @@ export function createBoundariesLayer(): AppLayer {
           'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10.5, 8, 15],
         },
         paint: {
-          'text-color': '#ffffff',
+          'text-color': MAP.label,
           // Halo oscuro: legible tanto sobre satélite como sobre fondo oscuro.
-          'text-halo-color': '#000000',
+          'text-halo-color': MAP.labelHalo,
           'text-halo-width': 1.8,
         },
       });
@@ -287,9 +288,9 @@ export function createCitiesLayer(): AppLayer {
         source: CITIES_SOURCE_ID,
         minzoom: 6,
         paint: {
-          'circle-color': 'rgba(226, 232, 240, 0.9)',
+          'circle-color': MAP.cityDot,
           'circle-radius': 2.5,
-          'circle-stroke-color': 'rgba(15, 23, 42, 0.7)',
+          'circle-stroke-color': MAP.cityDotStroke,
           'circle-stroke-width': 1,
         },
       });
@@ -306,8 +307,8 @@ export function createCitiesLayer(): AppLayer {
           'text-anchor': 'top',
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': '#000000',
+          'text-color': MAP.label,
+          'text-halo-color': MAP.labelHalo,
           'text-halo-width': 2,
         },
       });

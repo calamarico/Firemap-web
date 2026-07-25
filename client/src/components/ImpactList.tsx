@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import type { MunicipalityImpact, RegionImpact } from '../types';
+import CollapsibleSection from './ui/CollapsibleSection';
+import CountBadge from './ui/CountBadge';
+import StatusNote from './ui/StatusNote';
 
 interface ImpactListProps {
   impact: RegionImpact[];
@@ -55,9 +58,9 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
 
   if (impact.length === 0) {
     return (
-      <p className="px-4 py-3 text-xs text-slate-400">
+      <StatusNote variant="empty" className="m-3">
         Ninguna localidad con focos dentro ahora mismo.
-      </p>
+      </StatusNote>
     );
   }
 
@@ -66,46 +69,48 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
       {impact.map((region) => {
         const open = openRegions.has(region.name);
         return (
-          <div key={region.name} className="border-b border-slate-800/60 last:border-b-0">
-            <button
-              onClick={() => toggleRegion(region.name)}
-              aria-expanded={open}
-              className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left
-                text-sm hover:bg-slate-900/60"
+          <div key={region.name} className="border-b border-edge-subtle last:border-b-0">
+            <CollapsibleSection
+              open={open}
+              onToggle={() => toggleRegion(region.name)}
+              title={
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="truncate text-ink-primary">{region.name}</span>
+                  {/* Antigüedad una sola vez por comunidad: es la pasada del
+                      satélite, común a todos sus municipios. */}
+                  {region.lastAcqAt && (
+                    <span className="shrink-0 text-micro text-ink-faint">
+                      {timeAgo(region.lastAcqAt)}
+                    </span>
+                  )}
+                </span>
+              }
+              trailing={
+                <CountBadge
+                  value={region.count}
+                  size="sm"
+                  label={`${region.count} ${region.count === 1 ? 'foco' : 'focos'} en ${region.name}`}
+                />
+              }
             >
-              <span className="flex min-w-0 items-baseline gap-2">
-                <span className="w-3 shrink-0 text-xs text-slate-500">{open ? '▾' : '▸'}</span>
-                <span className="truncate text-slate-200">{region.name}</span>
-                {/* Antigüedad una sola vez por comunidad: es la pasada del
-                    satélite, común a todos sus municipios. */}
-                {region.lastAcqAt && (
-                  <span className="shrink-0 text-[11px] text-slate-500">
-                    {timeAgo(region.lastAcqAt)}
-                  </span>
-                )}
-              </span>
-              <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-xs font-semibold tabular-nums text-orange-300">
-                {region.count}
-              </span>
-            </button>
-            {open && (
               <ul className="pb-2">
                 {region.municipalities.map((muni) => (
                   <li key={muni.name}>
                     <button
                       onClick={() => onSelectMunicipality(muni)}
                       title={`Ver ${muni.name} en el mapa`}
-                      className="w-full py-1.5 pl-9 pr-4 text-left text-xs hover:bg-slate-900/60"
+                      className="flex min-h-touch w-full flex-col justify-center py-1.5 pl-[34px]
+                        pr-4 text-left text-xs hover:bg-surface-hover"
                     >
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-slate-300 underline-offset-2 hover:underline">
+                      <span className="flex w-full items-baseline justify-between gap-2">
+                        <span className="truncate text-ink-secondary underline-offset-2 hover:underline">
                           {muni.name}
                         </span>
-                        <span className="shrink-0 tabular-nums text-slate-400">
+                        <span className="shrink-0 tabular-nums text-ink-muted">
                           {muni.count} {muni.count === 1 ? 'foco' : 'focos'}
                         </span>
                       </span>
-                      <span className="mt-0.5 flex items-baseline justify-between gap-2 text-[11px] text-slate-500">
+                      <span className="mt-0.5 flex w-full items-baseline justify-between gap-2 text-micro text-ink-faint">
                         <span className="tabular-nums">
                           {muni.lastAcqAt ? `última detección a las ${formatAcq(muni.lastAcqAt)}` : ''}
                         </span>
@@ -117,7 +122,7 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
                   </li>
                 ))}
               </ul>
-            )}
+            </CollapsibleSection>
           </div>
         );
       })}

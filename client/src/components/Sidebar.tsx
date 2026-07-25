@@ -7,13 +7,20 @@ import type { BasemapId } from '../map/layers';
 import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import Legend from './Legend';
+import Button from './ui/Button';
+import CountBadge from './ui/CountBadge';
+import Icon from './ui/Icon';
+import LayerToggle from './ui/LayerToggle';
+import Metric from './ui/Metric';
+import SegmentedControl from './ui/SegmentedControl';
+import StatusNote from './ui/StatusNote';
 
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
   { value: 'satellite', label: 'Satélite' },
   { value: 'dark', label: 'Oscuro' },
 ];
 
-/** Duración del deslizamiento de la hoja; debe coincidir con duration-300. */
+/** Duración del deslizamiento de la hoja; debe coincidir con --fm-duration-sheet. */
 const SHEET_ANIM_MS = 300;
 
 interface SidebarProps {
@@ -158,10 +165,10 @@ export default function Sidebar(props: SidebarProps) {
     <aside
       ref={asideRef}
       style={{ '--sheet-y': `${sheetY}px` } as React.CSSProperties}
-      className={`absolute bottom-0 left-0 z-10 flex w-full translate-y-[var(--sheet-y)] flex-col
-        overflow-hidden bg-slate-950/90 text-slate-100 shadow-2xl backdrop-blur
-        md:top-0 md:h-full md:w-96 md:translate-y-0
-        ${animating ? 'transition-transform duration-300 ease-out motion-reduce:transition-none' : ''}`}
+      className={`absolute bottom-0 left-0 z-panel flex w-full translate-y-[var(--sheet-y)] flex-col
+        overflow-hidden rounded-t-xl bg-surface-panel text-ink-primary shadow-panel backdrop-blur
+        md:top-0 md:h-full md:w-96 md:translate-y-0 md:rounded-none
+        ${animating ? 'transition-transform duration-[var(--fm-duration-sheet)] ease-sheet motion-reduce:transition-none' : ''}`}
     >
       {/* Barra compacta de la hoja inferior (solo móvil): tap o arrastre */}
       <button
@@ -171,42 +178,39 @@ export default function Sidebar(props: SidebarProps) {
         onTouchEnd={onBarTouchEnd}
         onTouchCancel={onBarTouchEnd}
         aria-expanded={!collapsed}
-        className="relative flex touch-none items-center justify-between gap-3 px-4 pb-3 pt-4 text-left md:hidden"
+        className="relative flex min-h-touch touch-none items-center justify-between gap-3 px-4 pb-3 pt-4 text-left md:hidden"
       >
         {/* Asa de arrastre: la pastilla estándar de las bottom sheets */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1.5 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-600"
+          className="pointer-events-none absolute left-1/2 top-1.5 h-1 w-10 -translate-x-1/2 rounded-full bg-[color:var(--fm-slate-600)]"
         />
         <span className="flex items-center gap-2">
           <img src={logoUrl} alt="" className="h-7 w-7" />
-          <span className="text-sm font-bold leading-tight">Firemaps España</span>
+          <span className="font-display text-sm font-bold leading-tight">Firemaps España</span>
         </span>
         <span className="flex items-center gap-2">
           {isLoading && (
-            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent text-ink-muted" />
           )}
-          <span className="rounded-full bg-orange-500/20 px-2.5 py-0.5 text-sm font-bold tabular-nums text-orange-300">
-            {count ?? '—'}
-          </span>
-          <span
-            aria-hidden="true"
-            className={`text-xs text-slate-400 transition-transform duration-300 ease-out
-              motion-reduce:transition-none ${collapsed ? '' : 'rotate-180'}`}
-          >
-            ▲
-          </span>
+          <CountBadge value={count} label="Focos activos" />
+          <Icon
+            name="chevron-up"
+            size={16}
+            className={`text-ink-muted transition-transform duration-[var(--fm-duration-base)]
+              ease-sheet motion-reduce:transition-none ${collapsed ? '' : 'rotate-180'}`}
+          />
         </span>
       </button>
 
       {/* Siempre montado: el plegado es un desplazamiento, no un display:none
           (si no, no habría nada que animar). */}
       <div ref={contentRef} {...inertProps} className="flex min-h-0 flex-col md:min-h-0 md:flex-1">
-        <header className="hidden items-center gap-3 border-b border-slate-800 px-5 py-4 md:flex">
+        <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
           <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
           <div>
             <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-ink-muted">
               Mapa de incendios en España · satélite en tiempo casi real
             </p>
           </div>
@@ -215,51 +219,42 @@ export default function Sidebar(props: SidebarProps) {
         <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
         {/* Contador + estado de la capa de focos */}
         <section>
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-slate-400">Focos activos</span>
-            <span className="text-3xl font-bold tabular-nums text-orange-400">
-              {count ?? '—'}
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Detecciones por satélite en las últimas 24 horas
-          </p>
+          <Metric
+            label="Focos activos"
+            hint="Detecciones por satélite en las últimas 24 horas"
+            value={count}
+            size="lg"
+            tone="brand"
+          />
 
           {fires.data?.partial && (
-            <p className="mt-2 rounded-md border border-amber-800 bg-amber-950/60 px-3 py-2 text-xs text-amber-200">
+            <StatusNote variant="warning" className="mt-2">
               Datos incompletos: alguno de los satélites no respondió en esta actualización.
-            </p>
+            </StatusNote>
           )}
 
           {fires.status === 'error' && (
-            <div
-              role="alert"
-              className="mt-2 rounded-md border border-red-800 bg-red-950/70 px-3 py-2 text-sm text-red-200"
-            >
-              <p className="font-semibold">Error cargando los focos de calor</p>
-              <p className="mt-1 break-words text-xs leading-relaxed">{fires.error}</p>
-            </div>
+            <StatusNote variant="error" title="Error cargando los focos de calor" className="mt-2">
+              {fires.error}
+            </StatusNote>
           )}
           {fires.status === 'ready' && count === 0 && (
-            <p className="mt-2 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300">
+            <StatusNote variant="empty" className="mt-2">
               No hay focos activos ahora mismo.
-            </p>
+            </StatusNote>
           )}
           {isLoading && (
-            <p className="mt-2 flex items-center gap-2 text-xs text-slate-400">
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+            <StatusNote variant="loading" className="mt-2">
               Actualizando datos…
-            </p>
+            </StatusNote>
           )}
         </section>
 
         {/* Ranking de localidades: en móvil vive aquí; en escritorio, en el
             panel flotante de la derecha (ImpactPanel) */}
         <section className="md:hidden">
-          <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Localidades más afectadas
-          </h2>
-          <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/40">
+          <h2 className="fm-eyebrow mb-1.5">Localidades más afectadas</h2>
+          <div className="overflow-hidden rounded-md border border-edge bg-surface-sunken">
             <ImpactList
               impact={props.impact}
               onSelectMunicipality={(muni) => {
@@ -274,36 +269,26 @@ export default function Sidebar(props: SidebarProps) {
         {/* Controles */}
         <section className="space-y-3">
           <div>
-            <span className="mb-1 block text-sm text-slate-300">Mapa base</span>
-            <div className="flex gap-1" role="radiogroup" aria-label="Estilo del mapa base">
-              {BASEMAP_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  role="radio"
-                  aria-checked={props.basemap === opt.value}
-                  onClick={() => props.onBasemapChange(opt.value)}
-                  className={`flex-1 rounded-md border px-2 py-1.5 text-xs transition-colors
-                    ${
-                      props.basemap === opt.value
-                        ? 'border-orange-500 bg-orange-500/20 text-orange-300'
-                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
-                    }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <span className="mb-1 block text-sm text-ink-secondary">Mapa base</span>
+            <SegmentedControl
+              options={BASEMAP_OPTIONS}
+              value={props.basemap}
+              onChange={props.onBasemapChange}
+              ariaLabel="Estilo del mapa base"
+            />
           </div>
 
           <LayerToggle
             label="Focos de calor"
             checked={props.showFires}
             onChange={props.onShowFiresChange}
+            swatch="var(--fm-severity-3)"
           />
           <LayerToggle
             label="Área quemada"
             checked={props.showEffis}
             onChange={props.onShowEffisChange}
+            swatch="var(--fm-burnt-fill)"
           />
           <LayerToggle
             label="Límites administrativos"
@@ -311,52 +296,44 @@ export default function Sidebar(props: SidebarProps) {
             onChange={props.onShowBoundariesChange}
           />
 
-          <button
+          <Button
+            size="lg"
+            className="w-full"
             onClick={handleRefresh}
             disabled={isLoading || cooldownLeft > 0}
-            className="w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white
-              transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+            loading={isLoading}
           >
             {isLoading
               ? 'Actualizando…'
               : cooldownLeft > 0
                 ? `Refrescar (espera ${cooldownLeft} s)`
                 : 'Refrescar ahora'}
-          </button>
+          </Button>
         </section>
 
         {/* Estado del servicio de perímetros */}
         <section>
           {effis.status === 'loading' && (
-            <p className="text-xs text-slate-400">Comprobando el servicio de área quemada…</p>
+            <StatusNote variant="loading">Comprobando el servicio de área quemada…</StatusNote>
           )}
           {(effis.status === 'error' || (effis.data && !effis.data.available)) && (
-            <div
-              role="status"
-              className="rounded-md border border-amber-800 bg-amber-950/60 px-3 py-2 text-xs text-amber-200"
+            <StatusNote
+              variant="warning"
+              title="Servicio de área quemada inestable"
+              details={effis.error ?? effis.data?.note ?? 'El servicio no responde.'}
             >
-              <p className="font-semibold">Servicio de área quemada inestable</p>
-              <p className="mt-1 leading-relaxed">
-                El servicio europeo que cartografía las zonas quemadas no responde ahora mismo. Los
-                perímetros descargados en las últimas 24 horas se siguen mostrando; se reintenta
-                automáticamente cada pocos minutos.
-              </p>
-              <details className="mt-1.5 text-amber-300/70">
-                <summary className="cursor-pointer select-none">Detalles técnicos</summary>
-                <p className="mt-1 break-words leading-relaxed">
-                  {effis.error ?? effis.data?.note ?? 'El servicio no responde.'}
-                </p>
-              </details>
-            </div>
+              El servicio europeo que cartografía las zonas quemadas no responde ahora mismo. Los
+              perímetros descargados en las últimas 24 horas se siguen mostrando; se reintenta
+              automáticamente cada pocos minutos.
+            </StatusNote>
           )}
           {effis.data?.available && (
-            <p className="text-xs text-slate-400" title={effis.data.layerTitle ?? effis.data.layer}>
-              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" />
+            <StatusNote variant="ok" tooltip={effis.data.layerTitle ?? effis.data.layer}>
               Servicio de área quemada activo
               {effis.data.supportsTime
                 ? ' · últimos 7 días'
                 : ' · temporada actual (la capa disponible no permite acotar más)'}
-            </p>
+            </StatusNote>
           )}
         </section>
 
@@ -366,7 +343,7 @@ export default function Sidebar(props: SidebarProps) {
 
         </div>
 
-        <footer className="space-y-0.5 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
+        <footer className="space-y-0.5 border-t border-edge px-5 py-3 text-xs text-ink-faint">
           <p>
             {fires.lastUpdated
               ? `Última actualización: ${fires.lastUpdated.toLocaleTimeString('es-ES')}`
@@ -384,7 +361,7 @@ export default function Sidebar(props: SidebarProps) {
               href="https://github.com/calamarico"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+              className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
             >
               Kalamarico
             </a>
@@ -392,41 +369,5 @@ export default function Sidebar(props: SidebarProps) {
         </footer>
       </div>
     </aside>
-  );
-}
-
-function LayerToggle({
-  label,
-  checked,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label
-      className={`flex items-center justify-between text-sm ${
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-      }`}
-    >
-      <span className="text-slate-300">{label}</span>
-      <span className="relative inline-flex">
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.checked)}
-          className="peer sr-only"
-        />
-        <span
-          className="h-5 w-9 rounded-full bg-slate-700 transition-colors peer-checked:bg-orange-600
-            after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full
-            after:bg-white after:transition-transform peer-checked:after:translate-x-4"
-        />
-      </span>
-    </label>
   );
 }

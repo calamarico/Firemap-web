@@ -1,4 +1,5 @@
 import type { FireHotspot } from '../types';
+import { SeverityChip, severityForFrp } from './ui/Severity';
 
 const CONFIDENCE_LABELS: Record<string, string> = {
   l: 'Baja',
@@ -33,6 +34,7 @@ export default function FirePopup({ fire }: { fire: FireHotspot }) {
   // Fecha y hora en local, como en el ranking de localidades: mezclar UTC aquí
   // y local allí para el mismo foco solo confunde.
   const instant = acqInstant(fire);
+  const level = severityForFrp(fire.frp);
   const rows: Array<[string, string]> = [
     ['Coordenadas', `${fire.latitude.toFixed(4)}, ${fire.longitude.toFixed(4)}`],
     ['Fecha', instant ? instant.toLocaleDateString('es-ES') : fire.acqDate],
@@ -43,20 +45,33 @@ export default function FirePopup({ fire }: { fire: FireHotspot }) {
         : formatAcqTime(fire.acqTime),
     ],
     ['Confianza', confidenceLabel(fire.confidence)],
-    ['FRP', fire.frp !== null ? `${fire.frp.toFixed(1)} MW` : '—'],
     ['Satélite', fire.satellite || '—'],
     ['Sensor', fire.instrument || '—'],
   ];
 
   return (
-    <div className="min-w-[220px] px-3 py-2 text-sm">
-      <h3 className="mb-2 border-b border-slate-700 pb-1 font-semibold text-orange-400">
-        Foco de calor
-      </h3>
+    <div className="min-w-[240px] px-3 py-2 text-sm">
+      <div className="mb-1.5 flex items-center justify-between gap-3 border-b border-edge-strong pb-1.5">
+        <h3 className="text-sm font-bold text-ink-primary">Foco de calor</h3>
+        <SeverityChip level={level} size="sm" />
+      </div>
+      {/* El dato que decide (FRP) preside el popup, coloreado por severidad. */}
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <span>
+          <span
+            className="fm-metric text-metric-md"
+            style={{ color: `var(--fm-severity-${level})` }}
+          >
+            {fire.frp !== null ? fire.frp.toFixed(1) : '—'}
+          </span>
+          <span className="ml-1 text-xs font-semibold text-ink-muted">MW</span>
+        </span>
+        <span className="text-micro text-ink-faint">potencia radiativa</span>
+      </div>
       <dl className="space-y-1">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4">
-            <dt className="text-slate-400">{label}</dt>
+            <dt className="text-ink-muted">{label}</dt>
             <dd className="text-right font-medium">{value}</dd>
           </div>
         ))}

@@ -1,0 +1,234 @@
+/**
+ * Design tokens de Firemaps España — única fuente de verdad del tema.
+ * Dos niveles: primitivos (paleta) y semánticos (lo que consumen los
+ * componentes). Los componentes NO deben referenciar primitivos.
+ * Los colores que consume MapLibre viven duplicados como literales en
+ * styles/mapTokens.ts (las expresiones de paint no aceptan var()).
+ */
+:root {
+  /* ============ Nivel 1 · Primitivos ============ */
+
+  /* Neutros (escala slate de Tailwind) */
+  --fm-slate-50: #f8fafc;
+  --fm-slate-100: #f1f5f9;
+  --fm-slate-200: #e2e8f0;
+  --fm-slate-300: #cbd5e1;
+  --fm-slate-400: #94a3b8;
+  --fm-slate-500: #64748b;
+  --fm-slate-600: #475569;
+  --fm-slate-700: #334155;
+  --fm-slate-800: #1e293b;
+  --fm-slate-900: #0f172a;
+  --fm-slate-950: #020617;
+  --fm-void: #0b1420; /* fondo bajo las teselas */
+
+  /* Banda de fuego — EXCLUSIVA de severidad FRP */
+  --fm-fire-1: #ffd449;
+  --fm-fire-2: #ff9b21;
+  --fm-fire-3: #ff5a2d;
+  --fm-fire-4: #e8232a;
+  --fm-char-500: #8c3a1e; /* área quemada */
+  --fm-char-700: #5c2412;
+
+  /* Ember — SOLO marca */
+  --fm-ember-300: #ffb06b;
+  --fm-ember-400: #ff8a3d;
+  --fm-ember-500: #f26419;
+  --fm-ember-600: #c74a0d;
+  --fm-ember-700: #8f340a;
+
+  /* Accent — cian de acción/selección/foco */
+  --fm-accent-200: #b3ecfa;
+  --fm-accent-300: #7fddf2;
+  --fm-accent-400: #38c7e6;
+  --fm-accent-500: #12a9cc;
+  --fm-accent-600: #0c88a6;
+  --fm-accent-700: #0a6c85;
+  --fm-accent-900: #083c4c;
+
+  /* Sistema */
+  --fm-green-400: #34d399;
+  --fm-green-500: #10b981;
+  --fm-green-900: #064e3b;
+  --fm-amber-300: #fcd34d;
+  --fm-amber-400: #fbbf24;
+  --fm-amber-700: #b45309;
+  --fm-amber-950: #3a2005;
+  --fm-red-200: #fecaca;
+  --fm-red-700: #9c1c22;
+  --fm-red-950: #3c0a0c;
+
+  /* ============ Nivel 2 · Semánticos ============ */
+
+  /* Superficies */
+  --fm-bg-app: var(--fm-slate-950);
+  --fm-bg-map-void: var(--fm-void);
+  --fm-surface-panel: rgb(2 6 23 / 0.9);
+  --fm-surface-panel-solid: var(--fm-slate-950);
+  --fm-surface-raised: var(--fm-slate-900);
+  --fm-surface-sunken: rgb(15 23 42 / 0.4);
+  --fm-surface-hover: rgb(15 23 42 / 0.6);
+  --fm-surface-selected: rgb(18 169 204 / 0.16);
+
+  /* Bordes */
+  --fm-border-subtle: rgb(30 41 59 / 0.6);
+  --fm-border-default: var(--fm-slate-800);
+  --fm-border-strong: var(--fm-slate-700);
+  --fm-border-interactive: var(--fm-slate-600);
+  --fm-border-hairline-on-map: rgb(255 255 255 / 0.4);
+
+  /* Texto (contraste sobre --fm-bg-app) */
+  --fm-text-primary: var(--fm-slate-100); /* 16,4:1 */
+  --fm-text-secondary: var(--fm-slate-300); /* 11,4:1 */
+  --fm-text-muted: var(--fm-slate-400); /* 6,7:1 */
+  --fm-text-faint: var(--fm-slate-500); /* 3,9:1 — solo ≥14px o no esencial */
+  --fm-text-on-accent: #04222b;
+  --fm-text-on-ember: #ffffff;
+  --fm-text-link: var(--fm-accent-300);
+  --fm-text-link-hover: var(--fm-accent-200);
+
+  /* Acción */
+  --fm-action-bg: var(--fm-accent-500);
+  --fm-action-bg-hover: var(--fm-accent-400);
+  --fm-action-bg-active: var(--fm-accent-600);
+  --fm-action-bg-subtle: rgb(18 169 204 / 0.18);
+  --fm-action-border: var(--fm-accent-500);
+  --fm-action-fg: var(--fm-accent-300);
+  --fm-focus-ring: var(--fm-accent-300);
+
+  /* Marca */
+  --fm-brand-ember: var(--fm-ember-500);
+  --fm-brand-ember-text: var(--fm-ember-400);
+  --fm-brand-ember-subtle: rgb(242 100 25 / 0.18);
+
+  /* Severidad FRP */
+  --fm-severity-1: var(--fm-fire-1); /* < 5 MW   · Baja     */
+  --fm-severity-2: var(--fm-fire-2); /* 5–20 MW  · Moderada */
+  --fm-severity-3: var(--fm-fire-3); /* 20–50 MW · Alta     */
+  --fm-severity-4: var(--fm-fire-4); /* > 50 MW  · Extrema  */
+  --fm-severity-1-fg: #3d2c00;
+  --fm-severity-2-fg: #3a1c00;
+  --fm-severity-3-fg: #ffffff;
+  --fm-severity-4-fg: #ffffff;
+  --fm-severity-stroke: rgb(255 255 255 / 0.85);
+  --fm-burnt-fill: var(--fm-char-500);
+  --fm-burnt-border: var(--fm-char-700);
+
+  /* Estado del sistema */
+  --fm-ok-fg: var(--fm-green-400);
+  --fm-ok-dot: var(--fm-green-500);
+  --fm-warn-fg: var(--fm-amber-300);
+  --fm-warn-bg: rgb(58 32 5 / 0.72);
+  --fm-warn-border: var(--fm-amber-700);
+  --fm-danger-fg: var(--fm-red-200);
+  --fm-danger-bg: rgb(60 10 12 / 0.75);
+  --fm-danger-border: var(--fm-red-700);
+  --fm-disabled-opacity: 0.55;
+
+  /* Cartografía */
+  --fm-map-boundary-ccaa: rgb(226 232 240 / 0.55);
+  --fm-map-boundary-prov: rgb(226 232 240 / 0.35);
+  --fm-map-boundary-muni: rgb(226 232 240 / 0.22);
+  --fm-map-city-dot: rgb(226 232 240 / 0.9);
+  --fm-map-city-dot-stroke: rgb(15 23 42 / 0.7);
+  --fm-map-label: #ffffff;
+  --fm-map-label-halo: #000000;
+
+  /* ============ Tipografía ============ */
+  --fm-font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --fm-font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --fm-font-numeric: var(--fm-font-ui); /* + font-variant-numeric: tabular-nums */
+  --fm-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --fm-text-metric-xl: 2.5rem; /* 40px */
+  --fm-text-metric-lg: 1.875rem; /* 30px */
+  --fm-text-metric-md: 1.375rem; /* 22px */
+  --fm-text-title: 1.125rem; /* 18px */
+  --fm-text-subtitle: 1rem; /* 16px */
+  --fm-text-body: 0.875rem; /* 14px */
+  --fm-text-meta: 0.75rem; /* 12px */
+  --fm-text-micro: 0.6875rem; /* 11px */
+
+  --fm-leading-tight: 1.15;
+  --fm-leading-snug: 1.35;
+  --fm-leading-normal: 1.5;
+  --fm-leading-relaxed: 1.6;
+  --fm-weight-regular: 400;
+  --fm-weight-medium: 500;
+  --fm-weight-semibold: 600;
+  --fm-weight-bold: 700;
+  --fm-tracking-caps: 0.08em;
+  --fm-tracking-metric: -0.02em;
+
+  /* ============ Espaciado / layout ============ */
+  --fm-space-1: 2px;
+  --fm-space-2: 4px;
+  --fm-space-3: 6px;
+  --fm-space-4: 8px;
+  --fm-space-5: 10px;
+  --fm-space-6: 12px;
+  --fm-space-8: 16px;
+  --fm-space-10: 20px;
+  --fm-space-12: 24px;
+  --fm-space-16: 32px;
+  --fm-space-20: 40px;
+
+  --fm-panel-width: 384px; /* md:w-96, sin cambio */
+  --fm-impact-panel-width: 320px; /* w-80, sin cambio */
+  --fm-sheet-bar-height: 52px;
+  --fm-panel-pad-x: 20px;
+  --fm-panel-pad-y: 16px;
+
+  /* Táctil */
+  --fm-touch-min: 44px;
+  --fm-control-h-sm: 32px;
+  --fm-control-h-md: 40px;
+  --fm-control-h-lg: 44px;
+
+  /* Radios */
+  --fm-radius-xs: 2px;
+  --fm-radius-sm: 4px;
+  --fm-radius-md: 6px;
+  --fm-radius-lg: 8px;
+  --fm-radius-xl: 12px;
+  --fm-radius-full: 9999px;
+
+  /* Sombras */
+  --fm-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.55);
+  --fm-shadow-popup: 0 10px 25px rgb(0 0 0 / 0.45);
+  --fm-shadow-control: 0 2px 6px rgb(0 0 0 / 0.45);
+  --fm-blur-panel: 8px;
+
+  /* Foco */
+  --fm-focus-shadow: 0 0 0 2px var(--fm-focus-ring), 0 0 0 4px rgb(2 6 23 / 0.85);
+
+  /* Movimiento */
+  --fm-duration-fast: 120ms;
+  --fm-duration-base: 200ms;
+  --fm-duration-sheet: 300ms;
+  --fm-duration-fly: 1400ms;
+  --fm-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fm-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --fm-pulse-period: 2400ms;
+  --fm-pulse-min: 0.4;
+  --fm-pulse-max: 0.85;
+
+  /* z-index */
+  --fm-z-map: 0;
+  --fm-z-map-controls: 5;
+  --fm-z-panel: 10;
+  --fm-z-popup: 20;
+  --fm-z-sheet: 30;
+  --fm-z-modal: 40;
+  --fm-z-toast: 50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fm-duration-fast: 0ms;
+    --fm-duration-base: 0ms;
+    --fm-duration-sheet: 0ms;
+    --fm-duration-fly: 0ms;
+  }
+}

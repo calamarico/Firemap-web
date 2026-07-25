@@ -204,7 +204,7 @@ export default function MapView({
     // inicial, antes de que el estilo del mapa exista.
     <div
       ref={containerRef}
-      className="h-full w-full bg-[#0b1420]"
+      className="h-full w-full bg-void"
       aria-label="Mapa de focos de calor en España"
     />
   );

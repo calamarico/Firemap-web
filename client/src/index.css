@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,45 +18,107 @@ body,
   }
 }
 
+/* Montserrat como tipografía de display/marca; el cuerpo sigue con la pila
+   del sistema. */
+h1,
+h2,
+h3 {
+  font-family: var(--fm-font-display);
+}
+
+/* Utilidades tipográficas del design system. */
+.fm-metric {
+  font-family: var(--fm-font-numeric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--fm-tracking-metric);
+  font-weight: 700;
+  line-height: 1.15;
+}
+.fm-eyebrow {
+  font-size: var(--fm-text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--fm-tracking-caps);
+  color: var(--fm-text-muted);
+}
+.fm-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco visible global: doble anillo (cian + separación oscura) sobre
+   cualquier fondo. Sustituye al outline nativo, nunca lo elimina a secas. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--fm-focus-shadow);
+  border-radius: var(--fm-radius-sm);
+}
+.maplibregl-canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--fm-focus-ring);
+}
+
 /* Móvil: la hoja inferior plegada mide ~48 px; se suben los controles del
    mapa (zoom, escala, atribución) para que no queden debajo. */
 @media (max-width: 767px) {
   .maplibregl-ctrl-bottom-left,
   .maplibregl-ctrl-bottom-right {
-    bottom: 52px;
+    bottom: var(--fm-sheet-bar-height);
   }
+}
+
+/* Controles nativos de MapLibre tokenizados: objetivo táctil de 44px y
+   estética del panel (los iconos van horneados en gris oscuro dentro del
+   sprite del control; invert(1) los pasa a claro sobre fondo oscuro). */
+.maplibregl-ctrl-group {
+  background: var(--fm-surface-panel);
+  backdrop-filter: blur(var(--fm-blur-panel));
+  border: 1px solid var(--fm-border-strong);
+  border-radius: var(--fm-radius-md);
+  box-shadow: var(--fm-shadow-control);
+}
+.maplibregl-ctrl-group button {
+  min-width: var(--fm-touch-min);
+  min-height: var(--fm-touch-min);
+}
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--fm-border-subtle);
+}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+.maplibregl-ctrl-group button:hover {
+  background-color: var(--fm-surface-hover);
 }
 
 /* Popups de MapLibre en oscuro, a juego con el panel. */
 .maplibregl-popup-content {
-  background: theme('colors.slate.900');
-  color: theme('colors.slate.100');
-  border-radius: 0.5rem;
+  background: var(--fm-surface-raised);
+  color: var(--fm-text-primary);
+  border-radius: var(--fm-radius-lg);
   padding: 0;
-  box-shadow: 0 10px 25px rgb(0 0 0 / 0.45);
+  box-shadow: var(--fm-shadow-popup);
 }
 .maplibregl-popup-close-button {
-  color: theme('colors.slate.400');
+  color: var(--fm-text-muted);
   font-size: 1.1rem;
   padding: 0.15rem 0.45rem;
 }
 .maplibregl-popup-close-button:hover {
-  color: theme('colors.slate.100');
+  color: var(--fm-text-primary);
   background: transparent;
 }
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
 .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
 .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  border-top-color: theme('colors.slate.900');
+  border-top-color: var(--fm-surface-raised);
 }
 .maplibregl-popup-anchor-top .maplibregl-popup-tip,
 .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
 .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
-  border-bottom-color: theme('colors.slate.900');
+  border-bottom-color: var(--fm-surface-raised);
 }
 .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: theme('colors.slate.900');
+  border-right-color: var(--fm-surface-raised);
 }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: theme('colors.slate.900');
+  border-left-color: var(--fm-surface-raised);
 }
