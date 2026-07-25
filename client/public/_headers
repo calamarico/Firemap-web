@@ -7,10 +7,9 @@
 /data/*
   Cache-Control: public, max-age=86400
 
-/og-image.png
-  Cache-Control: public, max-age=86400
-
-/og-image.jpg
+# La imagen OG va versionada en el nombre (og-image-vN): los scrapers de
+# Facebook/Twitter cachean por URL y no hay otra forma fiable de invalidarlos.
+/og-image-v2.jpg
   Cache-Control: public, max-age=86400
 
 /*
