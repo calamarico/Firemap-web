@@ -44,8 +44,12 @@ detecciones pegadas a la costa).
 
 1. Entra en <https://firms.modaps.eosdis.nasa.gov/api/map_key/>.
 2. Introduce tu email y envía el formulario; recibirás la clave al instante.
-3. La clave permite 5000 peticiones cada 10 minutos (el proxy renueva como mucho cada ~5 min
-   con 6 peticiones por ronda: lejísimos de ese límite).
+3. La clave permite **5000 transacciones por ventana deslizante de 10 minutos**
+   (el consumo se consulta en
+   `https://firms.modaps.eosdis.nasa.gov/mapserver/mapkey_status/?MAP_KEY=<clave>`).
+   Cada ronda del proxy son 8 peticiones (4 sensores × 2 áreas; hasta 16 con
+   los hedges) ≈ 64 transacciones, y se renueva como mucho cada ~5 min:
+   lejísimos del límite.
 
 ## 2. Configurar el entorno
 
@@ -94,8 +98,11 @@ Functions. Adaptaciones clave para el free plan (10 ms CPU/invocación):
   `client/public/data/muni-grid.bin` + `muni-meta.json`): lookup O(1) por foco
   en lugar de ray-casting contra 8.205 polígonos. Precisión: celdas de ~1,8 km
   (focos a <2 km de un límite municipal pueden asignarse al vecino).
-- Cache en dos niveles: variable de módulo (por isolate) + Cache API para
-  calentar isolates fríos sin ir a FIRMS.
+- Cache en **tres niveles**: variable de módulo (por isolate) + Cache API (por
+  datacenter) para isolates fríos + **Workers KV** (global, binding `FIRES_KV`)
+  para datacenters fríos. La escritura en KV lleva una guarda de 4 min —techo
+  ~360 escrituras/día de las 1000 del free plan— y es mejor-esfuerzo: sin el
+  binding, la app funciona igual con las dos primeras capas.
 
 Pasos:
 
@@ -105,8 +112,22 @@ Pasos:
    `client/dist` (ya declarado en `wrangler.toml`).
 3. Settings → Environment variables → añade `FIRMS_MAP_KEY` (Production y
    Preview).
-4. Deploy. Cuotas free: 100.000 invocaciones de Functions/día (los estáticos,
+4. KV para la cache global: `wrangler kv namespace create FIRES_KV` y pega el
+   `id` resultante en el bloque `[[kv_namespaces]]` de `wrangler.toml`. Tras el
+   deploy, el binding aparece en Settings → Bindings.
+5. Deploy. Cuotas free: 100.000 invocaciones de Functions/día (los estáticos,
    ilimitados). El mayor consumidor son los tiles de EFFIS.
+
+### Keep-warm (cron externo)
+
+Las dos primeras capas de cache son locales a cada datacenter de Cloudflare y
+la de módulo muere con el isolate: sin tráfico, el primer visitante pagaría el
+fan-out completo a FIRMS. Un cron externo (cron-job.org) hace
+`GET https://<dominio>/api/warm` cada 4 minutos (`*/4 * * * *`) y mantiene KV
+fresco — al ser KV global, da igual desde qué país pinche el cron.
+`/api/warm` ejecuta el mismo `getFires` que `/api/fires` pero responde solo un
+resumen (~94 bytes): cron-job.org rechaza cuerpos de respuesta grandes y la
+respuesta completa pesa ~580 KB.
 
 Prueba local del build de Cloudflare: `cp server/.env .dev.vars && npm run
 preview:cf` (sirve en :8788 con workerd real).
@@ -124,6 +145,7 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 | `GET /api/fires` | Focos de España en las últimas 24 h (3 satélites VIIRS + MODIS fusionados) + ranking de localidades afectadas |
 | `GET /api/effis/status` | Disponibilidad del WMS de EFFIS (sonda con fallback de endpoints) |
 | `GET /api/effis/wms?range=7d&bbox=…` | Proxy del `GetMap` WMS de EFFIS (tiles raster para MapLibre) |
+| `GET /api/warm` | Keep-warm para el cron: mismo refresco que `/api/fires`, respuesta mínima de ~94 bytes (solo en el despliegue Cloudflare) |
 | `GET /api/health` | Comprobación de vida |
 
 ## Rendimiento
@@ -137,6 +159,11 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
   la renovación corre en segundo plano; una ronda parcial (algún satélite
   caído) nunca sustituye a una foto completa anterior; single-flight para que N clientes
   simultáneos cuesten una sola ronda contra FIRMS.
+- **Hedging contra FIRMS** (ambos backends): si una petición de área no
+  responde en 4 s —o falla antes—, se lanza un duplicado idéntico y gana el
+  primero en responder. FIRMS deja peticiones colgadas 10-20 s de vez en
+  cuando: esto recorta el peor caso de ~25 s a ~17 s y el cuelgue típico a
+  ~5-6 s, con un coste en transacciones irrelevante frente al cupo.
 - **Payload ligero**: solo los campos del CSV que la UI usa (~19 KB gzip la
   respuesta completa con 1.700 focos); gzip activo en todo el servidor.
 - **Cabeceras de cache en producción**: assets con hash → `immutable` 1 año;
@@ -170,7 +197,7 @@ disponible".
 ├── package.json          # workspaces + scripts (dev/build/start/typecheck)
 ├── wrangler.toml         # config del proyecto Cloudflare Pages
 ├── functions/            # port del proxy a Pages Functions (producción CF)
-│   ├── api/              # fires.ts, effis/status.ts, effis/wms.ts, health.ts
+│   ├── api/              # fires.ts, warm.ts, effis/status.ts, effis/wms.ts, health.ts
 │   └── _lib/             # firms, effis, geo, impact (índice de rejilla), types
 ├── scripts/              # build-muni-index.mjs (genera el índice espacial)
 ├── server/               # proxy Express + TS (dev clásico y despliegue Node)
