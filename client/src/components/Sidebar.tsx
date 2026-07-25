@@ -210,12 +210,14 @@ export default function Sidebar(props: SidebarProps) {
       <div ref={contentRef} {...inertProps} className="flex min-h-0 flex-col md:min-h-0 md:flex-1">
         <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
           <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
-          <div>
-            <h1 className="text-lg font-bold leading-tight">Firemaps España</h1>
-            <p className="mt-1 text-xs text-ink-muted">
+          {/* Un solo h1 con marca + descriptor: el descriptor lleva la keyword
+              y así el encabezado principal de la página no es solo la marca. */}
+          <h1>
+            <span className="block text-lg font-bold leading-tight">Firemaps España</span>
+            <span className="mt-1 block text-xs font-normal text-ink-muted">
               Mapa de incendios en España · satélite en tiempo casi real
-            </p>
-          </div>
+            </span>
+          </h1>
         </header>
 
         <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
@@ -348,6 +350,72 @@ export default function Sidebar(props: SidebarProps) {
 
         <section>
           <Legend showEffis={props.showEffis} showWind={props.showWind} />
+        </section>
+
+        {/* Prosa indexable: describe las features en texto real (Google
+            renderiza la SPA y sin esto solo vería etiquetas de UI). Los
+            <details> van cerrados: el contenido se indexa igual y el panel
+            no se alarga. */}
+        <section className="space-y-2 text-sm text-ink-secondary">
+          <h2 className="fm-eyebrow mb-1.5">Sobre este mapa</h2>
+
+          <details>
+            <summary className="cursor-pointer select-none text-ink-primary">
+              Qué muestra este mapa de incendios
+            </summary>
+            <div className="mt-2 space-y-2">
+              <p>
+                <strong className="font-semibold text-ink-primary">
+                  Focos de calor por satélite:
+                </strong>{' '}
+                detecciones de los satélites de la NASA (VIIRS y MODIS, programa FIRMS) en las
+                últimas 24 horas, coloreadas por potencia radiativa: de amarillo (baja) a rojo
+                (extrema). Se actualizan cada 5 minutos.
+              </p>
+              <p>
+                <strong className="font-semibold text-ink-primary">Área quemada:</strong>{' '}
+                perímetros de zonas quemadas de los últimos 7 días, del programa europeo
+                Copernicus (EFFIS).
+              </p>
+              <p>
+                <strong className="font-semibold text-ink-primary">
+                  Viento junto a los incendios:
+                </strong>{' '}
+                dirección y velocidad del viento en cada foco activo. Cada flecha sopla hacia
+                donde el viento empuja el fuego y el humo, y su haz marca el alcance aproximado
+                del humo en unos 15 minutos.
+              </p>
+              <p>
+                <strong className="font-semibold text-ink-primary">Localidades afectadas:</strong>{' '}
+                ranking de municipios con focos activos; al tocar uno el mapa vuela a su zona.
+              </p>
+            </div>
+          </details>
+
+          <details>
+            <summary className="cursor-pointer select-none text-ink-primary">
+              ¿Por qué huele a humo si el incendio está lejos?
+            </summary>
+            <p className="mt-2">
+              El humo viaja con el viento y puede recorrer decenas de kilómetros: es habitual
+              olerlo en ciudades alejadas del fuego. Las flechas azules del mapa muestran hacia
+              dónde sopla el viento en cada incendio y el alcance aproximado del humo: si tu
+              localidad está a sotavento de un foco, ahí tienes la explicación.
+            </p>
+          </details>
+
+          <details>
+            <summary className="cursor-pointer select-none text-ink-primary">
+              Fuentes y actualización de los datos
+            </summary>
+            <p className="mt-2">
+              Focos de calor de NASA FIRMS, área quemada de Copernicus EFFIS y viento de
+              Open-Meteo, sobre imagen satelital de Esri. Todo se actualiza automáticamente cada
+              pocos minutos. Gratuito, sin registro y pensado también para el móvil. Puedes
+              compartir el mapa centrado en tu municipio con el enlace{' '}
+              <code className="text-xs">?localidad=Nombre</code>.
+            </p>
+          </details>
         </section>
 
         </div>

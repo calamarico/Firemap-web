@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- SEO: título con la keyword principal delante y la marca detrás -->
-    <title>Mapa de incendios en España en tiempo real · Firemaps España</title>
+    <title>Mapa de incendios en España hoy, en tiempo real · Firemaps</title>
     <meta
       name="description"
-      content="Mapa de incendios en España actualizado en tiempo casi real: focos de calor detectados por satélite (NASA), perímetros de área quemada (Copernicus) y ranking de municipios afectados en las últimas 24 horas."
+      content="Incendios en España hoy en tiempo casi real: focos por satélite NASA, área quemada de Copernicus, viento con la dirección del humo y municipios afectados."
     />
     <link rel="canonical" href="https://firemapsspain.online/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -17,10 +17,10 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Firemaps España" />
     <meta property="og:locale" content="es_ES" />
-    <meta property="og:title" content="Mapa de incendios en España en tiempo real · Firemaps España" />
+    <meta property="og:title" content="Mapa de incendios en España hoy, en tiempo real · Firemaps" />
     <meta
       property="og:description"
-      content="Focos de calor por satélite, área quemada y municipios afectados, actualizado cada pocos minutos."
+      content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
     <meta property="og:url" content="https://firemapsspain.online/" />
     <meta property="og:image" content="https://firemapsspain.online/og-image.jpg" />
@@ -30,10 +30,10 @@
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Mapa de incendios en España en tiempo real · Firemaps España" />
+    <meta name="twitter:title" content="Mapa de incendios en España hoy, en tiempo real · Firemaps" />
     <meta
       name="twitter:description"
-      content="Focos de calor por satélite, área quemada y municipios afectados, actualizado cada pocos minutos."
+      content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
     <meta name="twitter:image" content="https://firemapsspain.online/og-image.jpg" />
 
@@ -60,7 +60,13 @@
         "name": "Firemaps España",
         "alternateName": "Mapa de incendios en España",
         "url": "https://firemapsspain.online/",
-        "description": "Mapa de incendios en España en tiempo casi real: focos de calor detectados por satélite, área quemada y municipios afectados en las últimas 24 horas.",
+        "description": "Mapa de incendios en España en tiempo casi real: focos de calor detectados por satélite, área quemada, viento con la dirección y el alcance del humo, y municipios afectados en las últimas 24 horas.",
+        "featureList": [
+          "Focos de calor por satélite (NASA FIRMS) de las últimas 24 horas",
+          "Perímetros de área quemada (Copernicus EFFIS)",
+          "Viento junto a los incendios: dirección, velocidad y alcance del humo",
+          "Ranking de municipios afectados"
+        ],
         "applicationCategory": "Map",
         "operatingSystem": "Web",
         "browserRequirements": "Requiere JavaScript",
@@ -94,13 +100,32 @@
           padding: 2rem;
         "
       >
-        <h1 style="font-size: 1.6rem; margin: 0">Mapa de incendios en España en tiempo real</h1>
+        <h1 style="font-size: 1.6rem; margin: 0">Mapa de incendios en España hoy, en tiempo real</h1>
         <p style="max-width: 42rem; color: #94a3b8; margin: 0; line-height: 1.6">
-          Firemaps España muestra los incendios activos en España sobre un mapa por satélite:
-          focos de calor de las últimas 24 horas detectados por la NASA (satélites VIIRS y MODIS),
-          perímetros de área quemada del programa europeo Copernicus y el ranking de municipios
-          más afectados, actualizado cada pocos minutos. Gratuito y sin registro.
+          Firemaps España muestra los incendios activos en España sobre un mapa por satélite,
+          actualizado cada pocos minutos. Gratuito y sin registro.
         </p>
+        <ul
+          style="
+            max-width: 42rem;
+            color: #94a3b8;
+            margin: 0;
+            line-height: 1.7;
+            text-align: left;
+            padding-left: 1.2rem;
+          "
+        >
+          <li>
+            Focos de calor de las últimas 24 horas detectados por los satélites de la NASA
+            (VIIRS y MODIS), coloreados por severidad.
+          </li>
+          <li>Perímetros de área quemada de los últimos 7 días (Copernicus EFFIS).</li>
+          <li>
+            Viento junto a cada incendio: dirección, velocidad y hacia dónde puede llegar el
+            humo.
+          </li>
+          <li>Ranking de municipios afectados, para ver de un vistazo dónde está el fuego.</li>
+        </ul>
         <p style="color: #64748b; margin: 0">Cargando el mapa de incendios…</p>
       </div>
     </div>

@@ -118,6 +118,25 @@ export default function App() {
         basemap={basemap}
         onMapReady={handleMapReady}
       />
+      {/* Primera carga en móvil: la única pista de espera era el spinner
+          diminuto de la barra plegada. Este aviso flota sobre el mapa (misma
+          esquina que ocupa el panel de localidades en escritorio) y
+          desaparece en cuanto llegan los primeros datos. */}
+      {fires.status === 'loading' && !fires.data && (
+        <div
+          role="status"
+          className="absolute right-2 top-2 z-panel flex items-center gap-2 rounded-lg
+            bg-surface-panel px-3 py-2 text-sm text-ink-secondary shadow-panel backdrop-blur
+            md:hidden"
+        >
+          <span
+            aria-hidden="true"
+            className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2
+              border-current border-t-transparent text-ink-muted"
+          />
+          Cargando datos…
+        </div>
+      )}
       <Sidebar
         fires={fires}
         effis={effis}
