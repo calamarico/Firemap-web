@@ -33,4 +33,7 @@ export const MAP = {
   smokePuff: '#b3ecfa',
   windChevron: '#38c7e6',
   windLabel: '#38c7e6',
+  // Flujo de viento ambiental. Neutro a propósito: el cian está reservado al
+  // humo de los focos, y un campo cian se leería como humo inexistente.
+  flowTrail: 'rgba(226,232,240,0.42)',
 } as const;

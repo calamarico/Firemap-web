@@ -61,8 +61,10 @@ const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFi
  * el proxy y no gasta invocaciones del plan free).
  *
  * OJO con el cupo de Open-Meteo: son 10.000 "llamadas"/día POR IP del
- * visitante, y una petición multi-punto pondera ~1 llamada por ubicación —
- * nuestra petición (≤60 puntos, los clusters de focos) vale eso del cupo. La
+ * visitante, y el peso real de una petición multi-punto es
+ * nLocations × (nDays/14) × (nVariables/10), con mínimo de 14 días en el
+ * factor temporal: con nuestras 2 variables son 0,2 llamadas por ubicación —
+ * nuestra petición (≤60 puntos, los clusters de focos) vale ≤12 del cupo. La
  * pluma de humo eliminó la rejilla ambiental (~86 ubicaciones menos por
  * refresco). De ahí las tres defensas de este hook: cadencia de 15 min (lo
  * que tarda Open-Meteo en actualizar su "current"), pausa total con la

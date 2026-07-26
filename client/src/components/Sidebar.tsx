@@ -36,6 +36,10 @@ interface SidebarProps {
   onShowBoundariesChange: (value: boolean) => void;
   showWind: boolean;
   onShowWindChange: (value: boolean) => void;
+  showWindField: boolean;
+  onShowWindFieldChange: (value: boolean) => void;
+  /** Con "reducir movimiento" el campo de flujo no existe: solo animación. */
+  reducedMotion: boolean;
   basemap: BasemapId;
   onBasemapChange: (basemap: BasemapId) => void;
   onRefresh: () => void;
@@ -351,6 +355,18 @@ export default function Sidebar(props: SidebarProps) {
             description="Dirección y velocidad · Open-Meteo"
           />
           <LayerToggle
+            label="Flujo de viento"
+            checked={props.showWindField && !props.reducedMotion}
+            onChange={props.onShowWindFieldChange}
+            swatch="var(--fm-map-flow-trail)"
+            disabled={props.reducedMotion}
+            description={
+              props.reducedMotion
+                ? 'Requiere animación; tu sistema tiene activado «reducir movimiento».'
+                : 'Viento general de la jornada · Open-Meteo'
+            }
+          />
+          <LayerToggle
             label="Límites administrativos"
             checked={props.showBoundaries}
             onChange={props.onShowBoundariesChange}
@@ -398,7 +414,11 @@ export default function Sidebar(props: SidebarProps) {
         </section>
 
         <section>
-          <Legend showEffis={props.showEffis} showWind={props.showWind} />
+          <Legend
+            showEffis={props.showEffis}
+            showWind={props.showWind}
+            showWindField={props.showWindField && !props.reducedMotion}
+          />
         </section>
 
         {/* Prosa indexable: describe las features en texto real (Google
@@ -434,6 +454,13 @@ export default function Sidebar(props: SidebarProps) {
                 más largo y estrecho el cono, más fuerte sopla; cuanto más corto y abierto, más
                 se queda el humo en la zona. Cada banda son 10 minutos de recorrido, hasta media
                 hora.
+              </p>
+              <p>
+                <strong className="font-semibold text-ink-primary">Flujo de viento:</strong>{' '}
+                dibuja hacia dónde se mueve el aire sobre todo el territorio. Es el viento
+                general de la jornada, útil para entender de dónde viene el tiempo; para saber a
+                dónde va el humo de un incendio concreto, mira su pluma. Se descarga solo cuando
+                activas esta capa.
               </p>
               <p>
                 <strong className="font-semibold text-ink-primary">Localidades afectadas:</strong>{' '}

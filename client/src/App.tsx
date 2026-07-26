@@ -7,6 +7,7 @@ import { REFRESH_INTERVAL_MS } from './config';
 import { useEffisStatus } from './hooks/useEffisStatus';
 import { useFires } from './hooks/useFires';
 import { useWind } from './hooks/useWind';
+import { useWindField } from './hooks/useWindField';
 import {
   findLocalityByName,
   findLocalityBySlug,
@@ -24,7 +25,16 @@ export default function App() {
   const [showEffis, setShowEffis] = useState(true);
   const [showBoundaries, setShowBoundaries] = useState(true);
   const [showWind, setShowWind] = useState(true);
+  // Contexto, no dato primario — y cuesta cupo de API: apagado por defecto.
+  const [showWindField, setShowWindField] = useState(false);
   const [basemap, setBasemapId] = useState<BasemapId>('satellite');
+
+  // El campo de flujo ES movimiento: con "reducir movimiento" no queda nada
+  // que enseñar, así que el interruptor se deshabilita y no se pide nada.
+  const reducedMotion = useMemo(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
 
   const { view: fires, refresh: refreshFires } = useFires(REFRESH_INTERVAL_MS);
   const { view: effis, refresh: refreshEffis } = useEffisStatus(REFRESH_INTERVAL_MS);
@@ -46,6 +56,11 @@ export default function App() {
   // pondera cada ubicación de la petición como una llamada.
   const windReady = fires.data !== null || fires.status === 'error';
   const wind = useWind(showWind && windReady, fireWindPoints);
+
+  // Campo de flujo ambiental: hook independiente de useWind (las plumas por
+  // foco funcionan igual con esta capa apagada) y sin ningún fetch mientras
+  // el interruptor esté apagado o el sistema pida reducir movimiento.
+  const windField = useWindField(showWindField && !reducedMotion);
   // La pluma se dibuja anclada a un foco real del cluster (máx. FRP), no al
   // centroide administrativo: el vértice del cono nace de un círculo de
   // fuego visible. Si la muestra viene de una caché con clusters ya extintos,
@@ -146,6 +161,8 @@ export default function App() {
         showBoundaries={showBoundaries}
         showWind={showWind}
         wind={windForMap}
+        showWindField={showWindField && !reducedMotion}
+        windField={windField.blocks}
         basemap={basemap}
         onMapReady={handleMapReady}
       />
@@ -181,6 +198,9 @@ export default function App() {
         onShowBoundariesChange={setShowBoundaries}
         showWind={showWind}
         onShowWindChange={setShowWind}
+        showWindField={showWindField}
+        onShowWindFieldChange={setShowWindField}
+        reducedMotion={reducedMotion}
         basemap={basemap}
         onBasemapChange={setBasemapId}
         onRefresh={handleRefresh}

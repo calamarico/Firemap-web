@@ -17,6 +17,8 @@ import {
   setBasemap,
   SmokePlumeLayer,
 } from '../map/layers';
+import { createWindFieldRenderer, WindFieldRenderer } from '../map/windFieldRenderer';
+import type { WindFieldBlock } from '../lib/windField';
 import type { FireHotspot, WindPoint } from '../types';
 import FirePopup from './FirePopup';
 
@@ -35,6 +37,9 @@ interface MapViewProps {
   showWind: boolean;
   /** Muestras de viento junto a los focos (useWind). */
   wind: WindPoint[];
+  /** Campo de flujo ambiental (opcional, apagado por defecto). */
+  showWindField: boolean;
+  windField: WindFieldBlock[] | null;
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
   onMapReady?: (map: maplibregl.Map) => void;
@@ -88,6 +93,8 @@ export default function MapView({
   showBoundaries,
   showWind,
   wind,
+  showWindField,
+  windField,
   basemap,
   onMapReady,
 }: MapViewProps) {
@@ -99,6 +106,7 @@ export default function MapView({
     boundaries: AppLayer;
     wind: SmokePlumeLayer;
   } | null>(null);
+  const windFieldRef = useRef<WindFieldRenderer | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Inicialización única del mapa; los cambios posteriores se sincronizan en
@@ -156,6 +164,9 @@ export default function MapView({
       // ...y el viento el último: las plumas de humo se auto-insertan bajo
       // los círculos de foco; galón y etiqueta quedan encima de todo.
       wind.add(map);
+      // El campo de flujo va en lienzo propio (no es capa MapLibre), encima
+      // del canvas del mapa y debajo de controles y popups.
+      windFieldRef.current = createWindFieldRenderer(map);
       bindFiresPopup(map);
 
       // La URL solo refleja la posición cuando ya no es la de arranque (o si
@@ -178,6 +189,8 @@ export default function MapView({
     mapRef.current = map;
     return () => {
       setMapReady(false);
+      windFieldRef.current?.destroy();
+      windFieldRef.current = null;
       map.remove();
       mapRef.current = null;
       layersRef.current = null;
@@ -218,6 +231,21 @@ export default function MapView({
     if (!mapReady || !mapRef.current || !layersRef.current) return;
     layersRef.current.wind.setVisible(mapRef.current, showWind);
   }, [showWind, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    windFieldRef.current?.setField(windField);
+  }, [windField, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    windFieldRef.current?.setFires(hotspots.map((f) => [f.longitude, f.latitude]));
+  }, [hotspots, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    windFieldRef.current?.setEnabled(showWindField);
+  }, [showWindField, mapReady]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;

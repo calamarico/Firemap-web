@@ -24,5 +24,13 @@ export const MANUAL_REFRESH_COOLDOWN_MS = 30 * 1000;
 export const WIND_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 export const WIND_RETRY_MS = 2 * 60 * 1000;
 
+/**
+ * Refresco del campo de flujo de viento (Open-Meteo, solo con la capa
+ * activa). Media hora y no un cuarto: Open-Meteo actualiza su "current" cada
+ * ~15 min, pero el flujo sinóptico no cambia de forma perceptible en ese rato
+ * y esto parte el coste por dos.
+ */
+export const WIND_FIELD_REFRESH_INTERVAL_MS = 30 * 60_000;
+
 // La escala de severidad FRP y los colores del mapa viven en
 // styles/mapTokens.ts, la fuente única compartida por capas y leyenda.

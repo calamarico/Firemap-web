@@ -143,6 +143,9 @@
   --fm-map-smoke-puff: var(--fm-accent-200);
   --fm-map-wind-chevron: var(--fm-accent-400);
   --fm-map-wind-label: var(--fm-accent-400);
+  /* Flujo de viento ambiental. Neutro a propósito: el cian está reservado al
+     humo de los focos, y un campo cian se leería como humo inexistente. */
+  --fm-map-flow-trail: rgb(226 232 240 / 0.42);
 
   /* ============ Tipografía ============ */
   --fm-font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;

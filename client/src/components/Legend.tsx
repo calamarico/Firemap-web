@@ -2,7 +2,15 @@ import { SEVERITY } from '../styles/mapTokens';
 import { SeverityDot } from './ui/Severity';
 
 /** Leyenda de las capas activas; lee la misma escala de severidad que pinta los círculos. */
-export default function Legend({ showEffis, showWind }: { showEffis: boolean; showWind: boolean }) {
+export default function Legend({
+  showEffis,
+  showWind,
+  showWindField,
+}: {
+  showEffis: boolean;
+  showWind: boolean;
+  showWindField: boolean;
+}) {
   return (
     <div className="space-y-3">
       <div>
@@ -41,6 +49,25 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
             </svg>
             <span className="text-ink-secondary">
               La pluma se abre hacia donde va el humo · cada banda, 10 min de recorrido
+            </span>
+          </div>
+        </div>
+      )}
+      {showWindField && (
+        <div>
+          <h3 className="fm-eyebrow mb-1.5">Flujo de viento</h3>
+          <div className="flex items-center gap-2 text-sm">
+            <svg viewBox="0 0 20 12" width={22} height={14} aria-hidden="true" className="shrink-0">
+              <path
+                d="M1 9 C6 9 7 3 13 3 M4 11.5 C9 11.5 11 5.5 18 5.5"
+                stroke="var(--fm-map-flow-trail)"
+                strokeWidth="1.2"
+                fill="none"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="text-ink-secondary">
+              Viento general de la jornada · no es el viento local del incendio
             </span>
           </div>
         </div>
