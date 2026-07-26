@@ -1,6 +1,7 @@
 import type maplibregl from 'maplibre-gl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ImpactPanel from './components/ImpactPanel';
+import LayerChips from './components/LayerChips';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
 import { REFRESH_INTERVAL_MS } from './config';
@@ -166,25 +167,44 @@ export default function App() {
         basemap={basemap}
         onMapReady={handleMapReady}
       />
-      {/* Primera carga en móvil: la única pista de espera era el spinner
-          diminuto de la barra plegada. Este aviso flota sobre el mapa (misma
-          esquina que ocupa el panel de localidades en escritorio) y
-          desaparece en cuanto llegan los primeros datos. */}
-      {fires.status === 'loading' && !fires.data && (
-        <div
-          role="status"
-          className="absolute right-2 top-2 z-panel flex items-center gap-2 rounded-lg
-            bg-surface-panel px-3 py-2 text-sm text-ink-secondary shadow-panel backdrop-blur
-            md:hidden"
-        >
-          <span
-            aria-hidden="true"
-            className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2
-              border-current border-t-transparent text-ink-muted"
-          />
-          Cargando datos…
-        </div>
-      )}
+      {/* Overlay superior, solo móvil: dos cosas que se peleaban por la misma
+          esquina, ahora apiladas en columna — los controles de capa (que dentro
+          de la hoja plegada nadie encontraba) y el aviso de primera carga.
+          pointer-events-none en el contenedor: la banda ocupa todo el ancho,
+          pero solo la fila de chips y el aviso capturan el dedo; el resto sigue
+          siendo mapa. */}
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-panel flex flex-col gap-2 md:hidden">
+        <LayerChips
+          showFires={showFires}
+          onShowFiresChange={setShowFires}
+          showEffis={showEffis}
+          onShowEffisChange={setShowEffis}
+          showBoundaries={showBoundaries}
+          onShowBoundariesChange={setShowBoundaries}
+          showWind={showWind}
+          onShowWindChange={setShowWind}
+          showWindField={showWindField}
+          onShowWindFieldChange={setShowWindField}
+          reducedMotion={reducedMotion}
+        />
+        {/* La única pista de espera era el spinner diminuto de la barra
+            plegada. Va DEBAJO de los chips para que su aparición y su marcha no
+            los desplacen. */}
+        {fires.status === 'loading' && !fires.data && (
+          <div
+            role="status"
+            className="pointer-events-auto flex items-center gap-2 self-end rounded-lg
+              bg-surface-panel px-3 py-2 text-sm text-ink-secondary shadow-panel backdrop-blur"
+          >
+            <span
+              aria-hidden="true"
+              className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2
+                border-current border-t-transparent text-ink-muted"
+            />
+            Cargando datos…
+          </div>
+        )}
+      </div>
       <Sidebar
         fires={fires}
         effis={effis}

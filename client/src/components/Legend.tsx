@@ -48,7 +48,7 @@ export default function Legend({
               <circle cx="1" cy="7" r="1.6" fill="var(--fm-severity-3)" />
             </svg>
             <span className="text-ink-secondary">
-              La pluma se abre hacia donde va el humo · cada banda, 10 min de recorrido
+              La pluma se abre hacia donde va el humo · cada banda, 15 min de recorrido
             </span>
           </div>
         </div>

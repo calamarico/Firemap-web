@@ -25,12 +25,14 @@ export const MAP = {
   labelHalo: '#000000',
   // Viento: pluma de humo. Toda la familia es cian —inconfundible con la banda
   // ámbar/roja reservada a la severidad FRP—. Las tres bandas del cono son
-  // 10 min de recorrido cada una; el alfa decreciente ES la dispersión.
-  smokeBand1: 'rgba(127,221,242,0.30)',
-  smokeBand2: 'rgba(127,221,242,0.18)',
-  smokeBand3: 'rgba(127,221,242,0.08)',
-  smokeEdge: 'rgba(127,221,242,0.18)',
-  smokePuff: '#b3ecfa',
+  // 15 min de recorrido cada una; el alfa decreciente ES la dispersión.
+  // Alfas recalibrados contra la imagen satelital real: con los originales
+  // (0,18 y 0,08) las bandas 2 y 3 no se veían sobre terreno claro.
+  smokeBand1: 'rgba(127,221,242,0.45)',
+  smokeBand2: 'rgba(127,221,242,0.30)',
+  smokeBand3: 'rgba(127,221,242,0.16)',
+  smokeEdge: 'rgba(127,221,242,0.30)',
+  smokeWisp: '#b3ecfa',
   windChevron: '#38c7e6',
   windLabel: '#38c7e6',
   // Flujo de viento ambiental. Neutro a propósito: el cian está reservado al

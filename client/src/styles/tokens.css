@@ -134,13 +134,16 @@
   --fm-map-label: #ffffff;
   --fm-map-label-halo: #000000;
   /* Viento — pluma de humo. Familia cian completa: nunca puede confundirse con
-     la rampa ámbar/roja de severidad FRP. Las tres bandas son 10 min de
-     recorrido cada una; el alfa decreciente ES la dispersión. */
-  --fm-map-smoke-band-1: rgb(127 221 242 / 0.3);
-  --fm-map-smoke-band-2: rgb(127 221 242 / 0.18);
-  --fm-map-smoke-band-3: rgb(127 221 242 / 0.08);
-  --fm-map-smoke-edge: rgb(127 221 242 / 0.18);
-  --fm-map-smoke-puff: var(--fm-accent-200);
+     la rampa ámbar/roja de severidad FRP. Las tres bandas son 15 min de
+     recorrido cada una; el alfa decreciente ES la dispersión.
+     Alfas recalibrados contra la imagen satelital real (el prototipo se juzgó
+     sobre fondo oscuro): con los valores originales 0,18 y 0,08 las bandas 2 y 3
+     eran imperceptibles sobre terreno claro. La caída es más plana a propósito. */
+  --fm-map-smoke-band-1: rgb(127 221 242 / 0.45);
+  --fm-map-smoke-band-2: rgb(127 221 242 / 0.3);
+  --fm-map-smoke-band-3: rgb(127 221 242 / 0.16);
+  --fm-map-smoke-edge: rgb(127 221 242 / 0.3);
+  --fm-map-smoke-wisp: var(--fm-accent-200);
   --fm-map-wind-chevron: var(--fm-accent-400);
   --fm-map-wind-label: var(--fm-accent-400);
   /* Flujo de viento ambiental. Neutro a propósito: el cian está reservado al

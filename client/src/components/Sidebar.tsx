@@ -6,6 +6,7 @@ import type { FiresView } from '../hooks/useFires';
 import type { BasemapId } from '../map/layers';
 import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
+import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
 import Button from './ui/Button';
 import CountBadge from './ui/CountBadge';
@@ -23,23 +24,16 @@ const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
 /** Duración del deslizamiento de la hoja; debe coincidir con --fm-duration-sheet. */
 const SHEET_ANIM_MS = 300;
 
-interface SidebarProps {
+/**
+ * Hereda de LayerControls (el contrato que consume la fila de chips de móvil):
+ * así, cuando llegue una capa nueva, tsc obliga a añadirla en los dos sitios y
+ * no puede quedarse solo en uno.
+ */
+interface SidebarProps extends LayerControls {
   fires: FiresView;
   effis: EffisView;
   impact: RegionImpact[];
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
-  showFires: boolean;
-  onShowFiresChange: (value: boolean) => void;
-  showEffis: boolean;
-  onShowEffisChange: (value: boolean) => void;
-  showBoundaries: boolean;
-  onShowBoundariesChange: (value: boolean) => void;
-  showWind: boolean;
-  onShowWindChange: (value: boolean) => void;
-  showWindField: boolean;
-  onShowWindFieldChange: (value: boolean) => void;
-  /** Con "reducir movimiento" el campo de flujo no existe: solo animación. */
-  reducedMotion: boolean;
   basemap: BasemapId;
   onBasemapChange: (basemap: BasemapId) => void;
   onRefresh: () => void;
@@ -335,42 +329,52 @@ export default function Sidebar(props: SidebarProps) {
             />
           </div>
 
-          <LayerToggle
-            label="Focos de calor"
-            checked={props.showFires}
-            onChange={props.onShowFiresChange}
-            swatch="var(--fm-severity-3)"
-          />
-          <LayerToggle
-            label="Área quemada"
-            checked={props.showEffis}
-            onChange={props.onShowEffisChange}
-            swatch="var(--fm-burnt-fill)"
-          />
-          <LayerToggle
-            label="Viento"
-            checked={props.showWind}
-            onChange={props.onShowWindChange}
-            swatch="var(--fm-map-smoke-band-1)"
-            description="Dirección y velocidad · Open-Meteo"
-          />
-          <LayerToggle
-            label="Flujo de viento"
-            checked={props.showWindField && !props.reducedMotion}
-            onChange={props.onShowWindFieldChange}
-            swatch="var(--fm-map-flow-trail)"
-            disabled={props.reducedMotion}
-            description={
-              props.reducedMotion
-                ? 'Requiere animación; tu sistema tiene activado «reducir movimiento».'
-                : 'Viento general de la jornada · Open-Meteo'
-            }
-          />
-          <LayerToggle
-            label="Límites administrativos"
-            checked={props.showBoundaries}
-            onChange={props.onShowBoundariesChange}
-          />
+          {/* Los interruptores viven aquí solo en escritorio: en móvil los
+              sustituye la fila de chips que flota sobre el mapa (LayerChips),
+              visible sin desplegar la hoja. Se ocultan con display:none y no
+              desmontando, así el markup sigue en el DOM para el rastreador y
+              nunca hay dos controles del mismo estado expuestos a la vez. */}
+          <div className="hidden space-y-3 md:block">
+            <LayerToggle
+              label="Focos de calor"
+              checked={props.showFires}
+              onChange={props.onShowFiresChange}
+              swatch="var(--fm-severity-3)"
+            />
+            <LayerToggle
+              label="Área quemada"
+              checked={props.showEffis}
+              onChange={props.onShowEffisChange}
+              swatch="var(--fm-burnt-fill)"
+            />
+            <LayerToggle
+              label="Viento"
+              checked={props.showWind}
+              onChange={props.onShowWindChange}
+              swatch="var(--fm-map-smoke-band-1)"
+              description="Dirección y velocidad · Open-Meteo"
+            />
+            <LayerToggle
+              label="Flujo de viento"
+              checked={props.showWindField && !props.reducedMotion}
+              onChange={props.onShowWindFieldChange}
+              swatch="var(--fm-map-flow-trail)"
+              disabled={props.reducedMotion}
+              description={
+                props.reducedMotion
+                  ? 'Requiere animación; tu sistema tiene activado «reducir movimiento».'
+                  : 'Viento general de la jornada · Open-Meteo'
+              }
+            />
+            <LayerToggle
+              label="Límites administrativos"
+              checked={props.showBoundaries}
+              onChange={props.onShowBoundariesChange}
+            />
+          </div>
+          <p className="text-micro text-ink-faint md:hidden">
+            Las capas se activan desde los botones sobre el mapa.
+          </p>
 
           <Button
             size="lg"
@@ -452,8 +456,8 @@ export default function Sidebar(props: SidebarProps) {
                 </strong>{' '}
                 cada foco activo dibuja la pluma de humo hacia donde lo empuja el viento. Cuanto
                 más largo y estrecho el cono, más fuerte sopla; cuanto más corto y abierto, más
-                se queda el humo en la zona. Cada banda son 10 minutos de recorrido, hasta media
-                hora.
+                se queda el humo en la zona. Cada banda son 15 minutos de recorrido, hasta tres
+                cuartos de hora.
               </p>
               <p>
                 <strong className="font-semibold text-ink-primary">Flujo de viento:</strong>{' '}

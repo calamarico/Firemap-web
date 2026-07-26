@@ -65,6 +65,23 @@ h3 {
   }
 }
 
+/* Fila de chips de capa sobre el mapa: scroll horizontal sin barra visible.
+   La barra nativa sobre una tira de 36 px tapa el propio contenido. */
+.fm-scroll-x {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.fm-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Los popups del mapa deben pasar por encima de los overlays de UI (chips de
+   capa, aviso de carga): el contenedor del mapa no crea contexto de apilamiento
+   y sin z-index el popup quedaría detrás de cualquier z-panel. */
+.maplibregl-popup {
+  z-index: var(--fm-z-popup);
+}
+
 /* Controles nativos de MapLibre tokenizados: objetivo táctil de 44px y
    estética del panel (los iconos van horneados en gris oscuro dentro del
    sprite del control; invert(1) los pasa a claro sobre fondo oscuro). */
