@@ -106,6 +106,47 @@ h3 {
   background-color: var(--fm-surface-hover);
 }
 
+/* Atribución a juego con el panel: MapLibre la pinta blanca translúcida (y en
+   su forma compacta, blanco sólido con texto negro), que es un fogonazo sobre
+   la UI oscura. El icono "i" va horneado en gris oscuro, de ahí el invert. */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--fm-surface-panel);
+  backdrop-filter: blur(var(--fm-blur-panel));
+  color: var(--fm-text-muted);
+  /* 11px: con los 12 por defecto la línea de créditos no cabía entre las
+     esquinas redondeadas. */
+  font-size: var(--fm-text-micro);
+  border-radius: var(--fm-radius-full);
+}
+/* Plegada es un círculo de 24px (el icono "i"); desplegada, una caja de texto:
+   ahí el radio de píldora muerde las primeras y últimas letras. */
+.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  border-radius: var(--fm-radius-md);
+  padding: 3px 12px 3px 30px;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--fm-text-secondary);
+}
+.maplibregl-ctrl-attrib a:hover {
+  color: var(--fm-text-primary);
+}
+/* El icono "i" en su variante clara —la que MapLibre ya trae para fondos
+   oscuros—. No se usa filter: invert() porque invertiría también el anillo de
+   foco, que saldría naranja y parecería un aviso. */
+.maplibregl-ctrl-attrib-button,
+.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23fff' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");
+}
+/* El anillo azul propio de MapLibre lo sustituye el foco global del sistema. */
+.maplibregl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+.maplibregl-ctrl-attrib-button:focus-visible {
+  box-shadow: var(--fm-focus-shadow);
+}
+
 /* Popups de MapLibre en oscuro, a juego con el panel. */
 .maplibregl-popup-content {
   background: var(--fm-surface-raised);

@@ -144,6 +144,19 @@ export default function MapView({
       touchPitch: false,
     });
     map.touchZoomRotate.disableRotation();
+    // La atribución arranca PLEGADA (botón "i"). Se toca el DOM del control que
+    // MapLibre monta en el constructor —no se sustituye por otro— para no
+    // perder sus opciones por defecto, que incluyen el crédito a MapLibre.
+    // Su propio modo ya es `compact: true`, pero al cargar las fuentes
+    // _updateCompact() ve que al contenedor le falta la clase
+    // `maplibregl-compact` y lo despliega una vez, plantando en móvil una caja
+    // de tres líneas sobre la barra de la hoja. Ponerle la clase aquí desactiva
+    // ese despliegue: el icono sigue visible y las fuentes, a un toque.
+    const attribution = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    attribution?.classList.add('maplibregl-compact');
+    attribution?.classList.remove('maplibregl-compact-show');
+    attribution?.removeAttribute('open');
+
     // Zoom abajo a la derecha: la esquina superior derecha la ocupa el panel
     // de localidades afectadas.
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
