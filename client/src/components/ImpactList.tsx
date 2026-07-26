@@ -38,7 +38,8 @@ function formatAcq(iso: string): string {
 }
 
 /**
- * Acordeón de localidades afectadas agrupadas por comunidad autónoma. Dentro
+ * Acordeón de localidades afectadas agrupadas por comunidad autónoma (o
+ * distrito, en Portugal). Dentro
  * de cada comunidad, la localidad con la detección más reciente va primero:
  * así se ve a qué municipios está llegando el fuego ahora.
  * Se usa en dos contenedores: el panel flotante de escritorio (ImpactPanel)

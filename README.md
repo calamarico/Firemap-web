@@ -5,30 +5,35 @@ Aplicación web centrada en el **momento actual**: muestra en un mapa los
 (NASA FIRMS, unión de los tres satélites VIIRS —S-NPP, NOAA-20 y NOAA-21— más
 MODIS/Terra-Aqua, que cubre el hueco de la tarde-noche) y
 los **perímetros de área quemada** recientes (EFFIS / Copernicus) en España
-(península, Baleares, Canarias, Ceuta y Melilla). No hay vistas históricas:
-una sola vista, siempre al día.
+(península, Baleares, Canarias, Ceuta y Melilla) y Portugal continental
+(Madeira y Azores quedan fuera). No hay vistas históricas: una sola vista,
+siempre al día.
 
 FIRMS solo admite un rectángulo por petición, así que el proxy consulta dos
 áreas en paralelo y fusiona los resultados (la lista vive en
 `server/src/firms.ts`). Los focos de países vecinos que entran en esos
 rectángulos se descartan con un point-in-polygon contra el contorno real de
-España (`server/src/geo.ts` + `server/src/data/spain-boundary.json`,
-procedente de geoBoundaries ADM0 con ~2 km de margen costero para no perder
-detecciones pegadas a la costa).
+la cobertura (`server/src/geo.ts` + `server/src/data/coverage-boundary.json`,
+generado por `scripts/build-coverage-boundary.mjs` desde geoBoundaries ADM0 de
+España y Portugal con ~2 km de margen costero para no perder detecciones
+pegadas a la costa).
 
 - **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS + MapLibre GL JS.
   Dos mapas base sin API key, conmutables desde el panel: imagen satelital
   (Esri World Imagery, al estilo del visor de FIRMS) y oscuro (CARTO Dark
   Matter `dark_nolabels`). Las etiquetas las pinta la app en castellano como
   capas de símbolos propias —los rasters de CARTO traen topónimos
-  anglificados horneados—: nombres de las comunidades autónomas
-  (`client/public/data/ccaa-labels.json`, centroides precalculados) y
-  capitales/ciudades grandes (`client/public/data/cities.json`), con los
-  límites administrativos de geoBoundaries escalonados por zoom: comunidades
-  autónomas (`ccaa.json`), provincias desde zoom 6.5 (`provincias.json`) y los
-  8.205 municipios desde zoom 7 en **teselas vectoriales PMTiles**
+  anglificados horneados—: nombres de las comunidades autónomas y distritos
+  portugueses (`client/public/data/ccaa-labels.json`, centroides
+  precalculados) y capitales/ciudades grandes
+  (`client/public/data/cities.json`), con los límites administrativos
+  escalonados por zoom: comunidades autónomas y distritos (`ccaa.json`),
+  provincias desde zoom 6.5 (`provincias.json`) y los 8.483
+  municipios/concelhos desde zoom 7 en **teselas vectoriales PMTiles**
   (`municipios.pmtiles` + `municipios-labels.pmtiles`): el navegador pide por
   HTTP Range solo las teselas del viewport, con detalle adaptado al zoom.
+  Fuentes: geoBoundaries (España) y CAOP vía `scripts/merge-portugal.mjs`
+  (Portugal).
 - **Ranking de localidades afectadas**: el proxy hace el join espacial
   foco→municipio→comunidad (polígonos en `server/data/`) y el cliente pinta el
   panel derecho plegable por comunidad autónoma sin cargar ni un polígono.
@@ -142,7 +147,7 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 
 | Endpoint | Descripción |
 |---|---|
-| `GET /api/fires` | Focos de España en las últimas 24 h (3 satélites VIIRS + MODIS fusionados) + ranking de localidades afectadas |
+| `GET /api/fires` | Focos de España y Portugal en las últimas 24 h (3 satélites VIIRS + MODIS fusionados) + ranking de localidades afectadas |
 | `GET /api/effis/status` | Disponibilidad del WMS de EFFIS (sonda con fallback de endpoints) |
 | `GET /api/effis/wms?range=7d&bbox=…` | Proxy del `GetMap` WMS de EFFIS (tiles raster para MapLibre) |
 | `GET /api/warm` | Keep-warm para el cron: mismo refresco que `/api/fires`, respuesta mínima de ~94 bytes (solo en el despliegue Cloudflare) |
@@ -150,10 +155,13 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 
 ## Rendimiento
 
-- **Municipios en PMTiles** (tippecanoe, z6–z12): nada de GeoJSON de 7,5 MB en
+- **Municipios en PMTiles** (tippecanoe, z6–z12): nada de GeoJSON de 8,7 MB en
   el navegador; cada vista descarga solo sus teselas por HTTP Range, con más
-  detalle que la versión GeoJSON a zoom alto. Regenerar:
-  `tippecanoe -o municipios.pmtiles -Z6 -z12 --detect-shared-borders --coalesce-densest-as-needed -l municipios <adm3.geojson>`.
+  detalle que la versión GeoJSON a zoom alto. Regenerar (líneas y etiquetas;
+  la entrada de etiquetas la emite `scripts/merge-portugal.mjs`):
+  `tippecanoe -f -o client/public/data/municipios.pmtiles -Z6 -z12 --detect-shared-borders --coalesce-densest-as-needed -l municipios server/data/municipios.json`
+  y
+  `tippecanoe -f -o client/public/data/municipios-labels.pmtiles -Z8 -z12 -r1 -l labels node_modules/.cache/geoboundaries/municipios-labels.geojson`.
 - **Cache stale-while-revalidate en `/api/fires`**: fresco < 5 min se sirve de
   memoria; entre 5 y 30 min se responde al instante con el último dato bueno y
   la renovación corre en segundo plano; una ronda parcial (algún satélite
@@ -170,8 +178,8 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
   datos geográficos → 1 día con revalidación.
 - **Build**: MapLibre y React en chunks separados (conservan hash y cache
   entre deploys; el código de la app son ~15 KB gzip); `preconnect` a los
-  servidores de tiles/glifos; paneo limitado al entorno de España para no
-  pedir tiles del resto del mundo.
+  servidores de tiles/glifos; paneo limitado al entorno de la península
+  ibérica y Canarias para no pedir tiles del resto del mundo.
 
 ## Notas sobre EFFIS
 
@@ -199,20 +207,22 @@ disponible".
 ├── functions/            # port del proxy a Pages Functions (producción CF)
 │   ├── api/              # fires.ts, warm.ts, effis/status.ts, effis/wms.ts, health.ts
 │   └── _lib/             # firms, effis, geo, impact (índice de rejilla), types
-├── scripts/              # build-muni-index.mjs (genera el índice espacial)
+├── scripts/              # build-muni-index.mjs (índice espacial), build-wind-grid.mjs,
+│                         # build-coverage-boundary.mjs (contorno ES+PT),
+│                         # merge-portugal.mjs (fusiona la CAOP portuguesa)
 ├── server/               # proxy Express + TS (dev clásico y despliegue Node)
 │   ├── data/             # municipios.json + ccaa.json para el join del ranking
 │   └── src/
 │       ├── index.ts      # rutas /api/*, estáticos del cliente en producción
 │       ├── firms.ts      # FIRMS: fusión 4 sensores, ventana 24 h, SWR + single-flight
 │       ├── effis.ts      # EFFIS: sonda de salud, fallback y proxy de tiles WMS
-│       ├── impact.ts     # ranking de localidades (join espacial foco→municipio→CCAA)
-│       ├── geo.ts        # point-in-polygon (contorno de España + utilidades)
-│       ├── data/         # spain-boundary.json (geoBoundaries ADM0, procesado)
+│       ├── impact.ts     # ranking de localidades (join espacial foco→municipio→región)
+│       ├── geo.ts        # point-in-polygon (contorno de la cobertura + utilidades)
+│       ├── data/         # coverage-boundary.json (ADM0 ES+PT, procesado)
 │       ├── cache.ts      # cache TTL en memoria
 │       └── types.ts      # FireHotspot, FiresResponse, RegionImpact, EffisStatus
 └── client/               # React + Vite + TS + Tailwind
-    ├── public/data/      # ccaa.json (límites autonómicos, geoBoundaries ADM1)
+    ├── public/data/      # ccaa.json (límites autonómicos y distritos PT)
     └── src/
         ├── hooks/        # useFires, useEffisStatus (carga + auto-refresco 5 min)
         ├── map/layers.ts # abstracción AppLayer (añadir fuentes nuevas = 1 función)

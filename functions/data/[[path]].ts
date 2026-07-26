@@ -4,7 +4,7 @@ import { Env } from '../_lib/types';
  * El asset server de Cloudflare Pages no soporta peticiones HTTP Range, y el
  * cliente PMTiles vive de ellas ("Check that your storage backend supports
  * HTTP Byte Serving"). Esta Function intercepta SOLO los .pmtiles, carga el
- * archivo completo una vez por isolate (12,5 MB entre los dos: holgado en los
+ * archivo completo una vez por isolate (~14 MB entre los dos: holgado en los
  * 128 MB de Workers) y emula el byte serving devolviendo 206 con las
  * cabeceras correctas. El resto de /data/* sigue su camino normal (next()).
  *

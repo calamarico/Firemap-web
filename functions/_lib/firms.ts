@@ -1,4 +1,4 @@
-import { isInSpain } from './geo';
+import { isInCoverage } from './geo';
 import { computeImpact, loadIndex } from './impact';
 import { ApiError, Env, FireHotspot, FiresResponse } from './types';
 
@@ -17,7 +17,7 @@ import { ApiError, Env, FireHotspot, FiresResponse } from './types';
 const FIRMS_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 
 const AREAS = [
-  { name: 'peninsula-baleares', bbox: '-9.50,35.10,4.40,43.95' },
+  { name: 'peninsula-baleares', bbox: '-9.80,35.10,4.40,43.95' },
   { name: 'canarias', bbox: '-18.40,27.40,-13.30,29.50' },
 ] as const;
 
@@ -54,8 +54,8 @@ const RETRY_PAUSE_MS = 1_500;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
-const CACHE_KEY = 'https://firemap.cache/api/fires-v4';
-const KV_KEY = 'api-fires-v4';
+const CACHE_KEY = 'https://firemap.cache/api/fires-v5';
+const KV_KEY = 'api-fires-v5';
 // Guarda de escritura en KV: el free plan da 1000 escrituras/día y todos los
 // datacenters comparten la clave. Si lo que hay en KV tiene menos de este
 // margen, la escritura se ahorra: techo global ~360/día.
@@ -206,7 +206,7 @@ async function refreshFires(mapKey: string, env: Env): Promise<FiresResponse> {
   const cutoff = Date.now() - WINDOW_HOURS * 3_600_000;
   const hotspots = fulfilled
     .flatMap((r) => r.value)
-    .filter((h) => isInSpain(h.longitude, h.latitude))
+    .filter((h) => isInCoverage(h.longitude, h.latitude))
     .filter((h) => acqTimestamp(h) >= cutoff)
     .sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
 

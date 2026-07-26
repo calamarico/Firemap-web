@@ -1,10 +1,10 @@
-import boundary from './spain-boundary.json';
+import boundary from './coverage-boundary.json';
 
 /**
- * Recorte al territorio español (mismo contorno y misma lógica que
- * server/src/geo.ts): descarta los focos de países vecinos que entran en los
- * bbox rectangulares de FIRMS. El JSON pesa 31 KB: cabe de sobra en el límite
- * de bundle del free plan de Workers.
+ * Recorte a la zona de cobertura, España y Portugal continental (mismo
+ * contorno y misma lógica que server/src/geo.ts): descarta los focos de países
+ * vecinos que entran en los bbox rectangulares de FIRMS. El JSON pesa ~21 KB:
+ * cabe de sobra en el límite de bundle del free plan de Workers.
  */
 
 type Position = number[];
@@ -22,7 +22,7 @@ const polygons: PreparedPolygon[] = (boundary.coordinates as Ring[][]).map((ring
   bbox: ringBbox(rings[0]),
 }));
 
-export function isInSpain(lon: number, lat: number): boolean {
+export function isInCoverage(lon: number, lat: number): boolean {
   for (const poly of polygons) {
     const [minX, minY, maxX, maxY] = poly.bbox;
     if (lon < minX || lon > maxX || lat < minY || lat > maxY) continue;

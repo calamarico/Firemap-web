@@ -2,7 +2,7 @@
   "name": "incendios-madrid",
   "private": true,
   "version": "1.0.0",
-  "description": "Mapa en tiempo casi real de focos de calor (NASA FIRMS) y perímetros de área quemada (EFFIS) en España",
+  "description": "Mapa en tiempo casi real de focos de calor (NASA FIRMS) y perímetros de área quemada (EFFIS) en España y Portugal",
   "workspaces": [
     "client",
     "server"
@@ -19,7 +19,10 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260724.1",
+    "@turf/buffer": "^7.3.5",
+    "@turf/simplify": "^7.3.5",
     "concurrently": "^9.1.0",
+    "proj4": "^2.20.9",
     "typescript": "^5.7.2",
     "wrangler": "^4.114.0"
   }

@@ -215,7 +215,7 @@ export default function Sidebar(props: SidebarProps) {
           <h1>
             <span className="block text-lg font-bold leading-tight">Firemaps España</span>
             <span className="mt-1 block text-xs font-normal text-ink-muted">
-              Mapa de incendios en España · satélite en tiempo casi real
+              Mapa de incendios en España y Portugal · satélite en tiempo casi real
             </span>
           </h1>
         </header>

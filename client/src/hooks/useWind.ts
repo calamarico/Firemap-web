@@ -21,7 +21,7 @@ const GRID_POINTS = windGrid.points.map(([lon, lat]): [number, number] => [lon, 
  * (p. ej. cupo diario de la IP agotado, HTTP 429), se pinta esta copia en vez
  * de nada. Caduca pronto: el viento de hace horas ya no describe el presente.
  */
-const WIND_CACHE_KEY = 'fm-wind-v1';
+const WIND_CACHE_KEY = 'fm-wind-v2';
 const WIND_CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface CachedWind {
@@ -61,7 +61,8 @@ interface OpenMeteoEntry {
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /**
- * Viento actual (10 m) para la rejilla de España + los puntos junto a focos,
+ * Viento actual (10 m) para la rejilla de España y Portugal + los puntos
+ * junto a focos,
  * en UNA llamada directa del navegador a Open-Meteo (sin API key, CORS
  * abierto; no pasa por el proxy y no gasta invocaciones del plan free).
  *

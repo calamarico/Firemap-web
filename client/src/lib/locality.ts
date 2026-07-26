@@ -7,7 +7,7 @@
 export const LOCALITY_PARAM = 'localidad';
 
 /** Debe coincidir con el <title> de index.html. */
-const DEFAULT_TITLE = 'Mapa de incendios en España hoy, en tiempo real · Firemaps';
+const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps';
 
 interface MuniMetaFile {
   municipalities: Array<{ n: string; c?: [number, number] }>;

@@ -1,14 +1,17 @@
-import boundary from './data/spain-boundary.json';
+import boundary from './data/coverage-boundary.json';
 
 /**
- * Recorte al territorio español. Los bbox rectangulares de FIRMS incluyen
- * franjas de Portugal, Francia y el norte de África; este módulo descarta esos
- * focos con un point-in-polygon contra el contorno real de España.
+ * Recorte a la zona de cobertura: España y Portugal continental. Los bbox
+ * rectangulares de FIRMS incluyen franjas de Francia y el norte de África;
+ * este módulo descarta esos focos con un point-in-polygon contra el contorno
+ * real de la cobertura.
  *
- * El contorno (server/src/data/spain-boundary.json) procede de geoBoundaries
- * ADM0 (ESP), con un buffer de ~2 km —para no perder focos costeros por la
- * resolución del píxel VIIRS (~375 m) y la simplificación— y simplificado a
- * ~1.760 vértices. Incluye Canarias, Baleares, Ceuta y Melilla.
+ * El contorno (server/src/data/coverage-boundary.json) lo genera
+ * scripts/build-coverage-boundary.mjs a partir de geoBoundaries ADM0
+ * (ESP + PRT continental), con un buffer de ~2 km —para no perder focos
+ * costeros por la resolución del píxel VIIRS (~375 m) y la simplificación— y
+ * simplificado a ~1.200 vértices. Incluye Canarias, Baleares, Ceuta y Melilla;
+ * Madeira y Azores quedan fuera.
  */
 
 type Position = number[];
@@ -26,7 +29,7 @@ const polygons: PreparedPolygon[] = (boundary.coordinates as Ring[][]).map((ring
   bbox: ringBbox(rings[0]),
 }));
 
-export function isInSpain(lon: number, lat: number): boolean {
+export function isInCoverage(lon: number, lat: number): boolean {
   for (const poly of polygons) {
     const [minX, minY, maxX, maxY] = poly.bbox;
     // Descarte barato por bbox antes del ray casting.

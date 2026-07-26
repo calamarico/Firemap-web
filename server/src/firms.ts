@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { isInSpain } from './geo';
+import { isInCoverage } from './geo';
 import { computeImpact } from './impact';
 import { ApiError, FireHotspot, FiresResponse } from './types';
 
@@ -7,12 +7,13 @@ const FIRMS_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 
 /**
  * Áreas de recogida (oeste,sur,este,norte). FIRMS solo admite un bbox
- * rectangular por petición, así que España se cubre con dos: península +
- * Baleares + Ceuta y Melilla, y Canarias. Al ser rectángulos entran también
- * franjas limítrofes (Portugal, sur de Francia, norte de Marruecos).
+ * rectangular por petición, así que la cobertura (España + Portugal
+ * continental) se cubre con dos: península ibérica + Baleares + Ceuta y
+ * Melilla, y Canarias. Al ser rectángulos entran también franjas limítrofes
+ * (sur de Francia, norte de Marruecos).
  */
 const AREAS = [
-  { name: 'peninsula-baleares', bbox: '-9.50,35.10,4.40,43.95' },
+  { name: 'peninsula-baleares', bbox: '-9.80,35.10,4.40,43.95' },
   { name: 'canarias', bbox: '-18.40,27.40,-13.30,29.50' },
 ] as const;
 
@@ -153,7 +154,7 @@ async function refreshFires(mapKey: string): Promise<FiresResponse> {
   // de países vecinos que entran en los bbox rectangulares.
   const hotspots = fulfilled
     .flatMap((r) => r.value)
-    .filter((h) => isInSpain(h.longitude, h.latitude))
+    .filter((h) => isInCoverage(h.longitude, h.latitude))
     .filter((h) => acqTimestamp(h) >= cutoff)
     .sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
 

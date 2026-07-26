@@ -27,6 +27,13 @@
     { "type": "Feature", "properties": { "name": "Toledo" }, "geometry": { "type": "Point", "coordinates": [-4.0273, 39.8628] } },
     { "type": "Feature", "properties": { "name": "Mérida" }, "geometry": { "type": "Point", "coordinates": [-6.3437, 38.9161] } },
     { "type": "Feature", "properties": { "name": "Ceuta" }, "geometry": { "type": "Point", "coordinates": [-5.3213, 35.8894] } },
-    { "type": "Feature", "properties": { "name": "Melilla" }, "geometry": { "type": "Point", "coordinates": [-2.938, 35.2923] } }
+    { "type": "Feature", "properties": { "name": "Melilla" }, "geometry": { "type": "Point", "coordinates": [-2.938, 35.2923] } },
+    { "type": "Feature", "properties": { "name": "Lisboa" }, "geometry": { "type": "Point", "coordinates": [-9.1393, 38.7223] } },
+    { "type": "Feature", "properties": { "name": "Porto" }, "geometry": { "type": "Point", "coordinates": [-8.6291, 41.1579] } },
+    { "type": "Feature", "properties": { "name": "Braga" }, "geometry": { "type": "Point", "coordinates": [-8.4265, 41.5454] } },
+    { "type": "Feature", "properties": { "name": "Coimbra" }, "geometry": { "type": "Point", "coordinates": [-8.4103, 40.2033] } },
+    { "type": "Feature", "properties": { "name": "Setúbal" }, "geometry": { "type": "Point", "coordinates": [-8.8926, 38.5244] } },
+    { "type": "Feature", "properties": { "name": "Évora" }, "geometry": { "type": "Point", "coordinates": [-7.9097, 38.5714] } },
+    { "type": "Feature", "properties": { "name": "Faro" }, "geometry": { "type": "Point", "coordinates": [-7.9304, 37.0194] } }
   ]
 }

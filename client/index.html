@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- SEO: título con la keyword principal delante y la marca detrás -->
-    <title>Mapa de incendios en España hoy, en tiempo real · Firemaps</title>
+    <title>Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps</title>
     <meta
       name="description"
-      content="Incendios en España hoy en tiempo casi real: focos por satélite NASA, área quemada de Copernicus, viento con la dirección del humo y municipios afectados."
+      content="Incendios en España y Portugal hoy en tiempo casi real: focos por satélite NASA, área quemada de Copernicus, viento con la dirección del humo y municipios afectados."
     />
     <link rel="canonical" href="https://firemapsspain.online/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -17,7 +17,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Firemaps España" />
     <meta property="og:locale" content="es_ES" />
-    <meta property="og:title" content="Mapa de incendios en España hoy, en tiempo real · Firemaps" />
+    <meta property="og:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps" />
     <meta
       property="og:description"
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
@@ -26,11 +26,11 @@
     <meta property="og:image" content="https://firemapsspain.online/og-image-v2.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Firemaps España: mapa de incendios en España en tiempo real" />
+    <meta property="og:image:alt" content="Firemaps España: mapa de incendios en España y Portugal en tiempo real" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Mapa de incendios en España hoy, en tiempo real · Firemaps" />
+    <meta name="twitter:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps" />
     <meta
       name="twitter:description"
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
@@ -61,9 +61,13 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "Firemaps España",
-        "alternateName": "Mapa de incendios en España",
+        "alternateName": "Mapa de incendios en España y Portugal",
         "url": "https://firemapsspain.online/",
-        "description": "Mapa de incendios en España en tiempo casi real: focos de calor detectados por satélite, área quemada, viento con la dirección y el alcance del humo, y municipios afectados en las últimas 24 horas.",
+        "description": "Mapa de incendios en España y Portugal en tiempo casi real: focos de calor detectados por satélite, área quemada, viento con la dirección y el alcance del humo, y municipios afectados en las últimas 24 horas.",
+        "spatialCoverage": [
+          { "@type": "Country", "name": "España" },
+          { "@type": "Country", "name": "Portugal" }
+        ],
         "featureList": [
           "Focos de calor por satélite (NASA FIRMS) de las últimas 24 horas",
           "Perímetros de área quemada (Copernicus EFFIS)",
@@ -103,10 +107,12 @@
           padding: 2rem;
         "
       >
-        <h1 style="font-size: 1.6rem; margin: 0">Mapa de incendios en España hoy, en tiempo real</h1>
+        <h1 style="font-size: 1.6rem; margin: 0">
+          Mapa de incendios en España y Portugal hoy, en tiempo real
+        </h1>
         <p style="max-width: 42rem; color: #94a3b8; margin: 0; line-height: 1.6">
-          Firemaps España muestra los incendios activos en España sobre un mapa por satélite,
-          actualizado cada pocos minutos. Gratuito y sin registro.
+          Firemaps España muestra los incendios activos en España y Portugal sobre un mapa por
+          satélite, actualizado cada pocos minutos. Gratuito y sin registro.
         </p>
         <ul
           style="

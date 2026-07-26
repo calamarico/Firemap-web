@@ -229,7 +229,7 @@ export default function MapView({
     <div
       ref={containerRef}
       className="h-full w-full bg-void"
-      aria-label="Mapa de focos de calor en España"
+      aria-label="Mapa de focos de calor en España y Portugal"
     />
   );
 }

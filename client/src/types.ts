@@ -82,7 +82,7 @@ export function isApiErrorBody(value: unknown): value is ApiErrorBody {
 // ——— Client-only (no forma parte del contrato del proxy; no sincronizar con
 // server/functions). El viento viene de Open-Meteo directo al navegador. ———
 
-/** 'grid' = rejilla ambiental sobre España; 'fire' = junto a focos activos. */
+/** 'grid' = rejilla ambiental sobre España y Portugal; 'fire' = junto a focos activos. */
 export type WindPointKind = 'grid' | 'fire';
 
 export interface WindPoint {

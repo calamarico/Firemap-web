@@ -1,9 +1,10 @@
 /**
- * Vista inicial: península completa (Canarias queda fuera del encuadre
- * inicial pero sus focos se cargan igual; basta desplazar el mapa).
+ * Vista inicial: península ibérica completa, con Portugal (Canarias queda
+ * fuera del encuadre inicial pero sus focos se cargan igual; basta desplazar
+ * el mapa).
  */
-export const MAP_CENTER: [number, number] = [-3.9, 40.1];
-export const INITIAL_ZOOM = 5.5;
+export const MAP_CENTER: [number, number] = [-5.2, 40.0];
+export const INITIAL_ZOOM = 5.2;
 
 /** Auto-refresco de datos (coincide con la ventana de frescura del proxy). */
 export const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
