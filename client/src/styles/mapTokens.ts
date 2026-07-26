@@ -23,19 +23,14 @@ export const MAP = {
   cityDotStroke: 'rgba(15,23,42,0.70)',
   label: '#ffffff',
   labelHalo: '#000000',
-  // Viento: la rejilla ambiental comparte familia con los límites; junto a
-  // los focos todo va en la familia cian, inconfundible con la banda
-  // ámbar/roja reservada a la severidad FRP. La etiqueta km/h usa un azul
-  // más marcado (--fm-accent-400), distinto del blanco de los topónimos.
-  windGrid: 'rgba(226,232,240,0.5)',
-  windFire: '#7fddf2',
+  // Viento: pluma de humo. Toda la familia es cian —inconfundible con la banda
+  // ámbar/roja reservada a la severidad FRP—. Las tres bandas del cono son
+  // 10 min de recorrido cada una; el alfa decreciente ES la dispersión.
+  smokeBand1: 'rgba(127,221,242,0.30)',
+  smokeBand2: 'rgba(127,221,242,0.18)',
+  smokeBand3: 'rgba(127,221,242,0.08)',
+  smokeEdge: 'rgba(127,221,242,0.18)',
+  smokePuff: '#b3ecfa',
+  windChevron: '#38c7e6',
   windLabel: '#38c7e6',
-  // Corredor de humo: franja que marca el alcance (15 min) desde el foco. El
-  // final es transparente en el MISMO tono para que el degradado no vire.
-  windCorridor: 'rgba(127,221,242,0.35)',
-  windCorridorEnd: 'rgba(127,221,242,0)',
-  // Cometa (horneado en canvas, no SDF): cabeza luminosa (--fm-accent-200),
-  // cuerpo windFire y cola que se funde (--fm-accent-500).
-  windCometHead: '#b3ecfa',
-  windCometTail: '#12a9cc',
 } as const;

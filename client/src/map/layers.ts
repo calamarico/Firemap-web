@@ -1,12 +1,7 @@
-import type { FeatureCollection, LineString, Point } from 'geojson';
-import type {
-  ExpressionSpecification,
-  GeoJSONSource,
-  Map as MapLibreMap,
-  StyleSpecification,
-} from 'maplibre-gl';
+import type { FeatureCollection, Point } from 'geojson';
+import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
 import { MAP, SEVERITY } from '../styles/mapTokens';
-import type { EffisRange, FireHotspot, WindPoint, WindPointKind } from '../types';
+import type { EffisRange, FireHotspot, WindPoint } from '../types';
 import { EFFIS_TILE_PROTOCOL } from './effisTileCache';
 
 /**
@@ -38,13 +33,14 @@ const MUNICIPALITIES_LABELS_LAYER_ID = 'municipios-text';
 const CITIES_SOURCE_ID = 'cities';
 const CITIES_DOTS_LAYER_ID = 'cities-dots';
 const CITIES_LABELS_LAYER_ID = 'cities-text';
-const WIND_SOURCE_ID = 'wind';
-const WIND_SWEEP_SOURCE_ID = 'wind-sweep';
-const WIND_CORRIDOR_SOURCE_ID = 'wind-corridor';
-const WIND_GRID_LAYER_ID = 'wind-grid-arrows';
-const WIND_FIRES_LAYER_ID = 'wind-fire-arrows';
-const WIND_SWEEP_LAYER_ID = 'wind-fire-sweep';
-const WIND_CORRIDOR_LAYER_ID = 'wind-fire-corridor';
+const SMOKE_PLUME_SOURCE_ID = 'smoke-plume';
+const SMOKE_PUFF_SOURCE_ID = 'smoke-puff';
+const WIND_FIRE_SOURCE_ID = 'wind-fire';
+const SMOKE_PLUME_LAYER_ID = 'smoke-plume';
+const SMOKE_PLUME_EDGE_LAYER_ID = 'smoke-plume-edge';
+const SMOKE_PUFF_LAYER_ID = 'smoke-puff';
+const WIND_CHEVRON_LAYER_ID = 'wind-chevron';
+const WIND_LABEL_LAYER_ID = 'wind-label';
 
 export type BasemapId = 'satellite' | 'dark';
 
@@ -482,416 +478,315 @@ export function createEffisLayer(initialRange: EffisRange): EffisLayer {
   };
 }
 
-interface WindArrowProps {
-  kind: WindPointKind;
-  /** Hacia dónde sopla (la convención "de dónde viene" se resuelve aquí). */
-  directionTo: number;
-  /** km/h redondeados, listos para la etiqueta. */
-  speed: number;
-}
+const KM_PER_DEG_LAT = 110.574;
+const KM_PER_DEG_LON_EQ = 111.32;
+const D2R = Math.PI / 180;
 
-const EMPTY_WIND: FeatureCollection<Point, WindArrowProps> = {
-  type: 'FeatureCollection',
-  features: [],
-};
-
-function windToGeoJSON(points: WindPoint[]): FeatureCollection<Point, WindArrowProps> {
-  return {
-    type: 'FeatureCollection',
-    features: points.map((p) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
-      properties: {
-        kind: p.kind,
-        directionTo: (p.directionFrom + 180) % 360,
-        speed: Math.round(p.speedKmh),
-      },
-    })),
-  };
+/** Punto a `km` del origen siguiendo el rumbo `bearingDeg` (norte = 0°). */
+function dest(lon: number, lat: number, km: number, bearingDeg: number): [number, number] {
+  const r = bearingDeg * D2R;
+  return [
+    lon + (km * Math.sin(r)) / (KM_PER_DEG_LON_EQ * Math.cos(lat * D2R)),
+    lat + (km * Math.cos(r)) / KM_PER_DEG_LAT,
+  ];
 }
 
 /**
- * Variantes de ráfaga por velocidad: mismos trazos, más largos cuanto más
- * viento. Los umbrales (km/h) siguen a grandes rasgos la escala Beaufort
- * (brisa suave / moderada / fresca / fuerte).
+ * Horizonte de la pluma: 30 min de recorrido del humo a la velocidad del
+ * viento a 10 m. Elegido tras probar 15 min (diminuto a escala de país) y
+ * 1 h (invade el mapa al hacer zoom sobre un foco).
  */
-const WIND_SPEED_STEPS = [10, 20, 35] as const;
-const WIND_GUST_IMAGES = ['wind-gust-l0', 'wind-gust-l1', 'wind-gust-l2', 'wind-gust-l3'];
-const WIND_GUST_LENGTHS = [26, 36, 46, 56]; // px de punta a cola en el canvas de 64
-const WIND_GRID_ARROW_IMAGE = 'wind-arrow-grid';
+const PLUME_HOURS = 0.5;
 
-/** Icono según velocidad; lo comparten la ráfaga ancla y la del barrido. */
-const windGustBySpeed: ExpressionSpecification = [
-  'step',
-  ['get', 'speed'],
-  WIND_GUST_IMAGES[0],
-  WIND_SPEED_STEPS[0],
-  WIND_GUST_IMAGES[1],
-  WIND_SPEED_STEPS[1],
-  WIND_GUST_IMAGES[2],
-  WIND_SPEED_STEPS[2],
-  WIND_GUST_IMAGES[3],
+/** El viento flojo esparce, el fuerte encañona. Acotado para que ni el cono
+ *  degenere en abanico ni en línea. */
+function halfAngle(speedKmh: number): number {
+  return Math.max(14, 34 - Math.min(20, speedKmh * 0.52));
+}
+
+/**
+ * Tres bandas de 10 min de recorrido cada una ([t0, t1] como fracción del
+ * alcance). La opacidad decreciente va horneada en el color de cada banda
+ * (smokeBand1..3): el alfa ES la dispersión.
+ */
+const PLUME_BANDS: ReadonlyArray<readonly [number, number]> = [
+  [0, 1 / 3],
+  [1 / 3, 2 / 3],
+  [2 / 3, 1],
 ];
 
-/** '#rrggbb' → 'rgba(...)' para los stops con alfa de los degradados. */
-function withAlpha(hex: string, alpha: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
-}
+/**
+ * Duración de cada voluta. Constante a propósito: como la distancia crece con
+ * los km/h, la velocidad aparente de las volutas queda proporcional a la real
+ * sin ajustar nada más.
+ */
+const PUFF_PERIOD_MS = 4600;
+const puffCount = (speedKmh: number) => Math.min(15, 6 + Math.round(speedKmh / 3.5));
+
+const WIND_CHEVRON_IMAGE = 'wind-chevron';
 
 /**
- * Flecha de la rejilla ambiental, apuntando al norte, registrada como SDF
- * para que la capa la tinte con icon-color. El volcado con blur no es
- * capricho: MapLibre corta el borde SDF en alfa ≈ 0.75, y sin gradiente de
- * alfa el contorno saldría dentado.
+ * Galón `∧` apuntando al norte, registrado como SDF para que la capa lo tinte
+ * con icon-color.
  */
-function addWindGridArrowImage(map: MapLibreMap): void {
-  if (map.hasImage(WIND_GRID_ARROW_IMAGE)) return;
+function addWindChevronImage(map: MapLibreMap): void {
+  if (map.hasImage(WIND_CHEVRON_IMAGE)) return;
   const size = 64;
-  const draw = document.createElement('canvas');
-  draw.width = size;
-  draw.height = size;
-  const ctx = draw.getContext('2d');
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
   if (!ctx) return;
-
-  ctx.fillStyle = '#fff';
   ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 7;
+  ctx.lineWidth = 9;
   ctx.lineCap = 'round';
-  ctx.beginPath(); // asta
-  ctx.moveTo(32, 50);
-  ctx.lineTo(32, 32);
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(16, 40);
+  ctx.lineTo(32, 20);
+  ctx.lineTo(48, 40);
   ctx.stroke();
-  ctx.beginPath(); // punta
-  ctx.moveTo(32, 14);
-  ctx.lineTo(20, 36);
-  ctx.lineTo(44, 36);
-  ctx.closePath();
-  ctx.fill();
-
-  const out = document.createElement('canvas');
-  out.width = size;
-  out.height = size;
-  const outCtx = out.getContext('2d');
-  if (!outCtx) return;
-  outCtx.filter = 'blur(1.5px)';
-  outCtx.drawImage(draw, 0, 0);
-  map.addImage(WIND_GRID_ARROW_IMAGE, outCtx.getImageData(0, 0, size, size), {
+  map.addImage(WIND_CHEVRON_IMAGE, ctx.getImageData(0, 0, size, size), {
     sdf: true,
     pixelRatio: 2,
   });
 }
 
-/**
- * Ráfagas de los focos: dos/tres trazos paralelos escalonados —el líder con
- * punta de flecha— apuntando al norte, el lenguaje clásico del viento (💨).
- * La versión anterior (cometa abombado) se leía como gota de lluvia. Van
- * pre-tintadas (RGBA, no SDF) porque el SDF corta el alfa en un umbral y no
- * admite ni degradados ni glow horneado; a cambio, las capas que las usan no
- * pueden aplicar icon-color.
- */
-function addWindGustImages(map: MapLibreMap): void {
-  if (map.hasImage(WIND_GUST_IMAGES[0])) return;
-  const size = 64;
-  for (const [i, name] of WIND_GUST_IMAGES.entries()) {
-    const length = WIND_GUST_LENGTHS[i];
-    const top = 32 - length / 2;
-    const bottom = 32 + length / 2;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Mismo degradado para punta y astas: luminoso delante, se apaga detrás.
-    const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-    gradient.addColorStop(0, MAP.windCometHead);
-    gradient.addColorStop(0.4, MAP.windFire);
-    gradient.addColorStop(0.75, withAlpha(MAP.windCometTail, 0.8));
-    gradient.addColorStop(1, withAlpha(MAP.windCometTail, 0));
-
-    ctx.shadowColor = MAP.windFire;
-    ctx.shadowBlur = 6;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = gradient;
-    ctx.fillStyle = gradient;
-
-    const drawGust = () => {
-      // Trazo líder con punta de flecha: es lo que mata la lectura "gota"
-      // (las gotas no tienen barbas).
-      ctx.beginPath();
-      ctx.moveTo(32, top);
-      ctx.lineTo(25, top + 11);
-      ctx.lineTo(39, top + 11);
-      ctx.closePath();
-      ctx.fill();
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(32, top + 8);
-      ctx.lineTo(32, bottom);
-      ctx.stroke();
-
-      // Trazos de acompañamiento escalonados, como el emoji 💨.
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(24, top + length * 0.25);
-      ctx.lineTo(24, bottom - length * 0.08);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(40, top + length * 0.45);
-      ctx.lineTo(40, bottom - length * 0.16);
-      ctx.stroke();
-    };
-    drawGust();
-    drawGust(); // segunda pasada: intensifica el glow del shadowBlur
-
-    map.addImage(name, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
-  }
-}
-
-export interface WindLayer extends AppLayer {
+export interface SmokePlumeLayer extends AppLayer {
   setData(map: MapLibreMap, points: WindPoint[]): void;
 }
 
-/**
- * El barrido de cada flecha representa lo que recorre el humo en este tiempo
- * a la velocidad del viento a 10 m (24 km/h → 6 km). Es deliberadamente
- * conservador: el humo en altura suele viajar aún más rápido.
- */
-const SWEEP_HOURS = 0.25;
-/**
- * Duración de cada soplido. Constante a propósito: como la distancia crece
- * con los km/h, la velocidad aparente de cada flecha queda proporcional a la
- * real sin ajustar nada más.
- */
-const SWEEP_PERIOD_MS = 2400;
-/** A partir de aquí la ráfaga se desvanece hasta reaparecer en el foco. */
-const SWEEP_FADE_FROM = 0.7;
-const SWEEP_OPACITY = 0.95;
-/**
- * Estela de motion-blur: fantasmas de la ráfaga a fases anteriores del
- * recorrido, cada vez más tenues. Las fases negativas se omiten: la ráfaga
- * "nace" en el foco sin cola y la despliega al avanzar.
- */
-const SWEEP_TRAIL = [
-  { lag: 0, dim: 1 },
-  { lag: 0.05, dim: 0.45 },
-  { lag: 0.1, dim: 0.2 },
-] as const;
-
-const KM_PER_DEG_LAT = 110.574;
-const KM_PER_DEG_LON_EQ = 111.32;
-
-/** Todo lo precalculable de un soplido; el rAF solo interpola. */
-interface SweepSeed {
+/** Todo lo precalculable de una pluma; el rAF de las volutas solo interpola. */
+interface PlumeSeed {
   lon: number;
   lat: number;
-  directionTo: number;
+  /** Hacia dónde empuja el humo (la convención "de dónde viene" se resuelve aquí). */
+  dirTo: number;
+  speedKmh: number;
+  /** km/h redondeados, listos para la etiqueta. */
   speed: number;
-  /** Desplazamiento total del barrido, en grados. */
-  dLon: number;
-  dLat: number;
-  /** Desfase propio (derivado de la coordenada): soplidos no sincronizados. */
-  phaseMs: number;
+  /** Alcance del humo en 30 min, en km. */
+  reachKm: number;
+  /** Semiángulo de dispersión, en grados. */
+  half: number;
+  /** Desfase estable por coordenada: volutas de focos distintos, no al unísono. */
+  phase: number;
+}
+
+/** Arco del sector a la fracción `t` del alcance, con 9 segmentos. */
+function plumeArc(s: PlumeSeed, t: number, reverse: boolean): [number, number][] {
+  const out: [number, number][] = [];
+  const N = 9;
+  for (let i = 0; i <= N; i++) {
+    const k = reverse ? N - i : i;
+    out.push(dest(s.lon, s.lat, s.reachKm * t, s.dirTo - s.half + (2 * s.half * k) / N));
+  }
+  return out;
 }
 
 /**
- * Viento actual en cuatro capas (la colisión y el orden de pila son por
- * capa, no por feature):
- * - Rejilla ambiental: flechas sutiles bajo las referencias urbanas, para que
- *   los topónimos ganen la colisión y MapLibre aclare la rejilla en zoom bajo.
- * - Corredor de humo: franja degradada desde cada foco hacia sotavento que
- *   marca el alcance del humo en 15 min. Estática: es la pista de alcance
- *   que queda cuando la animación está desactivada.
- * - Ancla junto a cada foco: ráfaga fija con su "NN km/h", encima de todo
- *   (los símbolos no capturan eventos: el popup de focos no se ve afectado).
- *   La longitud del icono crece con la velocidad.
- * - Barrido: una copia de la ráfaga "sopla" desde el foco recorriendo el
- *   corredor con estela de motion-blur, y se desvanece. Distancia geográfica,
- *   no de pantalla: al acercar el zoom se ve el alcance real sobre el
- *   terreno. Animación por setData de una fuente GeoJSON minúscula (≤180
- *   features), a ~30 fps en escritorio y ~20 en táctil; solo se detiene con
- *   "reducir movimiento" (accesibilidad), y entonces el corredor estático
- *   sigue contando el alcance.
+ * Pluma de humo: el humo se dispersa en un cono a sotavento y la geometría
+ * del cono es a la vez la dirección y la velocidad — largo y estrecho =
+ * viento fuerte que lo lleva lejos; corto y abierto = viento flojo que lo
+ * deja encima del municipio. Cinco capas sobre tres fuentes:
+ * - `smoke-plume` + `smoke-plume-edge`: sector de 30 min en tres bandas de
+ *   10, con vértice en el foco. Solo el arco exterior lleva contorno, para
+ *   que el cono no se corte en seco. Bajo los círculos de foco: el humo no
+ *   puede tapar el dato primario. Distancia geográfica, no de pantalla.
+ * - `smoke-puff`: volutas que nacen en el foco, se apartan del eje al avanzar
+ *   y se apagan al alcance. Única fuente que cambia por frame (≤15 puntos por
+ *   foco), a ~30 fps en escritorio y ~20 en táctil; se detiene con "reducir
+ *   movimiento" y el cono estático sigue contando dirección y alcance.
+ * - `wind-chevron` + `wind-label`: galón de dirección para el zoom de país
+ *   (desaparece al acercarse, donde el cono ya es inequívoco) y `NN km/h`
+ *   siempre visible, encima de todo (los símbolos no capturan eventos: el
+ *   popup de focos no se ve afectado).
  */
-export function createWindLayer(): WindLayer {
+export function createSmokePlumeLayer(): SmokePlumeLayer {
   let visible = true;
-  let sweepFrame: number | null = null;
-  let seeds: SweepSeed[] = [];
+  let puffFrame: number | null = null;
+  let seeds: PlumeSeed[] = [];
 
-  // Solo "reducir movimiento" (preferencia de accesibilidad) desactiva el
-  // barrido; en táctil corre, pero a menos fps (ver startSweep).
+  // Solo "reducir movimiento" (preferencia de accesibilidad) desactiva las
+  // volutas; en táctil corren, pero a menos fps (ver startPuffs).
   const motionOk = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const stopSweep = () => {
-    if (sweepFrame !== null) {
-      cancelAnimationFrame(sweepFrame);
-      sweepFrame = null;
+  const stopPuffs = () => {
+    if (puffFrame !== null) {
+      cancelAnimationFrame(puffFrame);
+      puffFrame = null;
     }
   };
 
-  const fadeAt = (phase: number) =>
-    phase < SWEEP_FADE_FROM
-      ? SWEEP_OPACITY
-      : SWEEP_OPACITY * (1 - (phase - SWEEP_FADE_FROM) / (1 - SWEEP_FADE_FROM));
-
-  const sweepGeoJSON = (now: number): FeatureCollection<Point, { [k: string]: unknown }> => ({
+  const puffGeoJSON = (now: number): FeatureCollection<Point, { t: number }> => ({
     type: 'FeatureCollection',
     features: seeds.flatMap((s) => {
-      const phase = ((now + s.phaseMs) % SWEEP_PERIOD_MS) / SWEEP_PERIOD_MS;
-      return SWEEP_TRAIL.filter(({ lag }) => phase - lag >= 0).map(({ lag, dim }) => {
-        const p = phase - lag;
+      const halfRad = s.half * D2R;
+      const n = puffCount(s.speedKmh);
+      return Array.from({ length: n }, (_, i) => {
+        const seed = s.phase + i / n;
+        const t = (now / PUFF_PERIOD_MS + seed) % 1;
+        // Divergencia lateral creciente: la voluta se aparta del eje al avanzar.
+        const wanderRad = Math.sin(seed * 41.7 + t * 5.2) * t * halfRad * 0.85;
         return {
           type: 'Feature' as const,
           geometry: {
             type: 'Point' as const,
-            // Avance lineal: el humo no acelera ni frena, viaja con el viento.
-            coordinates: [s.lon + p * s.dLon, s.lat + p * s.dLat],
+            coordinates: dest(s.lon, s.lat, s.reachKm * t, s.dirTo + wanderRad / D2R),
           },
-          properties: {
-            directionTo: s.directionTo,
-            speed: s.speed,
-            opacity: fadeAt(p) * dim,
-          },
+          properties: { t },
         };
       });
     }),
   });
 
-  const startSweep = (map: MapLibreMap) => {
-    if (sweepFrame !== null || seeds.length === 0 || !motionOk()) return;
-    // ~30 fps bastan para un desplazamiento suave; en táctil se baja a ~20:
-    // cada frame repinta el canvas entero y así se recorta ese coste (y la
-    // batería) sin que se note en un recorrido de 2,4 s.
+  const startPuffs = (map: MapLibreMap) => {
+    if (puffFrame !== null || seeds.length === 0 || !motionOk()) return;
+    // ~30 fps bastan; en táctil se baja a ~20: cada frame repinta el canvas
+    // entero y así se recorta ese coste (y la batería) sin que se note.
     const frameMs = window.matchMedia('(pointer: coarse)').matches ? 50 : 33;
     let lastFrame = 0;
     const tick = (now: number) => {
-      if (!map.getLayer(WIND_SWEEP_LAYER_ID)) {
-        sweepFrame = null;
+      if (!map.getLayer(SMOKE_PUFF_LAYER_ID)) {
+        puffFrame = null;
         return;
       }
       // Durante un gesto no se toca la fuente: el repintado ya lo paga el
       // propio movimiento del mapa.
       if (now - lastFrame >= frameMs && !map.isMoving()) {
         lastFrame = now;
-        const source = map.getSource(WIND_SWEEP_SOURCE_ID) as GeoJSONSource | undefined;
-        source?.setData(sweepGeoJSON(now));
+        const source = map.getSource(SMOKE_PUFF_SOURCE_ID) as GeoJSONSource | undefined;
+        source?.setData(puffGeoJSON(now));
       }
-      sweepFrame = requestAnimationFrame(tick);
+      puffFrame = requestAnimationFrame(tick);
     };
-    sweepFrame = requestAnimationFrame(tick);
+    puffFrame = requestAnimationFrame(tick);
   };
 
-  const clearSweepSource = (map: MapLibreMap) => {
-    const source = map.getSource(WIND_SWEEP_SOURCE_ID) as GeoJSONSource | undefined;
+  const clearPuffSource = (map: MapLibreMap) => {
+    const source = map.getSource(SMOKE_PUFF_SOURCE_ID) as GeoJSONSource | undefined;
     source?.setData({ type: 'FeatureCollection', features: [] });
   };
 
   return {
-    id: WIND_GRID_LAYER_ID,
+    id: SMOKE_PLUME_LAYER_ID,
     add(map) {
-      addWindGridArrowImage(map);
-      addWindGustImages(map);
-      map.addSource(WIND_SOURCE_ID, {
+      addWindChevronImage(map);
+      map.addSource(SMOKE_PLUME_SOURCE_ID, {
         type: 'geojson',
-        data: EMPTY_WIND,
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      map.addSource(SMOKE_PUFF_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      map.addSource(WIND_FIRE_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
         attribution: 'Viento: <a href="https://open-meteo.com/">Open-Meteo</a>',
       });
-      map.addSource(WIND_SWEEP_SOURCE_ID, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      map.addSource(WIND_CORRIDOR_SOURCE_ID, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        // line-progress (el degradado del corredor) exige métricas de línea.
-        lineMetrics: true,
-      });
+
+      // Las tres capas de humo van bajo los círculos de foco: el humo no
+      // puede tapar el dato primario.
       map.addLayer(
         {
-          id: WIND_GRID_LAYER_ID,
-          type: 'symbol',
-          source: WIND_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'grid' satisfies WindPointKind],
-          layout: {
-            'icon-image': WIND_GRID_ARROW_IMAGE,
-            'icon-rotate': ['get', 'directionTo'],
-            // La flecha es geográfica: fija al norte del mapa, no al de la
-            // pantalla (aunque este mapa no rota, el intent queda explícito).
-            'icon-rotation-alignment': 'map',
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 9, 0.8],
-            'icon-padding': 2,
-          },
-          paint: { 'icon-color': MAP.windGrid },
-        },
-        CITIES_DOTS_LAYER_ID
-      );
-      // Corredor bajo los círculos de focos: la franja marca el alcance sin
-      // taparlos, y sigue visible cuando la animación está desactivada
-      // (móvil, "reducir movimiento"), donde es la única pista del alcance.
-      map.addLayer(
-        {
-          id: WIND_CORRIDOR_LAYER_ID,
-          type: 'line',
-          source: WIND_CORRIDOR_SOURCE_ID,
-          layout: { 'line-cap': 'round' },
+          id: SMOKE_PLUME_LAYER_ID,
+          type: 'fill',
+          source: SMOKE_PLUME_SOURCE_ID,
           paint: {
-            'line-gradient': [
-              'interpolate',
-              ['linear'],
-              ['line-progress'],
+            // El alfa de cada banda va horneado en su token (el alfa
+            // decreciente ES la dispersión), por eso aquí no hay fill-opacity
+            // por banda: aplicarla encima lo duplicaría.
+            'fill-color': [
+              'match',
+              ['get', 'band'],
               0,
-              MAP.windCorridor,
+              MAP.smokeBand1,
               1,
-              MAP.windCorridorEnd,
+              MAP.smokeBand2,
+              MAP.smokeBand3,
             ],
-            'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2, 12, 7],
-            // Borde difuso: haz de humo, no carretera.
-            'line-blur': 2,
           },
         },
         FIRES_LAYER_ID
       );
-      // Barrido bajo el ancla: al reaparecer en el origen queda cubierto por
-      // la ráfaga fija y el reinicio del ciclo no produce un parpadeo.
-      map.addLayer({
-        id: WIND_SWEEP_LAYER_ID,
-        type: 'symbol',
-        source: WIND_SWEEP_SOURCE_ID,
-        layout: {
-          'icon-image': windGustBySpeed,
-          'icon-rotate': ['get', 'directionTo'],
-          'icon-rotation-alignment': 'map',
-          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
-          // Sin colisión ni empujar a nadie: una fuente que cambia 30 veces
-          // por segundo no puede disputar hueco a las etiquetas.
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
+      // Solo el arco exterior de la banda 3, para que el cono no se corte en
+      // seco.
+      map.addLayer(
+        {
+          id: SMOKE_PLUME_EDGE_LAYER_ID,
+          type: 'line',
+          source: SMOKE_PLUME_SOURCE_ID,
+          filter: ['==', ['get', 'band'], 2],
+          paint: {
+            'line-color': MAP.smokeEdge,
+            'line-opacity': 1,
+            'line-width': 1,
+            'line-blur': 1.5,
+          },
         },
-        // El tinte y el glow van horneados en el icono (no SDF): solo opacidad.
-        paint: { 'icon-opacity': ['get', 'opacity'] },
+        FIRES_LAYER_ID
+      );
+      map.addLayer(
+        {
+          id: SMOKE_PUFF_LAYER_ID,
+          type: 'circle',
+          source: SMOKE_PUFF_SOURCE_ID,
+          paint: {
+            'circle-color': MAP.smokePuff,
+            // La voluta crece y se difumina al alejarse: es humo
+            // expandiéndose, no una partícula viajando.
+            'circle-radius': ['interpolate', ['linear'], ['get', 't'], 0, 1.6, 1, 9],
+            'circle-opacity': [
+              'interpolate',
+              ['linear'],
+              ['get', 't'],
+              0,
+              0,
+              0.12,
+              0.75,
+              0.7,
+              0.32,
+              1,
+              0,
+            ],
+            'circle-blur': 0.6,
+          },
+        },
+        FIRES_LAYER_ID
+      );
+      // Ancla la dirección cuando el cono es pequeño (zoom de país, viento
+      // flojo); desaparece al acercarse, donde el cono ya es inequívoco.
+      map.addLayer({
+        id: WIND_CHEVRON_LAYER_ID,
+        type: 'symbol',
+        source: WIND_FIRE_SOURCE_ID,
+        maxzoom: 8.5,
+        layout: {
+          'icon-image': WIND_CHEVRON_IMAGE,
+          'icon-rotate': ['get', 'dirTo'],
+          'icon-rotation-alignment': 'map',
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 8.5, 0.72],
+          'icon-allow-overlap': true,
+        },
+        paint: { 'icon-color': MAP.windChevron, 'icon-opacity': 0.95 },
       });
       map.addLayer({
-        id: WIND_FIRES_LAYER_ID,
+        id: WIND_LABEL_LAYER_ID,
         type: 'symbol',
-        source: WIND_SOURCE_ID,
-        filter: ['==', ['get', 'kind'], 'fire' satisfies WindPointKind],
+        source: WIND_FIRE_SOURCE_ID,
         layout: {
-          'icon-image': windGustBySpeed,
-          'icon-rotate': ['get', 'directionTo'],
-          'icon-rotation-alignment': 'map',
-          'icon-size': ['interpolate', ['linear'], ['get', 'speed'], 0, 0.9, 60, 1.2],
-          'icon-allow-overlap': true,
-          // Con aglomeración, el viento más fuerte coloca su etiqueta primero.
-          'symbol-sort-key': ['*', -1, ['get', 'speed']],
           'text-field': ['concat', ['to-string', ['get', 'speed']], ' km/h'],
           'text-font': ['Montserrat Regular'],
           'text-size': 11,
-          'text-anchor': 'top',
-          'text-offset': [0, 1.1],
-          // La ráfaga siempre se pinta; el texto cede si no cabe.
+          // Con plumas apuntando en direcciones distintas, la etiqueta debe
+          // poder escaparse al lado libre en vez de caer siempre sobre el cono.
+          'text-variable-anchor': ['left', 'right', 'top', 'bottom'],
+          'text-radial-offset': 1.1,
+          // La etiqueta siempre está; cede solo por colisión.
           'text-optional': true,
+          // Con aglomeración, gana el viento más fuerte.
+          'symbol-sort-key': ['*', -1, ['get', 'speed']],
           'text-rotation-alignment': 'viewport',
         },
         paint: {
@@ -904,59 +799,80 @@ export function createWindLayer(): WindLayer {
     setVisible(map, v) {
       visible = v;
       const value = v ? 'visible' : 'none';
-      map.setLayoutProperty(WIND_GRID_LAYER_ID, 'visibility', value);
-      map.setLayoutProperty(WIND_FIRES_LAYER_ID, 'visibility', value);
-      map.setLayoutProperty(WIND_SWEEP_LAYER_ID, 'visibility', value);
-      map.setLayoutProperty(WIND_CORRIDOR_LAYER_ID, 'visibility', value);
-      if (v) startSweep(map);
-      else stopSweep();
+      for (const id of [
+        SMOKE_PLUME_LAYER_ID,
+        SMOKE_PLUME_EDGE_LAYER_ID,
+        SMOKE_PUFF_LAYER_ID,
+        WIND_CHEVRON_LAYER_ID,
+        WIND_LABEL_LAYER_ID,
+      ]) {
+        map.setLayoutProperty(id, 'visibility', value);
+      }
+      if (v) startPuffs(map);
+      else {
+        stopPuffs();
+        clearPuffSource(map);
+      }
     },
     setData(map, points) {
-      const source = map.getSource(WIND_SOURCE_ID) as GeoJSONSource | undefined;
-      source?.setData(windToGeoJSON(points));
+      seeds = points.map((p) => {
+        const speedKmh = p.speedKmh;
+        return {
+          lon: p.lon,
+          lat: p.lat,
+          dirTo: (p.directionFrom + 180) % 360,
+          speedKmh,
+          speed: Math.round(speedKmh),
+          reachKm: speedKmh * PLUME_HOURS,
+          half: halfAngle(speedKmh),
+          phase: Math.abs(Math.sin(p.lon * 12.9898 + p.lat * 78.233)),
+        };
+      });
 
-      seeds = points
-        .filter((p) => p.kind === 'fire')
-        .map((p) => {
-          const directionTo = (p.directionFrom + 180) % 360;
-          const rad = (directionTo * Math.PI) / 180;
-          const reachKm = p.speedKmh * SWEEP_HOURS;
+      // Los sectores y los anclajes son estáticos: se reconstruyen solo aquí,
+      // nunca por frame.
+      const polys = seeds.flatMap((s) =>
+        PLUME_BANDS.map(([t0, t1], band) => {
+          const outer = plumeArc(s, t1, false);
           return {
-            lon: p.lon,
-            lat: p.lat,
-            directionTo,
-            speed: Math.round(p.speedKmh),
-            dLon: (reachKm * Math.sin(rad)) / (KM_PER_DEG_LON_EQ * Math.cos((p.lat * Math.PI) / 180)),
-            dLat: (reachKm * Math.cos(rad)) / KM_PER_DEG_LAT,
-            // Pseudoaleatorio estable por coordenada: mismo desfase entre
-            // refrescos, sin soplidos al unísono.
-            phaseMs: Math.abs(Math.sin(p.lon * 12.9898 + p.lat * 78.233)) * SWEEP_PERIOD_MS,
+            type: 'Feature' as const,
+            geometry: {
+              type: 'Polygon' as const,
+              coordinates: [
+                [
+                  ...outer,
+                  // Banda 1: el arco interior degenera en el vértice (el foco).
+                  ...(t0 === 0 ? [[s.lon, s.lat] as [number, number]] : plumeArc(s, t0, true)),
+                  outer[0], // cierre explícito del anillo
+                ],
+              ],
+            },
+            properties: { band },
           };
-        });
+        })
+      );
+      const plume = map.getSource(SMOKE_PLUME_SOURCE_ID) as GeoJSONSource | undefined;
+      plume?.setData({ type: 'FeatureCollection', features: polys });
 
-      // El corredor es estático: se reconstruye solo aquí, nunca por frame.
-      const corridor = map.getSource(WIND_CORRIDOR_SOURCE_ID) as GeoJSONSource | undefined;
-      const corridorData: FeatureCollection<LineString> = {
+      const fire = map.getSource(WIND_FIRE_SOURCE_ID) as GeoJSONSource | undefined;
+      fire?.setData({
         type: 'FeatureCollection',
         features: seeds.map((s) => ({
           type: 'Feature',
+          // El galón vive fuera del círculo del foco, a sotavento.
           geometry: {
-            type: 'LineString',
-            coordinates: [
-              [s.lon, s.lat],
-              [s.lon + s.dLon, s.lat + s.dLat],
-            ],
+            type: 'Point',
+            coordinates: dest(s.lon, s.lat, Math.max(1.2, s.reachKm * 0.14), s.dirTo),
           },
-          properties: {},
+          properties: { dirTo: s.dirTo, speed: s.speed },
         })),
-      };
-      corridor?.setData(corridorData);
+      });
 
       if (seeds.length === 0) {
-        stopSweep();
-        clearSweepSource(map);
+        stopPuffs();
+        clearPuffSource(map);
       } else if (visible) {
-        startSweep(map);
+        startPuffs(map);
       }
     },
   };

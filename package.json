@@ -15,8 +15,7 @@
     "start": "npm run start -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client && tsc -p functions --noEmit",
     "build:muni-index": "node scripts/build-muni-index.mjs && node scripts/build-sitemap.mjs",
-    "build:sitemap": "node scripts/build-sitemap.mjs",
-    "build:wind-grid": "node scripts/build-wind-grid.mjs"
+    "build:sitemap": "node scripts/build-sitemap.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260724.1",

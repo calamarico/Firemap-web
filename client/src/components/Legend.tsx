@@ -28,27 +28,19 @@ export default function Legend({ showEffis, showWind }: { showEffis: boolean; sh
       )}
       {showWind && (
         <div>
-          <h3 className="fm-eyebrow mb-1.5">Viento</h3>
+          <h3 className="fm-eyebrow mb-1.5">Viento y humo</h3>
           <div className="flex items-center gap-2 text-sm">
-            {/* Mismo glifo que en el mapa: ráfaga de trazos con punta de flecha. */}
-            <svg
-              viewBox="0 0 16 16"
-              width={14}
-              height={14}
-              aria-hidden="true"
-              className="shrink-0 text-[color:var(--fm-map-wind-fire)]"
-            >
-              <path d="M8 0.5 5.4 4.5h5.2Z" fill="currentColor" />
+            {/* Mini-cono con las bandas de la pluma, como en el mapa. */}
+            <svg viewBox="0 0 20 14" width={22} height={16} aria-hidden="true" className="shrink-0">
+              <path d="M1 7 L7.5 3.8 A7.3 7.3 0 0 1 7.5 10.2 Z" fill="var(--fm-map-smoke-band-1)" />
               <path
-                d="M8 3.5V13M4.5 5.5V12M11.5 7.5V11"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                fill="none"
+                d="M7.5 3.8 L14 0.6 A14.6 14.6 0 0 1 14 13.4 L7.5 10.2 A7.3 7.3 0 0 0 7.5 3.8 Z"
+                fill="var(--fm-map-smoke-band-2)"
               />
+              <circle cx="1" cy="7" r="1.6" fill="var(--fm-severity-3)" />
             </svg>
             <span className="text-ink-secondary">
-              Apunta hacia donde sopla · el haz = alcance del humo en ~15 min
+              La pluma se abre hacia donde va el humo · cada banda, 10 min de recorrido
             </span>
           </div>
         </div>

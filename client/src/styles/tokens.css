@@ -133,12 +133,16 @@
   --fm-map-city-dot-stroke: rgb(15 23 42 / 0.7);
   --fm-map-label: #ffffff;
   --fm-map-label-halo: #000000;
-  --fm-map-wind-grid: rgb(226 232 240 / 0.5);
-  --fm-map-wind-fire: var(--fm-accent-300);
+  /* Viento — pluma de humo. Familia cian completa: nunca puede confundirse con
+     la rampa ámbar/roja de severidad FRP. Las tres bandas son 10 min de
+     recorrido cada una; el alfa decreciente ES la dispersión. */
+  --fm-map-smoke-band-1: rgb(127 221 242 / 0.3);
+  --fm-map-smoke-band-2: rgb(127 221 242 / 0.18);
+  --fm-map-smoke-band-3: rgb(127 221 242 / 0.08);
+  --fm-map-smoke-edge: rgb(127 221 242 / 0.18);
+  --fm-map-smoke-puff: var(--fm-accent-200);
+  --fm-map-wind-chevron: var(--fm-accent-400);
   --fm-map-wind-label: var(--fm-accent-400);
-  --fm-map-wind-corridor: rgb(127 221 242 / 0.35);
-  --fm-map-wind-comet-head: var(--fm-accent-200);
-  --fm-map-wind-comet-tail: var(--fm-accent-500);
 
   /* ============ Tipografía ============ */
   --fm-font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;

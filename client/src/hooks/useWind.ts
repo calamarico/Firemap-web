@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WIND_REFRESH_INTERVAL_MS, WIND_RETRY_MS } from '../config';
-import windGrid from '../map/windGrid.json';
 import type { WindPoint } from '../types';
 
 export interface WindView {
@@ -10,18 +9,14 @@ export interface WindView {
 }
 
 /**
- * Rejilla fija de muestreo sobre tierra (generada por scripts/build-wind-grid.mjs).
- * Va empaquetada en el bundle: pedirla como /data/*.json pasaría por el
- * catch-all de Pages Functions y gastaría una invocación por visita.
- */
-const GRID_POINTS = windGrid.points.map(([lon, lat]): [number, number] => [lon, lat]);
-
-/**
  * Última descarga buena, persistida: si Open-Meteo no responde al cargar
  * (p. ej. cupo diario de la IP agotado, HTTP 429), se pinta esta copia en vez
  * de nada. Caduca pronto: el viento de hace horas ya no describe el presente.
+ * v3: la rejilla ambiental desapareció con la pluma de humo; una caché v2
+ * arrastraría sus ~86 puntos y la primera carga tras el deploy pintaría una
+ * pluma en cada celda de la rejilla.
  */
-const WIND_CACHE_KEY = 'fm-wind-v2';
+const WIND_CACHE_KEY = 'fm-wind-v3';
 const WIND_CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface CachedWind {
@@ -61,20 +56,21 @@ interface OpenMeteoEntry {
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /**
- * Viento actual (10 m) para la rejilla de España y Portugal + los puntos
- * junto a focos,
- * en UNA llamada directa del navegador a Open-Meteo (sin API key, CORS
- * abierto; no pasa por el proxy y no gasta invocaciones del plan free).
+ * Viento actual (10 m) SOLO en los puntos junto a focos, en UNA llamada
+ * directa del navegador a Open-Meteo (sin API key, CORS abierto; no pasa por
+ * el proxy y no gasta invocaciones del plan free).
  *
  * OJO con el cupo de Open-Meteo: son 10.000 "llamadas"/día POR IP del
  * visitante, y una petición multi-punto pondera ~1 llamada por ubicación —
- * nuestra petición (~70-130 puntos) vale eso del cupo. De ahí las tres
- * defensas de este hook: cadencia de 15 min (lo que tarda Open-Meteo en
- * actualizar su "current"), pausa total con la pestaña oculta (el caso
- * "pestaña abierta todo el día" es casi siempre pestaña en background), y el
- * llamante retrasa el primer fetch hasta tener los focos (una sola llamada
- * por carga, no dos). El fallo es silencioso: capa secundaria, se conserva el
- * último dato bueno (también entre recargas, vía localStorage).
+ * nuestra petición (≤60 puntos, los clusters de focos) vale eso del cupo. La
+ * pluma de humo eliminó la rejilla ambiental (~86 ubicaciones menos por
+ * refresco). De ahí las tres defensas de este hook: cadencia de 15 min (lo
+ * que tarda Open-Meteo en actualizar su "current"), pausa total con la
+ * pestaña oculta (el caso "pestaña abierta todo el día" es casi siempre
+ * pestaña en background), y el llamante retrasa el primer fetch hasta tener
+ * los focos (una sola llamada por carga, no dos). El fallo es silencioso:
+ * capa secundaria, se conserva el último dato bueno (también entre recargas,
+ * vía localStorage).
  */
 export function useWind(enabled: boolean, firePoints: ReadonlyArray<[number, number]>): WindView {
   const [tick, setTick] = useState(0);
@@ -91,7 +87,7 @@ export function useWind(enabled: boolean, firePoints: ReadonlyArray<[number, num
     })()
   );
 
-  // deriveFireWindPoints ya devuelve orden estable y coordenadas redondeadas:
+  // deriveFireWindSites ya devuelve orden estable y muestras redondeadas:
   // la clave solo cambia si el conjunto de clusters cambia de verdad.
   const fireKey = useMemo(() => firePoints.map((p) => p.join(',')).join(';'), [firePoints]);
 
@@ -123,7 +119,18 @@ export function useWind(enabled: boolean, firePoints: ReadonlyArray<[number, num
       schedule(freshFor);
     } else {
       (async () => {
-        const coords = [...GRID_POINTS, ...firePoints];
+        const coords = firePoints;
+        // Sin focos no hay nada que muestrear: con la URL vacía Open-Meteo
+        // devolvería error y el reintento quemaría cupo para nada. (Antes la
+        // rejilla ambiental garantizaba una lista no vacía.)
+        if (coords.length === 0) {
+          const at = Date.now();
+          lastSuccess.current = { key: fireKey, at };
+          writeWindCache({ at, fireKey, points: [] });
+          setView({ status: 'ready', points: [] });
+          schedule(WIND_REFRESH_INTERVAL_MS);
+          return;
+        }
         try {
           setView((v) => ({ ...v, status: 'loading' }));
           const url =
@@ -148,7 +155,6 @@ export function useWind(enabled: boolean, firePoints: ReadonlyArray<[number, num
             points.push({
               lon,
               lat,
-              kind: i < GRID_POINTS.length ? 'grid' : 'fire',
               speedKmh: current.wind_speed_10m,
               directionFrom: current.wind_direction_10m,
             });

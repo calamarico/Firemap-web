@@ -10,12 +10,12 @@ import {
   createCitiesLayer,
   createEffisLayer,
   createFiresLayer,
-  createWindLayer,
+  createSmokePlumeLayer,
   EffisLayer,
   FIRES_LAYER_ID,
   FiresLayer,
   setBasemap,
-  WindLayer,
+  SmokePlumeLayer,
 } from '../map/layers';
 import type { FireHotspot, WindPoint } from '../types';
 import FirePopup from './FirePopup';
@@ -33,7 +33,7 @@ interface MapViewProps {
   effisRefreshToken?: number;
   showBoundaries: boolean;
   showWind: boolean;
-  /** Muestras de viento (rejilla + junto a focos) ya combinadas por useWind. */
+  /** Muestras de viento junto a los focos (useWind). */
   wind: WindPoint[];
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
@@ -97,7 +97,7 @@ export default function MapView({
     fires: FiresLayer;
     effis: EffisLayer;
     boundaries: AppLayer;
-    wind: WindLayer;
+    wind: SmokePlumeLayer;
   } | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -145,7 +145,7 @@ export default function MapView({
     const effis = createEffisLayer('7d');
     const boundaries = createBoundariesLayer();
     const cities = createCitiesLayer();
-    const wind = createWindLayer();
+    const wind = createSmokePlumeLayer();
     layersRef.current = { fires, effis, boundaries, wind };
 
     map.on('load', () => {
@@ -153,8 +153,8 @@ export default function MapView({
       boundaries.add(map); // ...límites y nombres autonómicos encima...
       cities.add(map); // ...referencias urbanas (sin toggle: son "mobiliario base")...
       fires.add(map); // ...los focos arriba...
-      // ...y el viento el último: su rejilla se auto-inserta bajo las
-      // referencias urbanas; las flechas junto a focos quedan encima de todo.
+      // ...y el viento el último: las plumas de humo se auto-insertan bajo
+      // los círculos de foco; galón y etiqueta quedan encima de todo.
       wind.add(map);
       bindFiresPopup(map);
 

@@ -86,15 +86,12 @@ export function isApiErrorBody(value: unknown): value is ApiErrorBody {
 // ——— Client-only (no forma parte del contrato del proxy; no sincronizar con
 // server/functions). El viento viene de Open-Meteo directo al navegador. ———
 
-/** 'grid' = rejilla ambiental sobre España y Portugal; 'fire' = junto a focos activos. */
-export type WindPointKind = 'grid' | 'fire';
-
+/** Muestra de viento junto a un cluster de focos activos. */
 export interface WindPoint {
   lon: number;
   lat: number;
-  kind: WindPointKind;
   /** Velocidad a 10 m (km/h). */
   speedKmh: number;
-  /** Grados meteorológicos: de dónde VIENE el viento (la flecha se rota 180°). */
+  /** Grados meteorológicos: de dónde VIENE el viento (la pluma se dibuja a 180°). */
   directionFrom: number;
 }

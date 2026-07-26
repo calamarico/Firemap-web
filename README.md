@@ -208,7 +208,7 @@ disponible".
 ├── functions/            # port del proxy a Pages Functions (producción CF)
 │   ├── api/              # fires.ts, warm.ts, effis/status.ts, effis/wms.ts, health.ts
 │   └── _lib/             # firms, effis, geo, impact (índice de rejilla), types
-├── scripts/              # build-muni-index.mjs (índice espacial), build-wind-grid.mjs,
+├── scripts/              # build-muni-index.mjs (índice espacial),
 │                         # build-coverage-boundary.mjs (contorno ES+PT),
 │                         # merge-portugal.mjs (fusiona la CAOP portuguesa)
 ├── server/               # proxy Express + TS (dev clásico y despliegue Node)

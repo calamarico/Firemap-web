@@ -347,7 +347,7 @@ export default function Sidebar(props: SidebarProps) {
             label="Viento"
             checked={props.showWind}
             onChange={props.onShowWindChange}
-            swatch="var(--fm-map-wind-fire)"
+            swatch="var(--fm-map-smoke-band-1)"
             description="Dirección y velocidad · Open-Meteo"
           />
           <LayerToggle
@@ -430,9 +430,10 @@ export default function Sidebar(props: SidebarProps) {
                 <strong className="font-semibold text-ink-primary">
                   Viento junto a los incendios:
                 </strong>{' '}
-                dirección y velocidad del viento en cada foco activo. Cada flecha sopla hacia
-                donde el viento empuja el fuego y el humo, y su haz marca el alcance aproximado
-                del humo en unos 15 minutos.
+                cada foco activo dibuja la pluma de humo hacia donde lo empuja el viento. Cuanto
+                más largo y estrecho el cono, más fuerte sopla; cuanto más corto y abierto, más
+                se queda el humo en la zona. Cada banda son 10 minutos de recorrido, hasta media
+                hora.
               </p>
               <p>
                 <strong className="font-semibold text-ink-primary">Localidades afectadas:</strong>{' '}
@@ -447,9 +448,9 @@ export default function Sidebar(props: SidebarProps) {
             </summary>
             <p className="mt-2">
               El humo viaja con el viento y puede recorrer decenas de kilómetros: es habitual
-              olerlo en ciudades alejadas del fuego. Las flechas azules del mapa muestran hacia
-              dónde sopla el viento en cada incendio y el alcance aproximado del humo: si tu
-              localidad está a sotavento de un foco, ahí tienes la explicación.
+              olerlo en ciudades alejadas del fuego. La pluma azulada de cada incendio muestra
+              hacia dónde va el humo y su alcance aproximado: si tu localidad está a sotavento
+              de un foco, ahí tienes la explicación.
             </p>
           </details>
 
