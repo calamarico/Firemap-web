@@ -7,7 +7,13 @@ import { REFRESH_INTERVAL_MS } from './config';
 import { useEffisStatus } from './hooks/useEffisStatus';
 import { useFires } from './hooks/useFires';
 import { useWind } from './hooks/useWind';
-import { findLocalityCenter, getLocalityParam, setLocalityParam } from './lib/locality';
+import {
+  findLocalityByName,
+  findLocalityBySlug,
+  getLocalityParam,
+  getLocalitySlug,
+  setLocalityParam,
+} from './lib/locality';
 import { deriveFireWindPoints } from './lib/windPoints';
 import { setEffisDown } from './map/effisTileCache';
 import type { BasemapId } from './map/layers';
@@ -67,16 +73,19 @@ export default function App() {
   const handleMapReady = useCallback((map: maplibregl.Map) => {
     mapRef.current = map;
 
-    // Deep link ?localidad=Nombre: vuela al municipio al abrir la página.
-    // Gana al hash de posición (#map=...) si vienen los dos.
-    const locality = getLocalityParam();
-    if (locality) {
-      void findLocalityCenter(locality).then((center) => {
-        if (center) {
-          map.flyTo({ center, zoom: 12, duration: 1800 });
-          setLocalityParam(locality); // fija también el título del documento
+    // Deep link por localidad: /incendios/<slug> (canónico) o ?localidad=Nombre
+    // (legacy, migra al path al resolverse). Gana al hash (#map=...) si vienen
+    // los dos.
+    const slug = getLocalitySlug();
+    const legacyName = slug ? null : getLocalityParam();
+    if (slug || legacyName) {
+      const lookup = slug ? findLocalityBySlug(slug) : findLocalityByName(legacyName ?? '');
+      void lookup.then((hit) => {
+        if (hit) {
+          map.flyTo({ center: hit.center, zoom: 12, duration: 1800 });
+          setLocalityParam(hit.name, hit.slug); // fija URL canónica y título
         } else {
-          setLocalityParam(null); // nombre desconocido: se limpia la URL
+          setLocalityParam(null); // localidad desconocida: se limpia la URL
         }
       });
     }
@@ -103,8 +112,8 @@ export default function App() {
       // bbox es casi un punto y fitBounds se iría a zoom de calle.
       { padding: 80, maxZoom: 12.5, duration: 1400 }
     );
-    // La URL queda lista para compartir: ?localidad=Nombre (+ hash de vista).
-    setLocalityParam(muni.name);
+    // La URL queda lista para compartir: /incendios/<slug> (+ hash de vista).
+    setLocalityParam(muni.name, muni.slug);
   }, []);
 
   return (

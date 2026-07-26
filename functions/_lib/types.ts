@@ -17,6 +17,8 @@ export interface FireHotspot {
 
 export interface MunicipalityImpact {
   name: string;
+  /** Slug de la página /incendios/<slug> (único; desambiguado por región). */
+  slug: string;
   count: number;
   maxFrp: number | null;
   /** Última detección en el municipio (ISO 8601 UTC): ordena el ranking. */

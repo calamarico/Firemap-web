@@ -54,8 +54,8 @@ const RETRY_PAUSE_MS = 1_500;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
-const CACHE_KEY = 'https://firemap.cache/api/fires-v5';
-const KV_KEY = 'api-fires-v5';
+const CACHE_KEY = 'https://firemap.cache/api/fires-v6';
+const KV_KEY = 'api-fires-v6';
 // Guarda de escritura en KV: el free plan da 1000 escrituras/día y todos los
 // datacenters comparten la clave. Si lo que hay en KV tiene menos de este
 // margen, la escritura se ahorra: techo global ~360/día.

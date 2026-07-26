@@ -49,6 +49,28 @@ export default function Sidebar(props: SidebarProps) {
   // el mapa. En escritorio el panel es fijo y md:translate-y-0 neutraliza todo
   // el desplazamiento, así que nada de esto afecta a ese layout.
   const [collapsed, setCollapsed] = useState(true);
+  // Colapso de escritorio (≥ md), independiente de la hoja móvil: el panel se
+  // desliza fuera por la izquierda y queda una pestaña en el borde para
+  // reabrirlo. La preferencia sobrevive entre visitas.
+  const DESKTOP_COLLAPSED_KEY = 'fm-sidebar-collapsed';
+  const [desktopCollapsed, setDesktopCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(DESKTOP_COLLAPSED_KEY) === '1';
+    } catch {
+      return false; // localStorage inaccesible: siempre desplegada
+    }
+  });
+  const toggleDesktopCollapsed = () => {
+    setDesktopCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(DESKTOP_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {
+        // Cuota llena o modo privado: sin persistencia, pero el toggle funciona.
+      }
+      return next;
+    });
+  };
   const asideRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(() => !window.matchMedia('(min-width: 768px)').matches);
@@ -154,12 +176,11 @@ export default function Sidebar(props: SidebarProps) {
     props.onRefresh();
   };
 
-  // Con la hoja plegada su contenido queda fuera de pantalla pero seguiría
-  // siendo enfocable: inert lo saca del tabulado y de los lectores de pantalla
-  // (solo en móvil; en escritorio el panel está siempre a la vista).
-  const inertProps = (
-    isMobile && collapsed && dragY === null ? { inert: '' } : {}
-  ) as React.HTMLAttributes<HTMLDivElement>;
+  // Con el panel plegado (hoja móvil abajo o panel de escritorio fuera de
+  // pantalla) su contenido seguiría siendo enfocable: inert lo saca del
+  // tabulado y de los lectores de pantalla.
+  const hidden = isMobile ? collapsed && dragY === null : desktopCollapsed;
+  const inertProps = (hidden ? { inert: '' } : {}) as React.HTMLAttributes<HTMLDivElement>;
 
   const sheetY = dragY ?? (collapsed ? contentHeight : 0);
 
@@ -168,10 +189,34 @@ export default function Sidebar(props: SidebarProps) {
       ref={asideRef}
       style={{ '--sheet-y': `${sheetY}px` } as React.CSSProperties}
       className={`absolute bottom-0 left-0 z-panel flex w-full translate-y-[var(--sheet-y)] flex-col
-        overflow-hidden rounded-t-xl bg-surface-panel text-ink-primary shadow-panel backdrop-blur
+        rounded-t-xl bg-surface-panel text-ink-primary shadow-panel backdrop-blur
         md:top-0 md:h-full md:w-96 md:translate-y-0 md:rounded-none
+        md:transition-transform md:duration-[var(--fm-duration-sheet)] md:ease-sheet
+        motion-reduce:md:transition-none
+        ${desktopCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}
         ${animating ? 'transition-transform duration-[var(--fm-duration-sheet)] ease-sheet motion-reduce:transition-none' : ''}`}
     >
+      {/* Pestaña de escritorio: sobresale del borde derecho del panel, así que
+          con el panel fuera de pantalla (-translate-x-full) queda pegada al
+          borde izquierdo de la ventana. El overflow del aside debe permitirla:
+          por eso el recorte (overflow-hidden original) baja al contenido. */}
+      <button
+        onClick={toggleDesktopCollapsed}
+        aria-expanded={!desktopCollapsed}
+        aria-label={desktopCollapsed ? 'Mostrar panel' : 'Ocultar panel'}
+        title={desktopCollapsed ? 'Mostrar panel' : 'Ocultar panel'}
+        className="absolute left-full top-4 z-panel hidden h-12 w-6 items-center justify-center
+          rounded-r-lg bg-surface-panel text-ink-muted shadow-panel backdrop-blur
+          hover:text-ink-primary md:flex"
+      >
+        <Icon
+          name="chevron-up"
+          size={16}
+          className={`transition-transform duration-[var(--fm-duration-base)] ease-sheet
+            motion-reduce:transition-none ${desktopCollapsed ? 'rotate-90' : '-rotate-90'}`}
+        />
+      </button>
+
       {/* Barra compacta de la hoja inferior (solo móvil): tap o arrastre */}
       <button
         onClick={handleBarClick}
@@ -207,7 +252,11 @@ export default function Sidebar(props: SidebarProps) {
 
       {/* Siempre montado: el plegado es un desplazamiento, no un display:none
           (si no, no habría nada que animar). */}
-      <div ref={contentRef} {...inertProps} className="flex min-h-0 flex-col md:min-h-0 md:flex-1">
+      <div
+        ref={contentRef}
+        {...inertProps}
+        className="flex min-h-0 flex-col overflow-hidden md:min-h-0 md:flex-1"
+      >
         <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
           <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
           {/* Un solo h1 con marca + descriptor: el descriptor lleva la keyword

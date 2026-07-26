@@ -152,6 +152,7 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 | `GET /api/effis/wms?range=7d&bbox=…` | Proxy del `GetMap` WMS de EFFIS (tiles raster para MapLibre) |
 | `GET /api/warm` | Keep-warm para el cron: mismo refresco que `/api/fires`, respuesta mínima de ~94 bytes (solo en el despliegue Cloudflare) |
 | `GET /api/health` | Comprobación de vida |
+| `GET /incendios/<slug>` | Página SEO por localidad (solo Cloudflare): el index.html del deploy con title/description/canonical/H1 propios y enlaces a localidades vecinas, vía HTMLRewriter (`functions/incendios/[slug].ts`). Los slugs son el campo `s` de `muni-meta.json` (generados por `build-muni-index.mjs`, desambiguados por región en nombres duplicados) y se publican en `sitemap.xml` (`scripts/build-sitemap.mjs`, encadenado a `build:muni-index`). En Express estas rutas caen al index genérico y el cliente resuelve el slug igualmente |
 
 ## Rendimiento
 

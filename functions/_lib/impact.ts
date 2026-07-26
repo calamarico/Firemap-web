@@ -18,14 +18,29 @@ interface MuniIndex {
   cols: number;
   rows: number;
   regions: string[];
-  municipalities: Array<{ n: string; r: number }>;
+  municipalities: Array<{ n: string; r: number; s: string }>;
 }
 
-interface MuniMetaFile {
+export interface MuniMetaFile {
   grid: { x0: number; y0: number; cell: number; cols: number; rows: number };
   regions: string[];
-  /** c = centroide para los deep links del frontend; aquí no se usa. */
-  municipalities: Array<{ n: string; r: number; c?: [number, number] }>;
+  /** n = nombre, r = índice de región, s = slug de /incendios/<s>, c = centroide. */
+  municipalities: Array<{ n: string; r: number; s: string; c: [number, number] }>;
+}
+
+// El meta se memoiza aparte del grid: las páginas /incendios/<slug> solo
+// necesitan el JSON (~575 KB) y no deben pagar los ~1,9 MB del binario.
+let metaPromise: Promise<MuniMetaFile | null> | null = null;
+
+export function loadMeta(env: Env): Promise<MuniMetaFile | null> {
+  metaPromise ??= env.ASSETS.fetch('https://assets.internal/data/muni-meta.json')
+    .then((res) => (res.ok ? (res.json() as Promise<MuniMetaFile>) : null))
+    .catch((err) => {
+      console.error('No se pudo cargar el meta de municipios:', err);
+      metaPromise = null; // permite reintentar en la siguiente petición
+      return null;
+    });
+  return metaPromise;
 }
 
 let indexPromise: Promise<MuniIndex | null> | null = null;
@@ -40,12 +55,11 @@ export function loadIndex(env: Env): Promise<MuniIndex | null> {
 }
 
 async function fetchIndex(env: Env): Promise<MuniIndex | null> {
-  const [gridRes, metaRes] = await Promise.all([
+  const [gridRes, meta] = await Promise.all([
     env.ASSETS.fetch('https://assets.internal/data/muni-grid.bin'),
-    env.ASSETS.fetch('https://assets.internal/data/muni-meta.json'),
+    loadMeta(env),
   ]);
-  if (!gridRes.ok || !metaRes.ok) return null;
-  const meta = (await metaRes.json()) as MuniMetaFile;
+  if (!gridRes.ok || !meta) return null;
   // El binario es Uint16 little-endian; workerd es little-endian.
   const grid = new Uint16Array(await gridRes.arrayBuffer());
   if (grid.length !== meta.grid.cols * meta.grid.rows) return null;
@@ -99,7 +113,14 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
     const muni = index.municipalities[id - 1];
     if (!muni || muni.r < 0) continue;
     const list = byRegion.get(muni.r) ?? [];
-    list.push({ name: muni.n, count: e.count, maxFrp: e.maxFrp, lastAcqAt: e.lastAcqAt, bbox: e.bbox });
+    list.push({
+      name: muni.n,
+      slug: muni.s,
+      count: e.count,
+      maxFrp: e.maxFrp,
+      lastAcqAt: e.lastAcqAt,
+      bbox: e.bbox,
+    });
     byRegion.set(muni.r, list);
   }
 

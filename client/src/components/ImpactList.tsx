@@ -96,9 +96,15 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
             >
               <ul className="pb-2">
                 {region.municipalities.map((muni) => (
-                  <li key={muni.name}>
-                    <button
-                      onClick={() => onSelectMunicipality(muni)}
+                  <li key={muni.slug}>
+                    {/* Enlace real a la página indexable /incendios/<slug>
+                        (rastreable); el clic sigue volando en la SPA. */}
+                    <a
+                      href={`/incendios/${muni.slug}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onSelectMunicipality(muni);
+                      }}
                       title={`Ver ${muni.name} en el mapa`}
                       className="flex min-h-touch w-full flex-col justify-center py-1.5 pl-[34px]
                         pr-4 text-left text-xs hover:bg-surface-hover"
@@ -119,7 +125,7 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
                           <span className="shrink-0 tabular-nums">máx {muni.maxFrp.toFixed(0)} MW</span>
                         )}
                       </span>
-                    </button>
+                    </a>
                   </li>
                 ))}
               </ul>

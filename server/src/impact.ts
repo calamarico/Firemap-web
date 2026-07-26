@@ -25,7 +25,27 @@ const DATA_DIR = path.resolve(__dirname, '..', 'data');
 
 let municipalities: IndexedArea[] | null = null;
 let regions: IndexedArea[] | null = null;
+// Slugs base que aparecen más de una vez: esos municipios llevan sufijo de
+// región en su slug. Mismo algoritmo que scripts/build-muni-index.mjs (que es
+// la fuente de verdad para el despliegue Cloudflare): ambos derivan de los
+// mismos nombres de municipios.json, así que el resultado es idéntico.
+let duplicatedSlugBases: Set<string> | null = null;
 let loadFailed = false;
+
+/** Idéntico al slugify de scripts/build-muni-index.mjs. */
+function slugify(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function muniSlug(name: string, region: string): string {
+  const base = slugify(name);
+  return duplicatedSlugBases?.has(base) ? `${base}-${slugify(region)}` : base;
+}
 
 function loadAreas(file: string): IndexedArea[] {
   const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')) as {
@@ -48,6 +68,12 @@ function ensureLoaded(): boolean {
   try {
     municipalities = loadAreas('municipios.json');
     regions = loadAreas('ccaa.json');
+    const counts = new Map<string, number>();
+    for (const m of municipalities) {
+      const base = slugify(m.name);
+      counts.set(base, (counts.get(base) ?? 0) + 1);
+    }
+    duplicatedSlugBases = new Set([...counts].filter(([, n]) => n > 1).map(([base]) => base));
     return true;
   } catch (err) {
     // Sin polígonos no hay ranking, pero la app sigue: el campo impact irá vacío.
@@ -117,6 +143,7 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
     const relevant: MunicipalityImpact[] = [...munis.entries()]
       .map(([name, e]) => ({
         name,
+        slug: muniSlug(name, region),
         count: e.count,
         maxFrp: e.maxFrp,
         lastAcqAt: e.lastAcqAt,

@@ -108,6 +108,38 @@ const muniRegion = municipalities.map((m) => {
   return idx;
 });
 
+// Slug de cada municipio para las páginas /incendios/<slug>. Las colisiones se
+// detectan sobre el slug base (no sobre el nombre: "Vila-real" y "Vila Real"
+// solo chocan tras slugificar) y AMBOS miembros llevan sufijo de región, así
+// el slug base ambiguo no existe y no hay canonical ambiguo.
+function slugify(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const baseCount = new Map();
+for (const m of municipalities) {
+  const base = slugify(m.name);
+  baseCount.set(base, (baseCount.get(base) ?? 0) + 1);
+}
+const slugs = municipalities.map((m, i) => {
+  const base = slugify(m.name);
+  return baseCount.get(base) > 1 ? `${base}-${slugify(regionNames[muniRegion[i]])}` : base;
+});
+{
+  const seen = new Set();
+  slugs.forEach((s, i) => {
+    if (!s || seen.has(s)) {
+      throw new Error(`Slug inválido o duplicado: "${s}" (${municipalities[i].name})`);
+    }
+    seen.add(s);
+  });
+}
+
 // Cubos gruesos de 0.2° para no probar los 8.205 municipios en cada celda.
 const BUCKET = 0.2;
 const bCols = Math.ceil((X1 - X0) / BUCKET);
@@ -165,6 +197,7 @@ writeFileSync(
       return {
         n: m.name,
         r: muniRegion[i],
+        s: slugs[i],
         c: [round((minX + maxX) / 2), round((minY + maxY) / 2)],
       };
     }),
