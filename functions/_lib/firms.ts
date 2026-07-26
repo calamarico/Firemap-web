@@ -54,8 +54,8 @@ const RETRY_PAUSE_MS = 1_500;
 // Clave sintética para la Cache API (el host es irrelevante: es un espacio de
 // nombres). Versionada: al cambiar el contrato (p. ej. bbox en el ranking) se
 // sube la versión y las entradas viejas quedan huérfanas.
-const CACHE_KEY = 'https://firemap.cache/api/fires-v6';
-const KV_KEY = 'api-fires-v6';
+const CACHE_KEY = 'https://firemap.cache/api/fires-v7';
+const KV_KEY = 'api-fires-v7';
 // Guarda de escritura en KV: el free plan da 1000 escrituras/día y todos los
 // datacenters comparten la clave. Si lo que hay en KV tiene menos de este
 // margen, la escritura se ahorra: techo global ~360/día.
@@ -204,11 +204,12 @@ async function refreshFires(mapKey: string, env: Env): Promise<FiresResponse> {
   }
 
   const cutoff = Date.now() - WINDOW_HOURS * 3_600_000;
-  const hotspots = fulfilled
-    .flatMap((r) => r.value)
-    .filter((h) => isInCoverage(h.longitude, h.latitude))
-    .filter((h) => acqTimestamp(h) >= cutoff)
-    .sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
+  const hotspots = dedupeHotspots(
+    fulfilled
+      .flatMap((r) => r.value)
+      .filter((h) => isInCoverage(h.longitude, h.latitude))
+      .filter((h) => acqTimestamp(h) >= cutoff)
+  ).sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
 
   return {
     count: hotspots.length,
@@ -349,4 +350,52 @@ function acqTimestamp(h: FireHotspot): number {
   const mm = Number(h.acqTime.slice(2));
   if (!y || !m || !d) return 0;
   return Date.UTC(y, m - 1, d, hh || 0, mm || 0);
+}
+
+// La ventana de 24 h acumula varias pasadas (3 VIIRS ×2/día + Terra y Aqua)
+// sobre el mismo fuego, con coordenadas que difieren unos cientos de metros
+// entre pasadas: sin deduplicar, el mapa apila hasta ~12 puntos por foco y
+// count/impact cuentan detecciones, no fuegos. La celda de 0,01° (~1,1 km)
+// absorbe también el solape de un píxel MODIS (1 km) sobre los VIIRS (375 m).
+const DEDUPE_CELL_DEG = 0.01;
+// Una pasada barre la cobertura entera en pocos minutos: dos detecciones del
+// mismo satélite separadas más que esto son pasadas distintas.
+const PASS_SLACK_MS = 20 * 60 * 1000;
+
+/**
+ * Conserva por celda solo la pasada más reciente, completa (todos sus píxeles,
+ * para no perder el detalle de 375 m en frentes grandes), y anota en cada
+ * superviviente cuántas pasadas detectaron la celda dentro de la ventana.
+ */
+function dedupeHotspots(hotspots: FireHotspot[]): FireHotspot[] {
+  const cells = new Map<string, FireHotspot[]>();
+  for (const h of hotspots) {
+    const key = `${Math.round(h.latitude / DEDUPE_CELL_DEG)}:${Math.round(h.longitude / DEDUPE_CELL_DEG)}`;
+    const cell = cells.get(key);
+    if (cell) cell.push(h);
+    else cells.set(key, [h]);
+  }
+
+  const out: FireHotspot[] = [];
+  for (const cell of cells.values()) {
+    cell.sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
+    const newest = cell[0];
+    const newestTs = acqTimestamp(newest);
+
+    let detections = 0;
+    const lastBySat = new Map<string, number>();
+    for (const h of cell) {
+      const ts = acqTimestamp(h);
+      const prev = lastBySat.get(h.satellite);
+      if (prev === undefined || prev - ts > PASS_SLACK_MS) detections++;
+      lastBySat.set(h.satellite, ts);
+    }
+
+    for (const h of cell) {
+      if (h.satellite === newest.satellite && newestTs - acqTimestamp(h) <= PASS_SLACK_MS) {
+        out.push({ ...h, detections });
+      }
+    }
+  }
+  return out;
 }

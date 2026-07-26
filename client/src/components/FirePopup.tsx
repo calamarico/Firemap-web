@@ -48,6 +48,11 @@ export default function FirePopup({ fire }: { fire: FireHotspot }) {
     ['Satélite', fire.satellite || '—'],
     ['Sensor', fire.instrument || '—'],
   ];
+  // Señal de persistencia: cuántas pasadas satelitales han visto arder esta
+  // zona en las últimas 24 h (con una sola no aporta nada).
+  if (fire.detections !== undefined && fire.detections > 1) {
+    rows.push(['Detecciones (24 h)', `${fire.detections} pasadas`]);
+  }
 
   return (
     <div className="min-w-[240px] px-3 py-2 text-sm">

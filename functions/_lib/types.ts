@@ -13,6 +13,8 @@ export interface FireHotspot {
   confidence: string;
   /** Fire Radiative Power (MW). */
   frp: number | null;
+  /** Nº de pasadas satelitales que detectaron esta celda en la ventana de 24 h. */
+  detections?: number;
 }
 
 export interface MunicipalityImpact {

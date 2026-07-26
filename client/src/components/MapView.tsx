@@ -53,6 +53,7 @@ function propertiesToHotspot(props: Record<string, unknown>): FireHotspot {
     instrument: str(props.instrument),
     confidence: str(props.confidence),
     frp: numOrNull(props.frp),
+    detections: numOrNull(props.detections) ?? undefined,
   };
 }
 
