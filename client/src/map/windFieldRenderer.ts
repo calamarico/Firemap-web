@@ -88,6 +88,12 @@ export function createWindFieldRenderer(map: MapLibreMap): WindFieldRenderer {
   const trail = parseRgba(MAP.flowTrail);
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const particleCount = coarse ? PARTICLES_COARSE : PARTICLES_DESKTOP;
+  // En táctil el campo corre con la mitad de partículas sobre una pantalla
+  // pequeña y brillante: al pelo de 1 px del escritorio no le queda presencia.
+  // Se compensa con trazo más grueso y más alfa, no con más partículas (que es
+  // lo que cuesta batería).
+  const trailWidth = coarse ? 1.8 : 1;
+  const trailAlpha = Math.min(1, trail.a * (coarse ? 1.4 : 1));
 
   let enabled = false;
   let field: WindFieldBlock[] | null = null;
@@ -228,7 +234,7 @@ export function createWindFieldRenderer(map: MapLibreMap): WindFieldRenderer {
     g.fillRect(0, 0, w, h);
     g.globalCompositeOperation = 'source-over';
     g.lineCap = 'round';
-    g.lineWidth = 1;
+    g.lineWidth = trailWidth;
 
     const bounds = map.getBounds();
     const margin = 0.4;
@@ -249,11 +255,11 @@ export function createWindFieldRenderer(map: MapLibreMap): WindFieldRenderer {
       p.lat = ll.lat;
       p.px += step;
 
-      // El 0,42 de opacidad máxima es el alfa del propio token; sin(π·edad)
-      // hace que la traza entre y salga — la reaparición no se ve.
+      // La opacidad máxima es el alfa del token (0,42; +40 % en táctil);
+      // sin(π·edad) hace que la traza entre y salga — la reaparición no se ve.
       const age = p.px / p.maxPx;
       const alpha =
-        trail.a * Math.sin(Math.PI * Math.min(1, age)) * edgeFade(block, p.lon, p.lat);
+        trailAlpha * Math.sin(Math.PI * Math.min(1, age)) * edgeFade(block, p.lon, p.lat);
       if (alpha > 0 && !nearFire(from.x, from.y)) {
         g.strokeStyle = `rgba(${trail.r},${trail.g},${trail.b},${alpha})`;
         g.beginPath();
