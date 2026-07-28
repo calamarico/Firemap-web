@@ -463,8 +463,8 @@ export default function Sidebar(props: SidebarProps) {
                 <strong className="font-semibold text-ink-primary">Flujo de viento:</strong>{' '}
                 dibuja hacia dónde se mueve el aire sobre todo el territorio. Es el viento
                 general de la jornada, útil para entender de dónde viene el tiempo; para saber a
-                dónde va el humo de un incendio concreto, mira su pluma. Se descarga solo cuando
-                activas esta capa.
+                dónde va el humo de un incendio concreto, mira su pluma. Solo descarga datos
+                mientras la capa está activa.
               </p>
               <p>
                 <strong className="font-semibold text-ink-primary">Localidades afectadas:</strong>{' '}

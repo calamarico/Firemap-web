@@ -37,7 +37,7 @@ interface MapViewProps {
   showWind: boolean;
   /** Muestras de viento junto a los focos (useWind). */
   wind: WindPoint[];
-  /** Campo de flujo ambiental (opcional, apagado por defecto). */
+  /** Campo de flujo ambiental (desactivable; sin fetch con la capa apagada). */
   showWindField: boolean;
   windField: WindFieldBlock[] | null;
   basemap: BasemapId;

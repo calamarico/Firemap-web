@@ -26,8 +26,11 @@ export default function App() {
   const [showEffis, setShowEffis] = useState(true);
   const [showBoundaries, setShowBoundaries] = useState(true);
   const [showWind, setShowWind] = useState(true);
-  // Contexto, no dato primario — y cuesta cupo de API: apagado por defecto.
-  const [showWindField, setShowWindField] = useState(false);
+  // Encendido por defecto (decisión de producto 2026-07-27): el coste es
+  // asumible —109,2 llamadas ponderadas por refresco de 30 min sobre el cupo
+  // de 10.000/día de la IP del propio visitante— y apagarlo sigue cortando
+  // toda descarga.
+  const [showWindField, setShowWindField] = useState(true);
   const [basemap, setBasemapId] = useState<BasemapId>('satellite');
 
   // El campo de flujo ES movimiento: con "reducir movimiento" no queda nada

@@ -125,7 +125,7 @@ async function fetchBlock(def: WindFieldBlockDef, signal: AbortSignal): Promise<
  * con mínimo de 14 días — con 2 variables, 0,2 llamadas por punto. Las dos
  * peticiones (486 + 60 puntos) suman 109,2 llamadas ponderadas por refresco,
  * sobre 10.000 diarias por IP del visitante. Defensas: NADA de fetch con la
- * capa apagada (quien no la activa gasta cero), cadencia de 30 min, pausa
+ * capa apagada (apagar el toggle corta toda descarga), cadencia de 30 min, pausa
  * total con la pestaña oculta y caché en localStorage para que alternar el
  * interruptor no repita la petición. Fallo silencioso: se conserva el último
  * dato bueno; si no hay ninguno, la capa simplemente no pinta.
