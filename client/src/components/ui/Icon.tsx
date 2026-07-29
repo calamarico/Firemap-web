@@ -11,6 +11,7 @@ import {
   LocateFixed,
   Map,
   Minus,
+  Play,
   Plus,
   RefreshCw,
   TriangleAlert,
@@ -36,6 +37,7 @@ const ICONS = {
   'locate-fixed': LocateFixed,
   plus: Plus,
   minus: Minus,
+  play: Play,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

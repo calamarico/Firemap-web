@@ -133,6 +133,14 @@ const handler: PagesFunction<Env> = async (ctx) => {
     .on('meta[property="og:url"]', setContent(canonical))
     .on('meta[name="twitter:title"]', setContent(title))
     .on('meta[name="twitter:description"]', setContent(description))
+    // El marcado VideoObject describe los vídeos de presentación del mapa y
+    // vive solo en la home: repetirlo idéntico en miles de páginas por
+    // localidad no aporta nada y diluye a qué URL asocia Google el vídeo.
+    .on('#ld-video', {
+      element: (e) => {
+        e.remove();
+      },
+    })
     .on('#root h1', {
       element: (e) => {
         e.setInnerContent(h1);

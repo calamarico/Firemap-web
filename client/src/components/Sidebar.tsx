@@ -8,6 +8,7 @@ import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
+import VideoPromo from './VideoPromo';
 import Button from './ui/Button';
 import CountBadge from './ui/CountBadge';
 import Icon from './ui/Icon';
@@ -431,6 +432,10 @@ export default function Sidebar(props: SidebarProps) {
             no se alarga. */}
         <section className="space-y-2 text-sm text-ink-secondary">
           <h2 className="fm-eyebrow mb-1.5">Sobre este mapa</h2>
+
+          {/* Vídeos de presentación: dos miniaturas en una fila, que el bloque
+              de prosa ya es largo y esto no debe alargarlo más. */}
+          <VideoPromo />
 
           <details>
             <summary className="cursor-pointer select-none text-ink-primary">

@@ -87,6 +87,53 @@
         }
       }
     </script>
+
+    <!-- Vídeos de presentación. Solo válido en la home: el marcado describe los
+         reproductores que pinta client/src/components/VideoPromo.tsx (Google
+         exige que el vídeo esté en la página, no solo enlazado), así que ids,
+         títulos y duraciones tienen que coincidir con ese componente.
+         id="ld-video": functions/incendios/[slug].ts borra este bloque en las
+         páginas por localidad para no repetir el mismo vídeo en miles de URLs. -->
+    <script type="application/ld+json" id="ld-video">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          "name": "Firemaps Spain — Mapa de incendios de España y Portugal",
+          "description": "Recorrido por el mapa de incendios de España y Portugal: focos de calor detectados por satélite (NASA FIRMS), área quemada de Copernicus EFFIS y viento con la dirección del humo. Gratis, sin anuncios y sin registro.",
+          "thumbnailUrl": "https://i.ytimg.com/vi/4XMQa6ULVeA/maxresdefault.jpg",
+          "uploadDate": "2026-07-28T18:23:39-07:00",
+          "duration": "PT18S",
+          "contentUrl": "https://www.youtube.com/watch?v=4XMQa6ULVeA",
+          "embedUrl": "https://www.youtube-nocookie.com/embed/4XMQa6ULVeA",
+          "inLanguage": "es",
+          "isFamilyFriendly": true,
+          "publisher": {
+            "@type": "Person",
+            "name": "Kalamarico",
+            "url": "https://www.youtube.com/@Kalamarico"
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          "name": "Firemaps Spain — Mapa de incendios forestales en España y Portugal",
+          "description": "Versión vertical: incendios activos en España y Portugal en tiempo casi real, con focos por satélite, área quemada y dirección del humo sobre el mapa.",
+          "thumbnailUrl": "https://i.ytimg.com/vi/2lmSNd2Yztk/maxresdefault.jpg",
+          "uploadDate": "2026-07-28T18:21:04-07:00",
+          "duration": "PT18S",
+          "contentUrl": "https://www.youtube.com/shorts/2lmSNd2Yztk",
+          "embedUrl": "https://www.youtube-nocookie.com/embed/2lmSNd2Yztk",
+          "inLanguage": "es",
+          "isFamilyFriendly": true,
+          "publisher": {
+            "@type": "Person",
+            "name": "Kalamarico",
+            "url": "https://www.youtube.com/@Kalamarico"
+          }
+        }
+      ]
+    </script>
   </head>
   <body>
     <div id="root">
