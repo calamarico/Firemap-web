@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "include": [
+    "/",
+    "/embed",
+    "/insertar",
+    "/api/*",
+    "/incendios/*",
+    "/data/municipios.pmtiles",
+    "/data/municipios-labels.pmtiles"
+  ],
+  "exclude": []
+}

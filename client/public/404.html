@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Página no encontrada · Firemaps España</title>
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
+    <style>
+      html {
+        background: #020617;
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 2rem;
+        color: #e2e8f0;
+        font: 400 1rem/1.6 system-ui, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+        max-width: 34rem;
+        color: #94a3b8;
+      }
+      a {
+        color: #7fddf2;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Esta página existe por dos motivos, y el segundo importa más de lo que
+      parece:
+
+      1. Un 404 de verdad para URLs que no existen (antes Cloudflare Pages
+         devolvía la SPA con un 200, que para un buscador es un duplicado).
+      2. Sustituye a la guarda de /assets/* del _middleware. Con `_routes.json`
+         los estáticos ya no pasan por Functions —eran 18 de las 29 invocaciones
+         de cada visita—, así que esa guarda dejó de ejecutarse. Su motivo real
+         era el incidente del 2026-07-24: un bundle inexistente devolvía el
+         fallback SPA, es decir HTML con un 200 y el `immutable` de un año que
+         _headers pone a /assets/*, y el edge lo cacheaba como si fuera el .js.
+         Con este fichero, un asset que falta responde 404: el navegador no
+         ejecuta HTML como JavaScript y el siguiente HTML (que se revalida
+         siempre) ya trae las URLs nuevas.
+    -->
+    <h1>Esta página no existe</h1>
+    <p>
+      Puede que el enlace esté mal escrito o que la localidad no esté en el mapa.
+      <a href="/">Volver al mapa de incendios de España y Portugal</a>.
+    </p>
+  </body>
+</html>
