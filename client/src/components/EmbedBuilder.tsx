@@ -122,6 +122,18 @@ export default function EmbedBuilder() {
   // La previsualización apunta al origen actual (así funciona en local y en los
   // previews de rama); el snippet siempre lleva el dominio canónico.
   const previewSrc = useMemo(() => buildEmbedUrl(config, window.location.origin), [config]);
+  /**
+   * La previsualización va con retardo sobre `previewSrc`: cada cambio de URL
+   * recrea el iframe, y eso es una carga completa del widget (documento + focos
+   * + estado de EFFIS + teselas). Quien juega con seis interruptores disparaba
+   * seis cargas; con este margen, una ráfaga de cambios cuesta una sola. El
+   * retardo también quita el parpadeo de recargar a cada clic.
+   */
+  const [debouncedPreviewSrc, setDebouncedPreviewSrc] = useState(previewSrc);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedPreviewSrc(previewSrc), 700);
+    return () => window.clearTimeout(timer);
+  }, [previewSrc]);
   const snippet = useMemo(
     () => buildSnippet(src, sizeMode, height, ratio),
     [src, sizeMode, height, ratio]
@@ -338,8 +350,8 @@ export default function EmbedBuilder() {
                   <iframe
                     // key = src: al cambiar una opción el iframe se recrea para
                     // que el widget lea la configuración nueva al arrancar.
-                    key={previewSrc}
-                    src={previewSrc}
+                    key={debouncedPreviewSrc}
+                    src={debouncedPreviewSrc}
                     title="Previsualización del mapa de incendios embebido"
                     loading="lazy"
                     allowFullScreen
