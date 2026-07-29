@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Mapa de incendios en España y Portugal · widget de Firemaps</title>
+    <meta
+      name="description"
+      content="Versión embebible del mapa de incendios de España y Portugal: focos por satélite NASA, área quemada de Copernicus y viento."
+    />
+    <!--
+      noindex, follow: este documento es el interior de un iframe, no una página
+      para llegar desde Google — indexarlo solo crearía un duplicado sin
+      contexto de la home. `follow` sí importa: deja que el rastreador siga el
+      enlace "ver el mapa completo" hasta la página real.
+      La página que SÍ se indexa y explica cómo insertar el mapa es /insertar.
+    -->
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href="https://firemapsspain.online/" />
+
+    <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
+    <meta name="theme-color" content="#020617" />
+
+    <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin />
+    <link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin />
+  </head>
+  <body>
+    <div id="root">
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #020617;
+          color: #64748b;
+          font-family: system-ui, sans-serif;
+          font-size: 0.875rem;
+        "
+      >
+        Cargando el mapa de incendios…
+      </div>
+    </div>
+    <noscript>
+      <p style="color: #e2e8f0; font-family: system-ui, sans-serif; padding: 1rem">
+        Este mapa necesita JavaScript.
+        <a href="https://firemapsspain.online/" target="_blank" style="color: #7fddf2"
+          >Abrir el mapa de incendios de España y Portugal</a
+        >.
+      </p>
+    </noscript>
+    <script type="module" src="/src/embed.tsx"></script>
+  </body>
+</html>

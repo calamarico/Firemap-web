@@ -1,10 +1,40 @@
+import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type PluginOption } from 'vite';
+
+/**
+ * En dev, el fallback SPA de Vite serviría index.html para /embed y /insertar
+ * (son documentos sin extensión). Este rewrite reproduce lo que hacen en
+ * producción el html_handling de Cloudflare Pages y el `extensions: ['html']`
+ * de Express, para que lo que se prueba en local sea lo que se despliega.
+ */
+const htmlPages = (): PluginOption => ({
+  name: 'fm-html-pages',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      const path = req.url?.split('?')[0];
+      if (path === '/embed' || path === '/insertar') req.url = `${path}.html`;
+      next();
+    });
+  },
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), htmlPages()],
   build: {
     rollupOptions: {
+      // Tres documentos, tres entradas: la app (index.html), el widget
+      // embebible (/embed) y el generador del código de inserción (/insertar).
+      // Separarlos no es cosmético: el iframe de un artículo ajeno no descarga
+      // la sidebar ni la prosa SEO de la home, y /insertar no descarga MapLibre
+      // (su previsualización es un iframe a /embed). Cloudflare Pages sirve
+      // embed.html en /embed y insertar.html en /insertar (html_handling);
+      // Express hace lo propio con `extensions: ['html']`.
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        embed: resolve(__dirname, 'embed.html'),
+        insertar: resolve(__dirname, 'insertar.html'),
+      },
       output: {
         // maplibre (~900 KB) y react en chunks propios: el código de la app
         // cambia en cada deploy, pero estos chunks conservan su hash y el

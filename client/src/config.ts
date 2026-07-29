@@ -10,6 +10,14 @@ export const INITIAL_ZOOM = 5.2;
 export const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
+ * Auto-refresco del widget embebible (/embed). El doble que en la app: un mapa
+ * dentro de un artículo se mira un rato y se abandona, y cada ronda es una
+ * invocación del plan free multiplicada por las visitas del medio que lo
+ * embebe. 10 min sigue siendo "tiempo casi real" para un lector.
+ */
+export const EMBED_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+
+/**
  * Cooldown del botón "Refrescar ahora": cada pulsación es una invocación de
  * Pages Functions (cuenta contra las 100k/día del plan free), así que se
  * impide repetir hasta pasado este margen.

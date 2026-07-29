@@ -22,6 +22,11 @@ export function useFires(refreshMs: number) {
     error: null,
     lastUpdated: null,
   });
+  // Momento del último intento (bueno o fallido): de él sale cuándo toca el
+  // siguiente. Arranca "ahora" porque el efecto de abajo ya pide al montar; si
+  // arrancara en 0, el planificador vería la primera carga vencida y pediría
+  // los focos dos veces seguidas.
+  const [settledAt, setSettledAt] = useState(() => Date.now());
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
@@ -47,6 +52,7 @@ export function useFires(refreshMs: number) {
             error: null,
             lastUpdated: new Date(),
           });
+          setSettledAt(Date.now());
         }
       } catch (err) {
         if (cancelled || controller.signal.aborted) return;
@@ -55,16 +61,43 @@ export function useFires(refreshMs: number) {
           status: 'error',
           error: err instanceof Error ? err.message : 'Error desconocido al pedir los focos.',
         }));
+        setSettledAt(Date.now());
       }
     })();
 
-    const intervalId = window.setInterval(refresh, refreshMs);
     return () => {
       cancelled = true;
       controller.abort();
-      window.clearInterval(intervalId);
     };
-  }, [tick, refreshMs, refresh]);
+  }, [tick]);
+
+  /**
+   * Auto-refresco, SOLO con la pestaña visible: cada ronda es una invocación de
+   * Pages Functions (100.000/día en el plan free) y una pestaña olvidada en
+   * segundo plano gastaba 288 al día sin que nadie mirase el mapa. Es la misma
+   * defensa que ya tenían useWind y useWindField con el cupo de Open-Meteo, y
+   * pesa más desde que el mapa se puede embeber: un iframe en un artículo
+   * multiplica las pestañas abiertas y olvidadas.
+   *
+   * Al volver a ser visible, el temporizador se recalcula sobre el último
+   * intento: si el dato quedó rancio se pide al instante, y si no, se apura la
+   * ventana que quedaba.
+   */
+  useEffect(() => {
+    let timer: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (document.hidden) return;
+      const due = Math.max(0, settledAt + refreshMs - Date.now());
+      timer = window.setTimeout(refresh, due);
+    };
+    schedule();
+    document.addEventListener('visibilitychange', schedule);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', schedule);
+    };
+  }, [settledAt, refreshMs, refresh]);
 
   return { view, refresh } as const;
 }

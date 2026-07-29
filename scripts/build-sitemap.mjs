@@ -29,6 +29,9 @@ for (const m of meta.municipalities) {
 
 const urls = [
   `  <url>\n    <loc>${ORIGIN}/</loc>\n    <changefreq>hourly</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+  // Generador del código de inserción. /embed (el interior del iframe) NO va al
+  // sitemap: es noindex a propósito.
+  `  <url>\n    <loc>${ORIGIN}/insertar</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`,
   ...meta.municipalities.map(
     (m) =>
       `  <url>\n    <loc>${ORIGIN}/incendios/${m.s}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.5</priority>\n  </url>`

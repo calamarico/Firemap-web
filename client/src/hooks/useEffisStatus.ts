@@ -31,6 +31,7 @@ export function useEffisStatus(refreshMs: number) {
     const controller = new AbortController();
     let cancelled = false;
     let timer: number | undefined;
+    let stopWaiting: (() => void) | undefined;
 
     (async () => {
       let nextDelay = refreshMs;
@@ -49,7 +50,22 @@ export function useEffisStatus(refreshMs: number) {
           error: err instanceof Error ? err.message : 'Error consultando el estado de EFFIS.',
         }));
       } finally {
-        if (!cancelled) timer = window.setTimeout(refresh, nextDelay);
+        if (cancelled) return;
+        // Pestaña oculta: el sondeo no se reprograma (cada uno es una
+        // invocación de las 100.000/día del plan free, y con el mapa embebido
+        // en artículos hay muchas más pestañas olvidadas en segundo plano). Se
+        // retoma en cuanto vuelve a primer plano.
+        if (document.hidden) {
+          const onVisible = () => {
+            if (document.hidden) return;
+            document.removeEventListener('visibilitychange', onVisible);
+            refresh();
+          };
+          document.addEventListener('visibilitychange', onVisible);
+          stopWaiting = () => document.removeEventListener('visibilitychange', onVisible);
+        } else {
+          timer = window.setTimeout(refresh, nextDelay);
+        }
       }
     })();
 
@@ -57,6 +73,7 @@ export function useEffisStatus(refreshMs: number) {
       cancelled = true;
       controller.abort();
       if (timer !== undefined) window.clearTimeout(timer);
+      stopWaiting?.();
     };
   }, [tick, refreshMs, refresh]);
 

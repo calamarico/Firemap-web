@@ -153,6 +153,49 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 | `GET /api/warm` | Keep-warm para el cron: mismo refresco que `/api/fires`, respuesta mínima de ~94 bytes (solo en el despliegue Cloudflare) |
 | `GET /api/health` | Comprobación de vida |
 | `GET /incendios/<slug>` | Página SEO por localidad (solo Cloudflare): el index.html del deploy con title/description/canonical/H1 propios y enlaces a localidades vecinas, vía HTMLRewriter (`functions/incendios/[slug].ts`). Los slugs son el campo `s` de `muni-meta.json` (generados por `build-muni-index.mjs`, desambiguados por región en nombres duplicados) y se publican en `sitemap.xml` (`scripts/build-sitemap.mjs`, encadenado a `build:muni-index`). En Express estas rutas caen al index genérico y el cliente resuelve el slug igualmente |
+| `GET /embed` | Mapa embebible en un `<iframe>` ajeno (ver abajo) |
+| `GET /insertar` | Generador del código de inserción, indexable |
+
+## Mapa embebible (`/embed`) y generador (`/insertar`)
+
+El mapa se puede insertar en cualquier web con un `<iframe>`. No es una ruta de
+la SPA: son **dos documentos más del build de Vite** (`client/embed.html` y
+`client/insertar.html`, con entradas `src/embed.tsx` y `src/insertar.tsx`), así
+que el iframe de un artículo ajeno no descarga la sidebar ni la prosa SEO de la
+home, y `/insertar` no descarga MapLibre —su previsualización es un iframe a
+`/embed`—. Cloudflare Pages sirve `embed.html` en `/embed` por su
+`html_handling`; Express lo replica con `extensions: ['html']` y el dev-server de
+Vite, con un pequeño rewrite en `vite.config.ts` (sin él, su fallback SPA
+serviría la app).
+
+- **Contrato de la URL**: `client/src/lib/embed.ts`. Lo comparten el parser del
+  widget y el generador de `/insertar`: si se duplicara, el código que copia un
+  periodista pintaría algo distinto de lo que previsualizó. Parámetros:
+  `localidad`, `centro=lat,lon`, `zoom`, `capas=focos,quemado,viento,flujo,limites`,
+  `base=oscuro`, `controles=0`, `leyenda=0`, `ranking=1`.
+- **Diferencias con la app** (`EmbedView.tsx`): gestos cooperativos (el zoom con
+  rueda exige Ctrl/⌘, si no el mapa se comería el scroll del artículo), botón de
+  pantalla completa, sin escritura del hash, marca clicable con el contador de
+  focos y enlace de vuelta con `utm_source=embed`, y crédito de las fuentes
+  visible sin desplegar nada (lo exigen NASA FIRMS y Copernicus; el "i" de
+  MapLibre pasa desapercibido en un iframe pequeño, y por eso el crédito a FIRMS
+  también se cuelga ahora de la fuente GeoJSON de focos).
+- **Coste**: el flujo de viento arranca **apagado** (animación continua + 109,2
+  llamadas ponderadas de Open-Meteo por refresco) y el auto-refresco de focos es
+  de 10 min en lugar de 5. `useFires` y `useEffisStatus` **pausan el refresco con
+  la pestaña oculta** (antes una pestaña olvidada gastaba 288 invocaciones/día
+  por visitante; embebido en un medio eso se multiplica). El snippet generado
+  lleva `loading="lazy"`: un mapa al final de un artículo no pide nada hasta que
+  el lector se acerca.
+- **SEO**: `/embed` va `noindex, follow` (meta en el HTML + `X-Robots-Tag` en
+  `_headers`) y **no** entra en el sitemap: es el interior de un iframe, no una
+  página de aterrizaje. La indexable es `/insertar`, que sí está en el sitemap y
+  lleva su prosa en el HTML estático (navegable sin JS). El retorno real de
+  insertar el mapa en un medio es el **crédito enlazado** que acompaña al
+  snippet, no el `src` del iframe: los iframes apenas transmiten autoridad.
+- Ningún documento del sitio manda `X-Frame-Options` ni `CSP frame-ancestors`, y
+  `client/public/_headers` lo deja escrito para que nadie los añada sin dejar
+  exento `/embed`.
 
 ## Rendimiento
 
@@ -223,11 +266,18 @@ disponible".
 │       ├── cache.ts      # cache TTL en memoria
 │       └── types.ts      # FireHotspot, FiresResponse, RegionImpact, EffisStatus
 └── client/               # React + Vite + TS + Tailwind
+    ├── index.html        # app (SPA del mapa)
+    ├── embed.html        # /embed  → widget embebible (noindex)
+    ├── insertar.html     # /insertar → generador del código de inserción
     ├── public/data/      # ccaa.json (límites autonómicos y distritos PT)
     └── src/
-        ├── hooks/        # useFires, useEffisStatus (carga + auto-refresco 5 min)
+        ├── hooks/        # useFires, useEffisStatus (auto-refresco, en pausa si
+        │                 # la pestaña está oculta) + useFireMapData (la
+        │                 # fontanería de datos que comparten app y embed)
+        ├── lib/embed.ts  # contrato de la URL de /embed (parser + generador)
         ├── map/layers.ts # abstracción AppLayer (añadir fuentes nuevas = 1 función)
-        └── components/   # MapView, Sidebar, Legend, FirePopup
+        └── components/   # MapView, Sidebar, Legend, FirePopup,
+                          # EmbedView (widget), EmbedBuilder (/insertar)
 ```
 
 ### Añadir una capa nueva

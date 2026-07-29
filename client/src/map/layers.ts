@@ -122,7 +122,15 @@ export function createFiresLayer(): FiresLayer {
   return {
     id: FIRES_LAYER_ID,
     add(map) {
-      map.addSource(FIRES_SOURCE_ID, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addSource(FIRES_SOURCE_ID, {
+        type: 'geojson',
+        data: EMPTY_COLLECTION,
+        // El crédito a FIRMS vivía solo en el pie de la sidebar, que el widget
+        // embebible no tiene: colgado de la fuente, MapLibre lo enseña en su
+        // atribución (el "i") en los dos sitios.
+        attribution:
+          'Focos: <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a> (VIIRS/MODIS)',
+      });
       map.addLayer({
         id: FIRES_LAYER_ID,
         type: 'circle',

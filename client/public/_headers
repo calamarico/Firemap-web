@@ -12,6 +12,23 @@
 /og-image-v2.jpg
   Cache-Control: public, max-age=86400
 
+# El widget embebible tiene que poder cargarse dentro de un iframe de
+# cualquier web: NO se le pone X-Frame-Options ni CSP frame-ancestors, y aquí
+# queda escrito para que nadie los añada "por seguridad" sin querer. El resto
+# del sitio tampoco los lleva hoy; si algún día se añaden, este bloque debe
+# quedar exento (frame-ancestors *).
+#
+# X-Robots-Tag repite el <meta name="robots"> de embed.html: el interior del
+# iframe no es una página de aterrizaje (la indexable es /insertar), pero el
+# rastreador sí debe seguir el enlace al mapa completo.
+/embed
+  X-Robots-Tag: noindex, follow
+  Cache-Control: public, max-age=0, must-revalidate
+
+/embed.html
+  X-Robots-Tag: noindex, follow
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

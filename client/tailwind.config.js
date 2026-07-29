@@ -2,7 +2,8 @@
 // Las clases utilitarias referencian las CSS variables de src/styles/tokens.css:
 // una sola fuente de verdad, las clases y las variables no pueden divergir.
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // *.html: los tres documentos del build (app, /embed y /insertar).
+  content: ['./*.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {

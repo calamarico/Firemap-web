@@ -69,6 +69,10 @@ const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
 if (fs.existsSync(clientDist)) {
   app.use(
     express.static(clientDist, {
+      // /embed y /insertar son documentos propios del build (embed.html e
+      // insertar.html): sin esto caerían en el fallback SPA y servirían la app
+      // completa. Es el equivalente al html_handling de Cloudflare Pages.
+      extensions: ['html'],
       setHeaders(res, filePath) {
         // Los assets de Vite llevan hash en el nombre: inmutables para siempre.
         if (filePath.includes(`${path.sep}assets${path.sep}`)) {

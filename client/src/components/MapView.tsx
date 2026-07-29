@@ -43,7 +43,33 @@ interface MapViewProps {
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
   onMapReady?: (map: maplibregl.Map) => void;
+  /**
+   * Gestos cooperativos: el zoom con rueda exige Ctrl/⌘ y el paneo táctil, dos
+   * dedos. Imprescindible dentro de un iframe —si no, el mapa secuestra el
+   * scroll del artículo que lo embebe— y contraproducente en la app, donde el
+   * mapa ES la página.
+   */
+  cooperativeGestures?: boolean;
+  /** Vista de arranque; el hash de la URL, si viene, manda sobre esto. */
+  initialCenter?: [number, number] | null;
+  initialZoom?: number | null;
+  /** Botón de pantalla completa (el iframe necesita `allowfullscreen`). */
+  fullscreen?: boolean;
+  /**
+   * Refleja la vista en `#map=zoom/lat/lon`. Se apaga en el embed: ahí la URL
+   * no la ve nadie y el enlace "ver el mapa completo" ya lleva la vista.
+   */
+  syncHash?: boolean;
+  /** Texto alternativo del contenedor (el embed puede precisar la localidad). */
+  ariaLabel?: string;
 }
+
+/** Ayudas de los gestos cooperativos en castellano (MapLibre las trae en inglés). */
+const GESTURE_LOCALE = {
+  'CooperativeGesturesHandler.WindowsHelpText': 'Usa Ctrl + rueda para hacer zoom',
+  'CooperativeGesturesHandler.MacHelpText': 'Usa ⌘ + rueda para hacer zoom',
+  'CooperativeGesturesHandler.MobileHelpText': 'Usa dos dedos para mover el mapa',
+};
 
 /** Convierte las properties del feature (tipadas como unknown) en un FireHotspot. */
 function propertiesToHotspot(props: Record<string, unknown>): FireHotspot {
@@ -97,6 +123,12 @@ export default function MapView({
   windField,
   basemap,
   onMapReady,
+  cooperativeGestures = false,
+  initialCenter = null,
+  initialZoom = null,
+  fullscreen = false,
+  syncHash = true,
+  ariaLabel = 'Mapa de focos de calor en España y Portugal',
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -118,8 +150,8 @@ export default function MapView({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: BASE_STYLE,
-      center: fromHash?.center ?? MAP_CENTER,
-      zoom: fromHash?.zoom ?? INITIAL_ZOOM,
+      center: fromHash?.center ?? initialCenter ?? MAP_CENTER,
+      zoom: fromHash?.zoom ?? initialZoom ?? INITIAL_ZOOM,
       // Limita el paneo al entorno de España (con margen para Canarias): no
       // se piden tiles del resto del mundo que nadie va a mirar. El borde sur
       // queda justo bajo Canarias (27.4°N): más abajo solo hay océano y Sáhara.
@@ -142,6 +174,10 @@ export default function MapView({
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
+      // Solo en el embed (ver la prop): dentro de un iframe, el zoom con rueda
+      // sin modificador se come el scroll de la página que embebe el mapa.
+      cooperativeGestures,
+      locale: GESTURE_LOCALE,
     });
     map.touchZoomRotate.disableRotation();
     // La atribución arranca PLEGADA (botón "i"). Se toca el DOM del control que
@@ -161,6 +197,12 @@ export default function MapView({
     // de localidades afectadas.
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
     map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
+    // Pantalla completa solo en el embed: un mapa de 400 px dentro de un
+    // artículo se queda corto para seguir un incendio. (MapLibre desactiva los
+    // gestos cooperativos mientras el mapa está en pantalla completa.)
+    // Abajo a la derecha con el zoom y la escala: arriba a la derecha puede
+    // estar el panel de localidades afectadas (?ranking=1).
+    if (fullscreen) map.addControl(new maplibregl.FullscreenControl(), 'bottom-right');
 
     const fires = createFiresLayer();
     const effis = createEffisLayer('7d');
@@ -184,16 +226,18 @@ export default function MapView({
 
       // La URL solo refleja la posición cuando ya no es la de arranque (o si
       // el usuario llegó con hash): la portada queda con URL limpia.
-      const initialHash = formatMapHash(map);
-      map.on('moveend', () => {
-        const hash = formatMapHash(map);
-        if (hash === initialHash && !window.location.hash) return;
-        window.history.replaceState(
-          null,
-          '',
-          `${window.location.pathname}${window.location.search}${hash}`
-        );
-      });
+      if (syncHash) {
+        const initialHash = formatMapHash(map);
+        map.on('moveend', () => {
+          const hash = formatMapHash(map);
+          if (hash === initialHash && !window.location.hash) return;
+          window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${window.location.search}${hash}`
+          );
+        });
+      }
 
       setMapReady(true);
       onMapReady?.(map);
@@ -268,11 +312,7 @@ export default function MapView({
   return (
     // Mismo azul océano que la capa background del estilo: cubre el instante
     // inicial, antes de que el estilo del mapa exista.
-    <div
-      ref={containerRef}
-      className="h-full w-full bg-void"
-      aria-label="Mapa de focos de calor en España y Portugal"
-    />
+    <div ref={containerRef} className="h-full w-full bg-void" aria-label={ariaLabel} />
   );
 }
 

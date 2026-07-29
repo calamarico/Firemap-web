@@ -1,4 +1,5 @@
-import 'maplibre-gl/dist/maplibre-gl.css';
+// El CSS de MapLibre lo importa index.css (el orden en cascada importa: ver el
+// comentario allí).
 // Montserrat (display/marca); el cuerpo sigue con la pila del sistema.
 import '@fontsource/montserrat/400.css';
 import '@fontsource/montserrat/500.css';

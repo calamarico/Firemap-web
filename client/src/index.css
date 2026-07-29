@@ -1,4 +1,12 @@
 @import './styles/tokens.css';
+/* El CSS de MapLibre se importa AQUÍ, y no desde cada entrada .tsx, para fijar
+   el orden en cascada: los overrides del final de este fichero (controles,
+   atribución y popups tokenizados) tienen que ganarle. Con el import en las
+   entradas, Vite lo emitía en el chunk compartido de MapView, que se enlaza
+   DESPUÉS del CSS de la entrada: los controles del mapa volvían a su blanco por
+   defecto. Se rompió al partir el build en tres documentos (app, /embed y
+   /insertar), cuando MapView pasó a ser chunk compartido. */
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
@@ -16,6 +24,16 @@ body,
   #root {
     height: 100dvh;
   }
+}
+
+/* Páginas de documento (/insertar): ahí el alto lo manda el contenido y la
+   página scrollea, al contrario que en el mapa —que ocupa exactamente el
+   viewport—. La marca va en el <body> del propio documento (`class="fm-page"`)
+   y el selector lleva ese peso extra para ganar al `#root` de arriba. */
+body.fm-page,
+body.fm-page #root {
+  height: auto;
+  min-height: 100%;
 }
 
 /* Montserrat como tipografía de display/marca; el cuerpo sigue con la pila

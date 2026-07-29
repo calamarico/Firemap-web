@@ -490,6 +490,18 @@ export default function Sidebar(props: SidebarProps) {
             </p>
           </details>
 
+          {/* Puerta de entrada al widget: los medios que quieren el mapa en su
+              artículo llegan a la web, no a /insertar. */}
+          <p>
+            <a
+              href="/insertar"
+              className="text-[color:var(--fm-text-link)] underline-offset-2 hover:underline"
+            >
+              Inserta este mapa en tu web
+            </a>{' '}
+            <span className="text-ink-faint">· gratis, con un iframe</span>
+          </p>
+
           <details>
             <summary className="cursor-pointer select-none text-ink-primary">
               Fuentes y actualización de los datos
