@@ -9,7 +9,9 @@
 
 # La imagen OG va versionada en el nombre (og-image-vN): los scrapers de
 # Facebook/Twitter cachean por URL y no hay otra forma fiable de invalidarlos.
-/og-image-v2.jpg
+# El comodín cubre la versión en uso y las anteriores, que se dejan servidas: las
+# tarjetas ya compartidas apuntan a su URL y quedarían rotas al revalidar.
+/og-image-*
   Cache-Control: public, max-age=86400
 
 # El widget embebible tiene que poder cargarse dentro de un iframe de

@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
-import { MAP, SEVERITY, type MapPalette } from '../styles/mapTokens';
+import { MAP, SEVERITY, type MapPalette, type MapTheme } from '../styles/mapTokens';
 import type { EffisRange, FireHotspot, WindPoint } from '../types';
 import { EFFIS_TILE_PROTOCOL } from './effisTileCache';
 
@@ -111,6 +111,15 @@ export function createBaseStyle(palette: MapPalette = MAP): StyleSpecification {
       { id: 'basemap-light', type: 'raster', source: 'carto-light', layout: { visibility: 'none' } },
     ],
   };
+}
+
+/**
+ * Paleta de la cartografía propia que exige un mapa base. Lo decide el fondo,
+ * no la interfaz: sobre Positron hace falta la variante clara (etiquetas y
+ * límites oscuros), y sobre satélite u oscuro, la de casa. Ver MAP_LIGHT.
+ */
+export function paletteThemeFor(basemap: BasemapId): MapTheme {
+  return basemap === 'light' ? 'light' : 'dark';
 }
 
 export function setBasemap(map: MapLibreMap, basemap: BasemapId): void {

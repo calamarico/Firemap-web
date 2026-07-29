@@ -262,7 +262,6 @@
 :root[data-tema='claro'] {
   /* Superficies */
   --fm-bg-app: var(--fm-slate-50);
-  --fm-bg-map-void: #dbe4e6; /* agua de CARTO Positron */
   --fm-surface-panel: rgb(255 255 255 / 0.92);
   --fm-surface-panel-solid: #ffffff;
   --fm-surface-raised: #ffffff;
@@ -313,7 +312,28 @@
   --fm-danger-bg: rgb(156 28 34 / 0.1);
   --fm-danger-border: var(--fm-red-700);
 
-  /* Cartografía (gemelos de MAP_LIGHT en mapTokens.ts) */
+  /* Sombras: las del tema oscuro son plomo sobre blanco */
+  --fm-shadow-panel: 0 10px 30px -10px rgb(15 23 42 / 0.25);
+  --fm-shadow-popup: 0 8px 20px rgb(15 23 42 / 0.2);
+  --fm-shadow-control: 0 1px 3px rgb(15 23 42 / 0.2);
+}
+
+/* ----------------------------------------------------------------------------
+ * Cartografía sobre mapa base claro — `data-carto="claro"`
+ * ----------------------------------------------------------------------------
+ * Atributo APARTE del tema, y no un capricho: lo que decide estos colores es el
+ * MAPA BASE (qué hay debajo), no los paneles (qué hay alrededor). Son ejes
+ * independientes y las cuatro combinaciones son legítimas —de hecho el
+ * generador propone paneles oscuros sobre Positron—: si esto colgara de
+ * `data-tema`, esa combinación pintaría etiquetas y límites blancos sobre un
+ * fondo casi blanco.
+ *
+ * Gemelos de MAP_LIGHT (styles/mapTokens.ts), que es lo que consume MapLibre;
+ * aquí están solo para que los distintivos de la leyenda y de los chips de capa
+ * sigan siendo réplica exacta de lo que pinta el mapa. Si cambia uno, el otro.
+ */
+:root[data-carto='claro'] {
+  --fm-bg-map-void: #dbe4e6; /* agua de CARTO Positron */
   --fm-map-smoke-band-1: rgb(18 169 204 / 0.4);
   --fm-map-smoke-band-2: rgb(18 169 204 / 0.26);
   --fm-map-smoke-band-3: rgb(18 169 204 / 0.14);
@@ -322,11 +342,6 @@
   --fm-map-wind-chevron: var(--fm-accent-700);
   --fm-map-wind-label: var(--fm-accent-700);
   --fm-map-flow-trail: rgb(15 23 42 / 0.32);
-
-  /* Sombras: las del tema oscuro son plomo sobre blanco */
-  --fm-shadow-panel: 0 10px 30px -10px rgb(15 23 42 / 0.25);
-  --fm-shadow-popup: 0 8px 20px rgb(15 23 42 / 0.2);
-  --fm-shadow-control: 0 1px 3px rgb(15 23 42 / 0.2);
 }
 
 @media (prefers-reduced-motion: reduce) {

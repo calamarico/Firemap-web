@@ -4,6 +4,7 @@ import {
   buildEmbedUrl,
   EMBED_DEFAULTS,
   EMBED_LAYERS,
+  LAYER_KEYS,
   SITE_ORIGIN,
   type EmbedConfig,
   type EmbedLayerKey,
@@ -26,14 +27,6 @@ import SegmentedControl from './ui/SegmentedControl';
  * que copia el periodista podría pintar algo distinto de lo que previsualizó.
  */
 
-const LAYER_FIELD: Record<EmbedLayerKey, keyof EmbedConfig> = {
-  focos: 'showFires',
-  quemado: 'showEffis',
-  viento: 'showWind',
-  flujo: 'showWindField',
-  limites: 'showBoundaries',
-};
-
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
   { value: 'satellite', label: 'Satélite' },
   { value: 'dark', label: 'Oscuro' },
@@ -52,6 +45,17 @@ const SIZE_OPTIONS: ReadonlyArray<{ value: SizeMode; label: string }> = [
 ];
 
 const IFRAME_TITLE = 'Mapa de incendios en España y Portugal en tiempo real';
+
+/**
+ * Punto de partida del generador: **paneles oscuros sobre mapa base claro**
+ * (CARTO Positron). No es lo mismo que los defaults del contrato de la URL
+ * (`EMBED_DEFAULTS`, lib/embed.ts, que siguen siendo satélite + oscuro): quien
+ * llega aquí es un medio que maqueta en blanco, y ahí un mapa claro se integra
+ * en el artículo mientras los paneles oscuros mantienen legible la marca y los
+ * datos sobre él. Quien monte la URL a mano sin pasar por esta página sigue
+ * obteniendo la casa, y por eso el snippet lleva `base=claro` explícito.
+ */
+const BUILDER_DEFAULTS: EmbedConfig = { ...EMBED_DEFAULTS, theme: 'dark', basemap: 'light' };
 
 /**
  * Snippet a copiar. Dos formas, y las dos llevan el crédito enlazado debajo:
@@ -81,7 +85,7 @@ function buildSnippet(src: string, mode: SizeMode, height: number, ratio: number
 }
 
 export default function EmbedBuilder() {
-  const [config, setConfig] = useState<EmbedConfig>({ ...EMBED_DEFAULTS });
+  const [config, setConfig] = useState<EmbedConfig>({ ...BUILDER_DEFAULTS });
   const [sizeMode, setSizeMode] = useState<SizeMode>('responsive');
   const [height, setHeight] = useState(520);
   const [query, setQuery] = useState('');
@@ -147,7 +151,7 @@ export default function EmbedBuilder() {
   };
 
   const setLayer = (key: EmbedLayerKey, value: boolean) =>
-    setConfig((c) => ({ ...c, [LAYER_FIELD[key]]: value }));
+    setConfig((c) => ({ ...c, [LAYER_KEYS[key]]: value }));
 
   return (
     <div className="min-h-full bg-app text-ink-primary">
@@ -217,7 +221,7 @@ export default function EmbedBuilder() {
                 <LayerToggle
                   key={layer.key}
                   label={layer.label}
-                  checked={Boolean(config[LAYER_FIELD[layer.key]])}
+                  checked={Boolean(config[LAYER_KEYS[layer.key]])}
                   onChange={(value) => setLayer(layer.key, value)}
                   swatch={layer.swatch}
                   description={
@@ -234,22 +238,19 @@ export default function EmbedBuilder() {
 
             <div className="space-y-1.5">
               <span className="block text-sm text-ink-secondary">Tema del widget</span>
+              {/* El tema NO arrastra al mapa base: son ejes independientes y las
+                  cuatro combinaciones se leen bien (la cartografía se adapta al
+                  fondo por su cuenta, ver paletteThemeFor). Antes se acoplaban y
+                  elegir «Oscuro» te cambiaba el mapa sin haberlo pedido. */}
               <SegmentedControl
                 options={THEME_OPTIONS}
                 value={config.theme}
-                onChange={(theme) =>
-                  setConfig((c) => ({
-                    ...c,
-                    theme,
-                    // El mapa base sigue al tema salvo que ya se haya elegido
-                    // satélite: ahí la imagen manda y funciona con los dos.
-                    basemap: c.basemap === 'satellite' ? 'satellite' : theme,
-                  }))
-                }
+                onChange={(theme) => setConfig((c) => ({ ...c, theme }))}
                 ariaLabel="Tema del widget"
               />
               <p className="text-micro text-ink-muted">
-                Claro para webs con fondo blanco: paneles claros y mapa base de CARTO Positron.
+                Afecta a los paneles, los botones y la leyenda que flotan sobre el mapa; el fondo lo
+                eliges abajo.
               </p>
             </div>
 
@@ -431,12 +432,13 @@ export default function EmbedBuilder() {
                 animado, apagado por defecto).
               </li>
               <li>
-                <code>tema=claro</code> — interfaz clara y mapa base de CARTO Positron, para webs
-                con fondo blanco.
+                <code>tema=claro</code> — paneles, botones y leyenda en claro, para webs con fondo
+                blanco (y mapa base claro, si no pides otro).
               </li>
               <li>
-                <code>base=oscuro</code> (o <code>satelite</code>, <code>claro</code>) — mapa base,
-                independiente del tema.
+                <code>base=claro</code> (o <code>satelite</code>, <code>oscuro</code>) — mapa base,
+                independiente del tema: las etiquetas, los límites y el humo se adaptan solos al
+                fondo que elijas.
               </li>
               <li>
                 <code>controles=0</code>, <code>leyenda=0</code>, <code>ranking=1</code> — quitar

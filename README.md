@@ -167,7 +167,7 @@ también en los que no dejan tocar el CSS):
 
 ```html
 <div style="position:relative;width:100%;padding-bottom:62%">
-  <iframe src="https://firemapsspain.online/embed"
+  <iframe src="https://firemapsspain.online/embed?base=claro"
     title="Mapa de incendios en España y Portugal en tiempo real"
     loading="lazy" allowfullscreen
     style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"></iframe>
@@ -180,7 +180,7 @@ también en los que no dejan tocar el CSS):
 Variante de alto fijo (para huecos de altura conocida en una plantilla):
 
 ```html
-<iframe src="https://firemapsspain.online/embed" title="Mapa de incendios en España y Portugal en tiempo real"
+<iframe src="https://firemapsspain.online/embed?base=claro" title="Mapa de incendios en España y Portugal en tiempo real"
   width="100%" height="520" style="border:0;display:block" loading="lazy" allowfullscreen></iframe>
 ```
 
@@ -215,16 +215,25 @@ serviría la app).
   `localidad`, `centro=lat,lon`, `zoom`, `capas=focos,quemado,viento,flujo,limites`,
   `tema=claro`, `base=satelite|oscuro|claro`, `controles=0`, `leyenda=0`,
   `ranking=1`.
-- **Tema claro** (`?tema=claro`), para los medios que maquetan en blanco. Cambia
-  dos cosas a la vez: los tokens semánticos de la interfaz (bloque
-  `[data-tema='claro']` de `styles/tokens.css`, con los contrastes medidos anotados
-  ahí) y la cartografía propia (`MAP_LIGHT` en `styles/mapTokens.ts` + mapa base
-  CARTO Positron), porque sobre un fondo casi blanco los límites, el humo y el
-  flujo —claros y translúcidos— desaparecen. El tema es **constante por
-  documento**: se resuelve al crear el mapa, así que no hay repintado en caliente
-  que mantener; el destello inicial lo evita un `<script>` de tres líneas en
-  `embed.html` que pone `data-tema` antes del primer pintado. La app propia sigue
-  siendo solo oscura.
+- **Dos ejes independientes, y no se deben acoplar**: `?tema=` viste la
+  **interfaz** (paneles, chips, leyenda: bloque `[data-tema='claro']` de
+  `styles/tokens.css`, con los contrastes medidos anotados ahí) y `?base=` elige
+  el **mapa base**. La **cartografía propia** —etiquetas, límites, humo, flujo—
+  no la decide el tema sino el mapa base (`paletteThemeFor` en `map/layers.ts` →
+  `MAP_LIGHT` en `styles/mapTokens.ts`, con su gemelo CSS `[data-carto='claro']`
+  para los distintivos de la leyenda): lo que tiene que contrastar es con lo de
+  debajo. Sobre CARTO Positron, los límites y el humo claros y translúcidos
+  desaparecen. Las cuatro combinaciones son legítimas y el generador propone
+  precisamente la mixta —**paneles oscuros sobre mapa claro**—, que es la que
+  encaja en un artículo con fondo blanco sin perder legibilidad de marca y datos.
+  Ambos ejes son **constantes por documento**: se resuelven al crear el mapa, así
+  que no hay repintado en caliente que mantener; el destello inicial de la
+  interfaz lo evita un `<script>` de tres líneas en `embed.html` que pone
+  `data-tema` antes del primer pintado. La app propia sigue siendo solo oscura.
+- **Defaults**: el contrato de la URL mantiene la casa (satélite + interfaz
+  oscura), así que un `/embed` a pelo es lo de siempre. El **generador** arranca
+  en paneles oscuros + Positron (`BUILDER_DEFAULTS` en `EmbedBuilder.tsx`) y por
+  eso el snippet que copia un medio lleva `base=claro` explícito.
 - **Diferencias con la app** (`EmbedView.tsx`): gestos cooperativos (el zoom con
   rueda exige Ctrl/⌘, si no el mapa se comería el scroll del artículo), botón de
   pantalla completa, sin escritura del hash, marca clicable con el contador de
@@ -248,6 +257,45 @@ serviría la app).
 - Ningún documento del sitio manda `X-Frame-Options` ni `CSP frame-ancestors`, y
   `client/public/_headers` lo deja escrito para que nadie los añada sin dejar
   exento `/embed`.
+
+### Cómo se llega a `/insertar` (menú «Compartir»)
+
+Implementado a partir de un handoff de Claude Design (2026-07-29). El acceso no
+es un botón suelto: es el tercer ítem de un menú **«Compartir»** que comparte
+fila con «Refrescar ahora» en la barra lateral (`ui/ShareMenu.tsx`), porque
+«insertar» no es un control del mapa y no pertenece al grupo de capas.
+
+- Tres ítems: copiar el enlace de la vista, copiar el enlace de la localidad
+  activa (solo si hay una; si no, la fila no existe) e insertar en tu web
+  (destacado, enlace real a `/insertar`). La confirmación de copiado ocurre **en
+  el propio ítem**; el sistema no tiene avisos flotantes.
+- **Solo escritorio**: en móvil el menú no se monta —nadie pega un iframe desde
+  el móvil—. Allí el acceso es el `<details>` «Insertar este mapa de incendios en
+  tu web» de «Sobre este mapa», que además es el que trabaja para el buscador
+  (texto real). Y el pie de la barra enlaza a `/insertar` en las dos anchuras,
+  también en las páginas `/incendios/<slug>`.
+- Los enlaces se construyen en `lib/share.ts`, que **importa el vocabulario de
+  capas de `lib/embed.ts`** (`LAYER_KEYS`): una sola tabla de nombres para
+  `?capas=` en toda la base de código. La app **lee** ese parámetro al arrancar,
+  así que un enlace compartido restaura encuadre (`#map=`) y capas; `flujo` nunca
+  se enciende si el sistema pide reducir movimiento.
+- El valor del ítem «enlace de esta vista» es una **función**, no una cadena: el
+  hash lo escribe MapView con `history.replaceState`, que no provoca re-render, y
+  una cadena calculada en el render se copiaría con el encuadre anterior.
+
+### Primer pintado (por qué el fondo va en `html`)
+
+`client/src/index.css` pinta el fondo en `html` y declara `color-scheme`, y los
+tres documentos llevan `<meta name="color-scheme">`. No es cosmético: sin eso el
+lienzo del navegador se queda en su blanco por defecto —el tema oscuro lo pintaba
+solo el contenedor de la app— y la carga de `/insertar` se veía en tres tiempos
+(blanco, texto, fondo). En `/embed?tema=claro` el `<script>` del `<head>` corrige
+el `color-scheme` a `light` junto con `data-tema`.
+
+El esqueleto estático de `insertar.html` usa **las mismas clases y medidas** que
+`EmbedBuilder` (cabecera, ancho del contenedor, tamaño del `h1`), así que al
+montar React no hay salto perceptible por encima del pliegue. Si se cambia uno,
+hay que cambiar el otro.
 
 ## Rendimiento
 

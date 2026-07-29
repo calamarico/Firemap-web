@@ -1,11 +1,12 @@
 import type maplibregl from 'maplibre-gl';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import ImpactPanel from './components/ImpactPanel';
 import LayerChips from './components/LayerChips';
 import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
 import { REFRESH_INTERVAL_MS } from './config';
 import { useFireMapData } from './hooks/useFireMapData';
+import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion';
 import {
   findLocalityByName,
   findLocalityBySlug,
@@ -13,27 +14,42 @@ import {
   getLocalitySlug,
   setLocalityParam,
 } from './lib/locality';
+import { parseLayersParam } from './lib/share';
 import type { BasemapId } from './map/layers';
 import type { MunicipalityImpact } from './types';
 
 export default function App() {
-  const [showFires, setShowFires] = useState(true);
-  const [showEffis, setShowEffis] = useState(true);
-  const [showBoundaries, setShowBoundaries] = useState(true);
-  const [showWind, setShowWind] = useState(true);
+  const reducedMotion = usePrefersReducedMotion();
+  // Capas que pida la URL (`?capas=`, el enlace «copiar enlace de esta vista»).
+  // Presente = lista completa: lo que no aparece, apagado. Se lee una sola vez,
+  // al montar: a partir de ahí manda el estado de la app.
+  const fromUrl = useMemo(
+    () => parseLayersParam(window.location.search, reducedMotion),
+    [reducedMotion]
+  );
+
+  const [showFires, setShowFires] = useState(fromUrl?.showFires ?? true);
+  const [showEffis, setShowEffis] = useState(fromUrl?.showEffis ?? true);
+  const [showBoundaries, setShowBoundaries] = useState(fromUrl?.showBoundaries ?? true);
+  const [showWind, setShowWind] = useState(fromUrl?.showWind ?? true);
   // Encendido por defecto (decisión de producto 2026-07-27): el coste es
   // asumible —109,2 llamadas ponderadas por refresco de 30 min sobre el cupo
   // de 10.000/día de la IP del propio visitante— y apagarlo sigue cortando
   // toda descarga. (En el widget embebible arranca apagado: ver lib/embed.ts.)
-  const [showWindField, setShowWindField] = useState(true);
+  const [showWindField, setShowWindField] = useState(fromUrl?.showWindField ?? true);
   const [basemap, setBasemapId] = useState<BasemapId>('satellite');
+  /**
+   * Localidad activa (deep link resuelto o elegida en el ranking). Sube a estado
+   * porque el menú «Compartir» necesita ofrecer su enlace, y hasta ahora solo
+   * vivía dentro de la URL.
+   */
+  const [locality, setLocality] = useState<{ name: string; slug: string } | null>(null);
 
-  const { fires, effis, wind, windField, effisRefreshToken, reducedMotion, refresh } =
-    useFireMapData({
-      refreshMs: REFRESH_INTERVAL_MS,
-      showWind,
-      showWindField,
-    });
+  const { fires, effis, wind, windField, effisRefreshToken, refresh } = useFireMapData({
+    refreshMs: REFRESH_INTERVAL_MS,
+    showWind,
+    showWindField,
+  });
 
   const mapRef = useRef<maplibregl.Map | null>(null);
   const handleMapReady = useCallback((map: maplibregl.Map) => {
@@ -50,15 +66,20 @@ export default function App() {
         if (hit) {
           map.flyTo({ center: hit.center, zoom: 12, duration: 1800 });
           setLocalityParam(hit.name, hit.slug); // fija URL canónica y título
+          setLocality({ name: hit.name, slug: hit.slug });
         } else {
           setLocalityParam(null); // localidad desconocida: se limpia la URL
+          setLocality(null);
         }
       });
     }
 
     // Si el usuario mueve el mapa por su cuenta, el parámetro deja de
     // describir lo que se ve: se retira (el hash sí sigue la vista).
-    const clearParam = () => setLocalityParam(null);
+    const clearParam = () => {
+      setLocalityParam(null);
+      setLocality(null);
+    };
     map.on('dragstart', clearParam);
     map.on('zoomstart', (event) => {
       if (event.originalEvent) clearParam();
@@ -80,6 +101,7 @@ export default function App() {
     );
     // La URL queda lista para compartir: /incendios/<slug> (+ hash de vista).
     setLocalityParam(muni.name, muni.slug);
+    setLocality({ name: muni.name, slug: muni.slug });
   }, []);
 
   return (
@@ -157,6 +179,7 @@ export default function App() {
         basemap={basemap}
         onBasemapChange={setBasemapId}
         onRefresh={refresh}
+        locality={locality}
       />
       <ImpactPanel
         impact={fires.data?.impact ?? []}

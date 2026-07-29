@@ -10,6 +10,7 @@ import EmbedView from './components/EmbedView';
 import './index.css';
 import { parseEmbedConfig } from './lib/embed';
 import { registerEffisTileProtocol } from './map/effisTileCache';
+import { paletteThemeFor } from './map/layers';
 
 /**
  * Entrada del widget embebible (client/embed.html → /embed). Es una entrada
@@ -25,8 +26,20 @@ if (!container) {
   throw new Error('No existe el elemento #root en embed.html');
 }
 
+const config = parseEmbedConfig(window.location.search);
+
+// Dos ejes, dos atributos: `data-tema` viste la interfaz (lo pone ya el script
+// del <head> para que no haya destello) y `data-carto` dice si los distintivos
+// de leyenda y chips deben replicar la cartografía clara. Lo decide el mapa
+// base, no el tema: los paneles oscuros sobre Positron son una combinación
+// habitual (la que propone /insertar) y el humo o el flujo tienen que
+// contrastar con el mapa, no con el panel.
+if (paletteThemeFor(config.basemap) === 'light') {
+  document.documentElement.dataset.carto = 'claro';
+}
+
 createRoot(container).render(
   <StrictMode>
-    <EmbedView config={parseEmbedConfig(window.location.search)} />
+    <EmbedView config={config} />
   </StrictMode>
 );

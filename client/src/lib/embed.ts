@@ -66,8 +66,13 @@ export const EMBED_DEFAULTS: EmbedConfig = {
   ranking: false,
 };
 
-/** Nombres públicos de las capas en `?capas=` (castellano, como `?localidad=`). */
-const LAYER_KEYS = {
+/**
+ * Nombres públicos de las capas en `?capas=` (castellano, como `?localidad=`).
+ * Exportado porque los enlaces «compartir esta vista» de la app usan el MISMO
+ * vocabulario (lib/share.ts): dos tablas distintas harían que un enlace pintase
+ * capas diferentes de las que se veían al copiarlo.
+ */
+export const LAYER_KEYS = {
   focos: 'showFires',
   quemado: 'showEffis',
   viento: 'showWind',
@@ -76,6 +81,9 @@ const LAYER_KEYS = {
 } as const satisfies Record<string, keyof EmbedConfig>;
 
 export type EmbedLayerKey = keyof typeof LAYER_KEYS;
+
+/** Estado de las cinco capas, la parte de la configuración que app y widget comparten. */
+export type LayerState = Pick<EmbedConfig, (typeof LAYER_KEYS)[EmbedLayerKey]>;
 
 export const EMBED_LAYERS: ReadonlyArray<{ key: EmbedLayerKey; label: string; swatch?: string }> = [
   { key: 'focos', label: 'Focos de calor', swatch: 'var(--fm-severity-3)' },

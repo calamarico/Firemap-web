@@ -3,8 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import logoUrl from '../assets/logo.png';
 import { EMBED_REFRESH_INTERVAL_MS } from '../config';
 import { useFireMapData } from '../hooks/useFireMapData';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { fullMapUrl, type EmbedConfig } from '../lib/embed';
 import { findLocalityByName, findLocalityBySlug } from '../lib/locality';
+import { paletteThemeFor } from '../map/layers';
 import { SEVERITY } from '../styles/mapTokens';
 import type { MunicipalityImpact } from '../types';
 import ImpactPanel from './ImpactPanel';
@@ -36,7 +38,8 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
   const [showWind, setShowWind] = useState(config.showWind);
   const [showWindField, setShowWindField] = useState(config.showWindField);
 
-  const { fires, wind, windField, effisRefreshToken, reducedMotion } = useFireMapData({
+  const reducedMotion = usePrefersReducedMotion();
+  const { fires, wind, windField, effisRefreshToken } = useFireMapData({
     refreshMs: EMBED_REFRESH_INTERVAL_MS,
     showWind,
     showWindField,
@@ -128,7 +131,10 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
         onMapReady={handleMapReady}
         initialCenter={config.center}
         initialZoom={config.zoom}
-        mapTheme={config.theme}
+        // La paleta la manda el MAPA BASE, no el tema de la interfaz: son ejes
+        // independientes (paneles oscuros sobre Positron es el caso que propone
+        // /insertar) y lo que tiene que contrastar es con lo de debajo.
+        mapTheme={paletteThemeFor(config.basemap)}
         cooperativeGestures
         fullscreen
         syncHash={false}

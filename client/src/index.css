@@ -19,6 +19,21 @@ body,
   margin: 0;
 }
 
+/* El fondo de la PÁGINA, no de un elemento interior. Sin esto el lienzo del
+   navegador se queda en su blanco por defecto y el tema oscuro lo pintaba solo
+   el contenedor de la app: en /insertar (una columna centrada) eso se veía como
+   un fogonazo blanco a los lados que se llenaba después, en tres tiempos
+   —blanco, texto, fondo—. `color-scheme` es la otra mitad del arreglo: le dice
+   al navegador que el lienzo, las barras de scroll y los controles nativos son
+   oscuros ANTES de aplicar este CSS. */
+html {
+  background: var(--fm-bg-app);
+  color-scheme: dark;
+}
+:root[data-tema='claro'] {
+  color-scheme: light;
+}
+
 /* En móvil, 100% no cuenta la barra de URL retráctil de iOS/Android: dvh sí. */
 @supports (height: 100dvh) {
   #root {

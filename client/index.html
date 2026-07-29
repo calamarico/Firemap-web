@@ -23,7 +23,7 @@
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
     <meta property="og:url" content="https://firemapsspain.online/" />
-    <meta property="og:image" content="https://firemapsspain.online/og-image-v2.jpg" />
+    <meta property="og:image" content="https://firemapsspain.online/og-image-v3.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Firemaps España: mapa de incendios en España y Portugal en tiempo real" />
@@ -35,7 +35,7 @@
       name="twitter:description"
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
-    <meta name="twitter:image" content="https://firemapsspain.online/og-image-v2.jpg" />
+    <meta name="twitter:image" content="https://firemapsspain.online/og-image-v3.jpg" />
 
     <!-- ?v=3: el cache de favicons de Google (resultados de búsqueda) va por
          URL y no tiene invalidación manual; al cambiar de logo hay que subir
@@ -48,6 +48,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#020617" />
+    <!-- Antes incluso de que llegue el CSS: el lienzo del navegador es oscuro,
+         no blanco. Sin esto la carga empieza con un fogonazo blanco. -->
+    <meta name="color-scheme" content="dark" />
 
     <!-- Preconexión a los servidores de tiles/glifos: ahorra el handshake TLS
          en la primera petición de cada uno -->
@@ -79,7 +82,7 @@
         "browserRequirements": "Requiere JavaScript",
         "inLanguage": "es",
         "isAccessibleForFree": true,
-        "image": "https://firemapsspain.online/og-image-v2.jpg",
+        "image": "https://firemapsspain.online/og-image-v3.jpg",
         "author": {
           "@type": "Person",
           "name": "Kalamarico",
@@ -161,6 +164,8 @@
           Firemaps España muestra los incendios activos en España y Portugal sobre un mapa por
           satélite, actualizado cada pocos minutos. Gratuito y sin registro.
         </p>
+        <!-- list-style explícito: el preflight de Tailwind quita las viñetas, y
+             sin esto la pantalla de carga enseña una lista que no parece lista. -->
         <ul
           style="
             max-width: 42rem;
@@ -169,6 +174,7 @@
             line-height: 1.7;
             text-align: left;
             padding-left: 1.2rem;
+            list-style: disc;
           "
         >
           <li>

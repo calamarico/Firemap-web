@@ -24,7 +24,7 @@
       content="Un iframe y ya: mapa de incendios activos actualizado solo, con focos por satélite, área quemada y viento. Gratis, sin registro."
     />
     <meta property="og:url" content="https://firemapsspain.online/insertar" />
-    <meta property="og:image" content="https://firemapsspain.online/og-image-v2.jpg" />
+    <meta property="og:image" content="https://firemapsspain.online/og-image-v3.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -37,12 +37,15 @@
       name="twitter:description"
       content="Un iframe y ya: mapa de incendios activos actualizado solo, con focos por satélite, área quemada y viento."
     />
-    <meta name="twitter:image" content="https://firemapsspain.online/og-image-v2.jpg" />
+    <meta name="twitter:image" content="https://firemapsspain.online/og-image-v3.jpg" />
 
     <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
     <meta name="theme-color" content="#020617" />
+    <!-- Antes incluso de que llegue el CSS: el lienzo del navegador es oscuro,
+         no blanco. Sin esto la carga empieza con un fogonazo blanco. -->
+    <meta name="color-scheme" content="dark" />
 
     <script type="application/ld+json">
       {
@@ -94,85 +97,130 @@
   </head>
   <body class="fm-page">
     <div id="root">
-      <!-- Contenido estático indexable (y navegable sin JavaScript): el
-           generador de React lo sustituye al montar, con la misma información. -->
-      <div
-        style="
-          max-width: 46rem;
-          margin: 0 auto;
-          padding: 2.5rem 1.25rem;
-          background: #020617;
-          color: #cbd5e1;
-          font-family: system-ui, sans-serif;
-          line-height: 1.6;
-        "
-      >
-        <h1 style="color: #f1f5f9; font-size: 1.75rem; line-height: 1.2">
-          Inserta el mapa de incendios de España y Portugal en tu web
-        </h1>
-        <p>
-          Copia dos líneas de código y tendrás el mapa de incendios activos —focos de calor
-          detectados por los satélites de la NASA, área quemada de Copernicus y viento con la
-          dirección del humo— dentro de tu artículo o página, actualizándose solo. Es gratis, sin
-          registro y sin clave de API. La única condición es mantener el crédito enlazado que viene
-          en el código.
-        </p>
-        <pre
-          style="
-            overflow-x: auto;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 0.75rem;
-            font-size: 0.75rem;
-            color: #94a3b8;
-          "
-        >
+      <!--
+        Esqueleto estático: indexable, navegable sin JavaScript y —esto es lo
+        importante— con LAS MISMAS clases y medidas que pinta EmbedBuilder al
+        montar (cabecera, ancho del contenedor, tamaño del h1). Antes era una
+        columna de 46rem con estilos en línea sobre el blanco del navegador, y la
+        carga se veía en tres tiempos: blanco, texto, fondo. Si esto se toca, hay
+        que tocarlo en los dos sitios o el cambiazo volverá a notarse.
+      -->
+      <div class="min-h-full bg-app text-ink-primary">
+        <header class="border-b border-edge">
+          <div class="mx-auto flex max-w-5xl items-center gap-3 px-5 py-4">
+            <a href="/" class="flex items-center gap-3">
+              <!-- Mismo logotipo que importa React, servido desde /public: en el
+                   esqueleto no hay bundler que resuelva el import. -->
+              <img src="/android-chrome-192x192.png" alt="Firemaps España" class="h-10 w-10" />
+              <span class="font-display text-sm font-bold">Firemaps España</span>
+            </a>
+            <a
+              href="/"
+              class="ml-auto inline-flex items-center gap-1.5 text-sm text-[color:var(--fm-text-link)] hover:underline"
+            >
+              Ir al mapa
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </a>
+          </div>
+        </header>
+
+        <main class="mx-auto max-w-5xl space-y-8 px-5 py-8">
+          <section class="space-y-3">
+            <h1 class="text-2xl font-bold leading-tight md:text-3xl">
+              Inserta el mapa de incendios de España y Portugal en tu web
+            </h1>
+            <p class="max-w-2xl text-ink-secondary">
+              Copia dos líneas de código y tendrás el mapa de incendios activos —focos de calor
+              detectados por los satélites de la NASA, área quemada de Copernicus y viento con la
+              dirección del humo— dentro de tu artículo o página, actualizándose solo. Es
+              <strong class="font-semibold text-ink-primary">gratis</strong>, sin registro y sin
+              clave de API. La única condición es mantener el crédito enlazado que viene en el
+              código.
+            </p>
+          </section>
+
+          <section class="max-w-3xl space-y-6 text-sm text-ink-secondary">
+            <div class="space-y-2">
+              <h2 class="text-lg font-bold text-ink-primary">Código de inserción</h2>
+              <pre
+                class="overflow-x-auto rounded-lg border border-edge bg-surface-sunken p-3 text-micro leading-relaxed"
+              >
 &lt;div style="position:relative;width:100%;padding-bottom:62%"&gt;
-  &lt;iframe src="https://firemapsspain.online/embed" title="Mapa de incendios en España y Portugal en tiempo real"
+  &lt;iframe src="https://firemapsspain.online/embed?base=claro" title="Mapa de incendios en España y Portugal en tiempo real"
     loading="lazy" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"&gt;&lt;/iframe&gt;
 &lt;/div&gt;
 &lt;p&gt;Fuente: &lt;a href="https://firemapsspain.online/"&gt;Mapa de incendios en España y Portugal · Firemaps&lt;/a&gt;&lt;/p&gt;</pre
-        >
-        <h2 style="color: #f1f5f9; font-size: 1.125rem">Condiciones de uso</h2>
-        <ul>
-          <li>Uso libre y gratuito, también en medios con publicidad. Sin límite de visitas.</li>
-          <li>
-            Mantén el crédito enlazado a
-            <a href="https://firemapsspain.online/" style="color: #7fddf2">firemapsspain.online</a>.
-          </li>
-          <li>
-            No ocultes la marca, la leyenda ni las fuentes: las condiciones de NASA FIRMS y
-            Copernicus obligan a citarlas.
-          </li>
-          <li>
-            Los focos son anomalías térmicas detectadas por satélite (pueden ser quemas agrícolas o
-            industria), no incendios confirmados; el área quemada es una estimación.
-          </li>
-        </ul>
-        <h2 style="color: #f1f5f9; font-size: 1.125rem">Parámetros de la URL del iframe</h2>
-        <ul>
-          <li><code>localidad=zamora</code> — centra el mapa en un municipio.</li>
-          <li><code>centro=41.50,-5.75</code> y <code>zoom=10</code> — encuadre exacto.</li>
-          <li>
-            <code>capas=focos,quemado,viento,limites</code> — capas encendidas al cargar (también
-            existe <code>flujo</code>).
-          </li>
-          <li>
-            <code>tema=claro</code> — interfaz clara y mapa base de CARTO Positron, para webs con
-            fondo blanco.
-          </li>
-          <li>
-            <code>base=oscuro</code> (o <code>satelite</code>, <code>claro</code>) — mapa base,
-            independiente del tema.
-          </li>
-          <li>
-            <code>controles=0</code>, <code>leyenda=0</code>, <code>ranking=1</code> — interfaz del
-            widget.
-          </li>
-        </ul>
-        <p>
-          <a href="/" style="color: #7fddf2">Ver el mapa de incendios de España y Portugal</a>
-        </p>
+              >
+            </div>
+
+            <div class="space-y-2">
+              <h2 class="text-lg font-bold text-ink-primary">Condiciones de uso</h2>
+              <ul class="list-disc space-y-1.5 pl-5">
+                <li>
+                  Uso libre y gratuito, también en medios con publicidad. Sin límite de visitas.
+                </li>
+                <li>
+                  Mantén el crédito enlazado a
+                  <a href="https://firemapsspain.online/" class="text-[color:var(--fm-text-link)]"
+                    >firemapsspain.online</a
+                  >.
+                </li>
+                <li>
+                  No ocultes la marca, la leyenda ni las fuentes: las condiciones de NASA FIRMS y
+                  Copernicus obligan a citarlas.
+                </li>
+                <li>
+                  Los focos son anomalías térmicas detectadas por satélite (pueden ser quemas
+                  agrícolas o industria), no incendios confirmados; el área quemada es una
+                  estimación.
+                </li>
+              </ul>
+            </div>
+
+            <div class="space-y-2">
+              <h2 class="text-lg font-bold text-ink-primary">Parámetros de la URL del iframe</h2>
+              <ul class="list-disc space-y-1.5 pl-5">
+                <li><code>localidad=zamora</code> — centra el mapa en un municipio.</li>
+                <li><code>centro=41.50,-5.75</code> y <code>zoom=10</code> — encuadre exacto.</li>
+                <li>
+                  <code>capas=focos,quemado,viento,limites</code> — capas encendidas al cargar
+                  (también existe <code>flujo</code>).
+                </li>
+                <li>
+                  <code>tema=claro</code> — paneles, botones y leyenda en claro, para webs con fondo
+                  blanco (y mapa base claro, si no pides otro).
+                </li>
+                <li>
+                  <code>base=claro</code> (o <code>satelite</code>, <code>oscuro</code>) — mapa
+                  base, independiente del tema: las etiquetas, los límites y el humo se adaptan
+                  solos al fondo que elijas.
+                </li>
+                <li>
+                  <code>controles=0</code>, <code>leyenda=0</code>, <code>ranking=1</code> —
+                  interfaz del widget.
+                </li>
+              </ul>
+            </div>
+
+            <p>
+              <a href="/" class="text-[color:var(--fm-text-link)]"
+                >Ver el mapa de incendios de España y Portugal</a
+              >
+            </p>
+          </section>
+        </main>
       </div>
     </div>
     <script type="module" src="/src/insertar.tsx"></script>

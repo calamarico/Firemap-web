@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEffisStatus } from './useEffisStatus';
 import { useFires } from './useFires';
+import { usePrefersReducedMotion } from './usePrefersReducedMotion';
 import { useWind } from './useWind';
 import { useWindField } from './useWindField';
 import { deriveFireWindSites } from '../lib/windPoints';
@@ -25,8 +26,6 @@ export interface FireMapData {
   windField: WindFieldBlock[] | null;
   /** Se incrementa cuando EFFIS vuelve de una caída (recarga sus teselas). */
   effisRefreshToken: number;
-  /** Con «reducir movimiento» el campo de flujo no existe: solo es animación. */
-  reducedMotion: boolean;
   refresh: () => void;
 }
 
@@ -43,11 +42,10 @@ export function useFireMapData({
   showWindField,
 }: FireMapDataOptions): FireMapData {
   // El campo de flujo ES movimiento: con "reducir movimiento" no queda nada
-  // que enseñar, así que el interruptor se deshabilita y no se pide nada.
-  const reducedMotion = useMemo(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  );
+  // que enseñar, así que no se pide nada. Quien pinta la UI lo consulta con el
+  // mismo hook (la preferencia no se pasa como prop: es del sistema, no del
+  // estado de la app).
+  const reducedMotion = usePrefersReducedMotion();
 
   const { view: fires, refresh: refreshFires } = useFires(refreshMs);
   const { view: effis, refresh: refreshEffis } = useEffisStatus(refreshMs);
@@ -121,7 +119,6 @@ export function useFireMapData({
     wind: windForMap,
     windField: windField.blocks,
     effisRefreshToken,
-    reducedMotion,
     refresh,
   };
 }

@@ -9,12 +9,14 @@ import ImpactList from './ImpactList';
 import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
 import VideoPromo from './VideoPromo';
+import { localityShareUrl, viewShareUrl } from '../lib/share';
 import Button from './ui/Button';
 import CountBadge from './ui/CountBadge';
 import Icon from './ui/Icon';
 import LayerToggle from './ui/LayerToggle';
 import Metric from './ui/Metric';
 import SegmentedControl from './ui/SegmentedControl';
+import ShareMenu, { type ShareMenuItem } from './ui/ShareMenu';
 import StatusNote from './ui/StatusNote';
 
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
@@ -38,6 +40,8 @@ interface SidebarProps extends LayerControls {
   basemap: BasemapId;
   onBasemapChange: (basemap: BasemapId) => void;
   onRefresh: () => void;
+  /** Localidad activa; sin ella, el menú «Compartir» no ofrece su enlace. */
+  locality: { name: string; slug: string } | null;
 }
 
 export default function Sidebar(props: SidebarProps) {
@@ -180,6 +184,47 @@ export default function Sidebar(props: SidebarProps) {
   // tabulado y de los lectores de pantalla.
   const hidden = isMobile ? collapsed && dragY === null : desktopCollapsed;
   const inertProps = (hidden ? { inert: '' } : {}) as React.HTMLAttributes<HTMLDivElement>;
+
+  // Ítems del menú «Compartir», en este orden: la vista actual, la localidad
+  // activa (si hay) y la inserción, que es el destacado. La fila de localidad no
+  // se deshabilita cuando no hay ninguna: simplemente no existe, porque no hay
+  // ningún motivo que explicarle a nadie.
+  const shareItems: ShareMenuItem[] = [
+    {
+      id: 'vista',
+      icon: 'link',
+      label: 'Copiar enlace de esta vista',
+      hint: 'Guarda el encuadre y las capas activas',
+      // Función, no cadena: el encuadre se lee al pulsar (ver ShareMenuItem).
+      value: () =>
+        viewShareUrl({
+          showFires: props.showFires,
+          showEffis: props.showEffis,
+          showWind: props.showWind,
+          showWindField: props.showWindField,
+          showBoundaries: props.showBoundaries,
+        }),
+    },
+    ...(props.locality
+      ? [
+          {
+            id: 'localidad',
+            icon: 'map-pin' as const,
+            label: `Copiar enlace de ${props.locality.name}`,
+            hint: 'Abre el mapa centrado en la localidad',
+            value: localityShareUrl(props.locality.slug),
+          },
+        ]
+      : []),
+    {
+      id: 'insertar',
+      icon: 'code',
+      label: 'Insertar este mapa en tu web',
+      hint: 'Código gratis para artículos y blogs, sin registro ni clave de API',
+      href: '/insertar',
+      featured: true,
+    },
+  ];
 
   const sheetY = dragY ?? (collapsed ? contentHeight : 0);
 
@@ -377,38 +422,31 @@ export default function Sidebar(props: SidebarProps) {
             Las capas se activan desde los botones sobre el mapa.
           </p>
 
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleRefresh}
-            disabled={isLoading || cooldownLeft > 0}
-            loading={isLoading}
-          >
-            {isLoading
-              ? 'Actualizando…'
-              : cooldownLeft > 0
-                ? `Refrescar (espera ${cooldownLeft} s)`
-                : 'Refrescar ahora'}
-          </Button>
-
-          {/* Acceso al generador de /insertar. Aquí y no enterrado en la prosa:
-              es la puerta de entrada de quien quiere el mapa en su web y antes
-              vivía bajo el pliegue del panel. Deliberadamente por debajo de
-              "Refrescar ahora" en jerarquía —secundario, sin relleno cian y más
-              bajo— porque el visitante que viene a ver incendios es mayoría
-              abrumadora frente al que viene a embeberlos. */}
-          {/* size md (40 px) para que no iguale al primario de 44, pero en móvil
-              sube a 44: la regla de objetivo táctil del sistema no se negocia
-              por jerarquía. La variante `secondary` es la que marca el orden. */}
-          <Button
-            href="/insertar"
-            variant="secondary"
-            size="md"
-            className="w-full max-md:min-h-touch"
-          >
-            <Icon name="code" size={14} />
-            Insertar este mapa en tu web
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="lg"
+              className="flex-1"
+              onClick={handleRefresh}
+              disabled={isLoading || cooldownLeft > 0}
+              loading={isLoading}
+            >
+              {isLoading
+                ? 'Actualizando…'
+                : cooldownLeft > 0
+                  ? `Refrescar (espera ${cooldownLeft} s)`
+                  : 'Refrescar ahora'}
+            </Button>
+            {/* Acciones sobre el mapa como documento: no son un control de capa,
+                así que no entran en el grupo de arriba. Solo escritorio: nadie
+                pega un iframe desde el móvil, y allí la inserción se explica en
+                la prosa de «Sobre este mapa».
+                Se monta condicionalmente en vez de ocultarse con `hidden md:block`
+                para que en móvil no exista en el DOM. Aquí no aplica el criterio
+                que mantiene los interruptores de capa montados (que existen para
+                el rastreador): un menú de acciones no aporta nada indexable, y de
+                eso ya se ocupa el <details> de más abajo. */}
+            {!isMobile && <ShareMenu items={shareItems} />}
+          </div>
         </section>
 
         {/* Estado del servicio de perímetros */}
@@ -509,6 +547,31 @@ export default function Sidebar(props: SidebarProps) {
             </p>
           </details>
 
+          {/* Único acceso a la inserción en móvil, y el que trabaja para el
+              buscador: texto real, no etiquetas de UI. En escritorio convive con
+              el menú «Compartir». */}
+          <details>
+            <summary className="cursor-pointer select-none text-ink-primary">
+              Insertar este mapa de incendios en tu web
+            </summary>
+            <div className="mt-2 space-y-2">
+              <p>
+                El mapa se puede incrustar en cualquier página con dos líneas de código: medios,
+                blogs, ayuntamientos. Es gratuito, sin registro y sin clave de API, se actualiza
+                solo y se puede centrar en una localidad concreta. La única condición es mantener
+                el crédito enlazado que acompaña al código.
+              </p>
+              <p>
+                <a
+                  href="/insertar"
+                  className="text-[color:var(--fm-text-link)] underline-offset-2 hover:underline"
+                >
+                  Generar el código de inserción
+                </a>
+              </p>
+            </div>
+          </details>
+
           <details>
             <summary className="cursor-pointer select-none text-ink-primary">
               Fuentes y actualización de los datos
@@ -554,6 +617,14 @@ export default function Sidebar(props: SidebarProps) {
               className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
             >
               Kalamarico
+            </a>
+            <span className="mx-1">·</span>
+            {/* Enlace interno estable, presente también en /incendios/<slug>. */}
+            <a
+              href="/insertar"
+              className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
+            >
+              Insertar el mapa
             </a>
           </p>
         </footer>
