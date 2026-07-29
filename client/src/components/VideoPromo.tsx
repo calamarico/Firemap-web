@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './ui/Icon';
 
 /**
@@ -36,8 +36,48 @@ const VIDEOS: readonly Video[] = [
   },
 ];
 
+/** Origen del embed: destino y filtro de los postMessage con el reproductor. */
+const YT_ORIGIN = 'https://www.youtube-nocookie.com';
+/** Estado ENDED de la API de YouTube. */
+const YT_ENDED = 0;
+
 export default function VideoPromo() {
   const [playing, setPlaying] = useState<Video | null>(null);
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Al terminar el vídeo se vuelve solo a las dos miniaturas. El iframe no
+  // avisa por sí mismo: hay que pedirle que emita eventos (handshake
+  // "listening" de la API de YouTube por postMessage, con enablejsapi=1 en la
+  // URL). Se usa la API por mensajes en vez de cargar iframe_api.js para no
+  // meter otro script de terceros. Si el handshake fallara, el único efecto es
+  // que el reproductor se queda abierto y hay que cerrarlo con el botón.
+  useEffect(() => {
+    if (!playing) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== YT_ORIGIN || typeof e.data !== 'string') return;
+      let payload: { event?: string; info?: unknown };
+      try {
+        payload = JSON.parse(e.data);
+      } catch {
+        return; // mensaje que no es de la API
+      }
+      // onStateChange trae el estado suelto; infoDelivery lo trae dentro.
+      const state =
+        payload.event === 'onStateChange'
+          ? payload.info
+          : (payload.info as { playerState?: unknown } | null | undefined)?.playerState;
+      if (state === YT_ENDED) setPlaying(null);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [playing]);
+
+  const startListening = () => {
+    frameRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+      YT_ORIGIN
+    );
+  };
 
   if (playing) {
     return (
@@ -49,8 +89,10 @@ export default function VideoPromo() {
           }
         >
           <iframe
+            ref={frameRef}
+            onLoad={startListening}
             // youtube-nocookie: sin cookies de seguimiento hasta que se reproduce.
-            src={`https://www.youtube-nocookie.com/embed/${playing.id}?autoplay=1&rel=0`}
+            src={`${YT_ORIGIN}/embed/${playing.id}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
             title={playing.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
