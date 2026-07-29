@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
-import { MAP, SEVERITY } from '../styles/mapTokens';
+import { MAP, SEVERITY, type MapPalette } from '../styles/mapTokens';
 import type { EffisRange, FireHotspot, WindPoint } from '../types';
 import { EFFIS_TILE_PROTOCOL } from './effisTileCache';
 
@@ -42,58 +42,82 @@ const SMOKE_WISP_LAYER_ID = 'smoke-wisp';
 const WIND_CHEVRON_LAYER_ID = 'wind-chevron';
 const WIND_LABEL_LAYER_ID = 'wind-label';
 
-export type BasemapId = 'satellite' | 'dark';
+export type BasemapId = 'satellite' | 'dark' | 'light';
+
+const CARTO_ATTRIBUTION =
+  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>';
 
 /**
- * Estilo base con dos fondos raster sin API key, al estilo del visor de FIRMS:
+ * Estilo base con tres fondos raster sin API key, al estilo del visor de FIRMS:
  * - satellite: Esri World Imagery (imagen satelital, nítida a todos los zooms)
  * - dark: CARTO Dark Matter en su variante SIN etiquetas. Las etiquetas van
  *   horneadas en el raster y CARTO las sirve con topónimos anglificados
  *   ("CATALONIA", "SEVILLE"); usamos dark_nolabels y pintamos nuestras propias
  *   etiquetas en castellano como capas de símbolos (CCAA y ciudades).
- * Ambos viven en el estilo y setBasemap() alterna su visibilidad, así el
+ * - light: CARTO Positron, mismo criterio (light_nolabels). Existe para el
+ *   widget embebible en medios que maquetan en blanco (`/embed?tema=claro`); la
+ *   app propia no lo ofrece.
+ * Los tres viven en el estilo y setBasemap() alterna su visibilidad, así el
  * cambio de fondo no recrea el mapa ni toca las capas de datos.
+ *
+ * La paleta entra como parámetro (y no leyendo MAP directamente) porque sobre
+ * Positron hay que invertir los contrastes de la cartografía propia: ver
+ * MAP_LIGHT en styles/mapTokens.ts.
  */
-export const BASE_STYLE: StyleSpecification = {
-  version: 8,
-  // Servidor de glifos de CARTO (gratuito, lo usan sus propios estilos GL):
-  // necesario para que MapLibre pueda renderizar texto.
-  glyphs: 'https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf',
-  sources: {
-    satellite: {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      ],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution:
-        'Imágenes © <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+export function createBaseStyle(palette: MapPalette = MAP): StyleSpecification {
+  return {
+    version: 8,
+    // Servidor de glifos de CARTO (gratuito, lo usan sus propios estilos GL):
+    // necesario para que MapLibre pueda renderizar texto.
+    glyphs: 'https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf',
+    sources: {
+      satellite: {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution:
+          'Imágenes © <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+      },
+      'carto-dark': {
+        type: 'raster',
+        tiles: ['a', 'b', 'c', 'd'].map(
+          (s) => `https://${s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png`
+        ),
+        tileSize: 256,
+        maxzoom: 20,
+        attribution: CARTO_ATTRIBUTION,
+      },
+      'carto-light': {
+        type: 'raster',
+        tiles: ['a', 'b', 'c', 'd'].map(
+          (s) => `https://${s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png`
+        ),
+        tileSize: 256,
+        maxzoom: 20,
+        attribution: CARTO_ATTRIBUTION,
+      },
     },
-    'carto-dark': {
-      type: 'raster',
-      tiles: ['a', 'b', 'c', 'd'].map(
-        (s) => `https://${s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png`
-      ),
-      tileSize: 256,
-      maxzoom: 20,
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-    },
-  },
-  layers: [
-    // Fondo bajo las teselas: azul océano profundo. Es lo que asoma mientras
-    // una tesela no ha llegado (o si el proveedor falla); sin esto asomaría
-    // el blanco por defecto de MapLibre, que es un fogonazo sobre UI oscura.
-    { id: 'background', type: 'background', paint: { 'background-color': MAP.void } },
-    { id: 'basemap-satellite', type: 'raster', source: 'satellite' },
-    { id: 'basemap-dark', type: 'raster', source: 'carto-dark', layout: { visibility: 'none' } },
-  ],
-};
+    layers: [
+      // Fondo bajo las teselas: azul océano profundo (o el agua clara de
+      // Positron en tema claro). Es lo que asoma mientras una tesela no ha
+      // llegado (o si el proveedor falla); sin esto asomaría el blanco por
+      // defecto de MapLibre, que es un fogonazo sobre UI oscura.
+      { id: 'background', type: 'background', paint: { 'background-color': palette.void } },
+      { id: 'basemap-satellite', type: 'raster', source: 'satellite' },
+      { id: 'basemap-dark', type: 'raster', source: 'carto-dark', layout: { visibility: 'none' } },
+      { id: 'basemap-light', type: 'raster', source: 'carto-light', layout: { visibility: 'none' } },
+    ],
+  };
+}
 
 export function setBasemap(map: MapLibreMap, basemap: BasemapId): void {
-  map.setLayoutProperty('basemap-satellite', 'visibility', basemap === 'satellite' ? 'visible' : 'none');
-  map.setLayoutProperty('basemap-dark', 'visibility', basemap === 'dark' ? 'visible' : 'none');
+  const visibility = (id: BasemapId) => (basemap === id ? 'visible' : 'none');
+  map.setLayoutProperty('basemap-satellite', 'visibility', visibility('satellite'));
+  map.setLayoutProperty('basemap-dark', 'visibility', visibility('dark'));
+  map.setLayoutProperty('basemap-light', 'visibility', visibility('light'));
 }
 
 const EMPTY_COLLECTION: FeatureCollection<Point, FireHotspot> = {
@@ -116,7 +140,7 @@ export interface FiresLayer extends AppLayer {
   setData(map: MapLibreMap, hotspots: FireHotspot[]): void;
 }
 
-export function createFiresLayer(): FiresLayer {
+export function createFiresLayer(palette: MapPalette = MAP): FiresLayer {
   // La misma escala de severidad alimenta la leyenda: un solo sitio que mantener.
   const [low, mid, high, extreme] = SEVERITY;
   return {
@@ -152,7 +176,7 @@ export function createFiresLayer(): FiresLayer {
           'circle-radius': ['interpolate', ['linear'], ['coalesce', ['get', 'frp'], 0], 0, 5, 50, 11],
           'circle-opacity': 0.9,
           // El alfa del trazo (0.85) va dentro del propio color del token.
-          'circle-stroke-color': MAP.severityStroke,
+          'circle-stroke-color': palette.severityStroke,
           'circle-stroke-width': 1,
         },
       });
@@ -176,7 +200,7 @@ export function createFiresLayer(): FiresLayer {
  * ni descarga completa ni simplificación fija. Los nombres de las CCAA van en
  * castellano (ccaa-labels.json, centroides precalculados).
  */
-export function createBoundariesLayer(): AppLayer {
+export function createBoundariesLayer(palette: MapPalette = MAP): AppLayer {
   return {
     id: BOUNDARIES_LAYER_ID,
     add(map) {
@@ -210,7 +234,7 @@ export function createBoundariesLayer(): AppLayer {
         'source-layer': 'municipios',
         minzoom: 7,
         paint: {
-          'line-color': MAP.boundaryMuni,
+          'line-color': palette.boundaryMuni,
           'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.4, 13, 1.1],
         },
       });
@@ -220,7 +244,7 @@ export function createBoundariesLayer(): AppLayer {
         source: PROVINCES_SOURCE_ID,
         minzoom: 6.5,
         paint: {
-          'line-color': MAP.boundaryProv,
+          'line-color': palette.boundaryProv,
           'line-width': ['interpolate', ['linear'], ['zoom'], 6.5, 0.6, 11, 1.2],
         },
       });
@@ -229,7 +253,7 @@ export function createBoundariesLayer(): AppLayer {
         type: 'line',
         source: BOUNDARIES_SOURCE_ID,
         paint: {
-          'line-color': MAP.boundaryCcaa,
+          'line-color': palette.boundaryCcaa,
           'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.8, 10, 1.6],
         },
       });
@@ -245,8 +269,8 @@ export function createBoundariesLayer(): AppLayer {
           'text-size': ['interpolate', ['linear'], ['zoom'], 8.5, 11, 13, 14],
         },
         paint: {
-          'text-color': MAP.label,
-          'text-halo-color': MAP.labelHalo,
+          'text-color': palette.label,
+          'text-halo-color': palette.labelHalo,
           'text-halo-width': 2,
         },
       });
@@ -263,9 +287,9 @@ export function createBoundariesLayer(): AppLayer {
           'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10.5, 8, 15],
         },
         paint: {
-          'text-color': MAP.label,
+          'text-color': palette.label,
           // Halo oscuro: legible tanto sobre satélite como sobre fondo oscuro.
-          'text-halo-color': MAP.labelHalo,
+          'text-halo-color': palette.labelHalo,
           'text-halo-width': 1.8,
         },
       });
@@ -291,7 +315,7 @@ export function createBoundariesLayer(): AppLayer {
  * y dan referencia urbana también sobre el satélite. Aparecen a partir de
  * zoom 6 para no competir con los nombres de las comunidades.
  */
-export function createCitiesLayer(): AppLayer {
+export function createCitiesLayer(palette: MapPalette = MAP): AppLayer {
   return {
     id: CITIES_LABELS_LAYER_ID,
     add(map) {
@@ -305,9 +329,9 @@ export function createCitiesLayer(): AppLayer {
         source: CITIES_SOURCE_ID,
         minzoom: 6,
         paint: {
-          'circle-color': MAP.cityDot,
+          'circle-color': palette.cityDot,
           'circle-radius': 2.5,
-          'circle-stroke-color': MAP.cityDotStroke,
+          'circle-stroke-color': palette.cityDotStroke,
           'circle-stroke-width': 1,
         },
       });
@@ -324,8 +348,8 @@ export function createCitiesLayer(): AppLayer {
           'text-anchor': 'top',
         },
         paint: {
-          'text-color': MAP.label,
-          'text-halo-color': MAP.labelHalo,
+          'text-color': palette.label,
+          'text-halo-color': palette.labelHalo,
           'text-halo-width': 2,
         },
       });
@@ -647,7 +671,7 @@ function plumeArc(s: PlumeSeed, t: number, reverse: boolean): [number, number][]
  *   siempre visible, encima de todo (los símbolos no capturan eventos: el
  *   popup de focos no se ve afectado).
  */
-export function createSmokePlumeLayer(): SmokePlumeLayer {
+export function createSmokePlumeLayer(palette: MapPalette = MAP): SmokePlumeLayer {
   let visible = true;
   let wispFrame: number | null = null;
   let seeds: PlumeSeed[] = [];
@@ -777,10 +801,10 @@ export function createSmokePlumeLayer(): SmokePlumeLayer {
               'match',
               ['get', 'band'],
               0,
-              MAP.smokeBand1,
+              palette.smokeBand1,
               1,
-              MAP.smokeBand2,
-              MAP.smokeBand3,
+              palette.smokeBand2,
+              palette.smokeBand3,
             ],
           },
         },
@@ -795,7 +819,7 @@ export function createSmokePlumeLayer(): SmokePlumeLayer {
           source: SMOKE_PLUME_SOURCE_ID,
           filter: ['==', ['get', 'band'], 2],
           paint: {
-            'line-color': MAP.smokeEdge,
+            'line-color': palette.smokeEdge,
             'line-opacity': 1,
             'line-width': 1,
             'line-blur': 1.5,
@@ -810,7 +834,7 @@ export function createSmokePlumeLayer(): SmokePlumeLayer {
           source: SMOKE_WISP_SOURCE_ID,
           layout: { 'line-cap': 'round' },
           paint: {
-            'line-color': MAP.smokeWisp,
+            'line-color': palette.smokeWisp,
             // Fino al nacer y más ancho al dispersarse: es humo expandiéndose,
             // no una partícula viajando. Grueso de verdad, porque el trazo se
             // dibuja SOBRE el cono y ambos son cian: a un pelo de 1 px no le
@@ -848,7 +872,7 @@ export function createSmokePlumeLayer(): SmokePlumeLayer {
           'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 8.5, 0.72],
           'icon-allow-overlap': true,
         },
-        paint: { 'icon-color': MAP.windChevron, 'icon-opacity': 0.95 },
+        paint: { 'icon-color': palette.windChevron, 'icon-opacity': 0.95 },
       });
       map.addLayer({
         id: WIND_LABEL_LAYER_ID,
@@ -869,8 +893,8 @@ export function createSmokePlumeLayer(): SmokePlumeLayer {
           'text-rotation-alignment': 'viewport',
         },
         paint: {
-          'text-color': MAP.windLabel,
-          'text-halo-color': MAP.labelHalo,
+          'text-color': palette.windLabel,
+          'text-halo-color': palette.labelHalo,
           'text-halo-width': 2,
         },
       });

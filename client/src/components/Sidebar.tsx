@@ -390,6 +390,25 @@ export default function Sidebar(props: SidebarProps) {
                 ? `Refrescar (espera ${cooldownLeft} s)`
                 : 'Refrescar ahora'}
           </Button>
+
+          {/* Acceso al generador de /insertar. Aquí y no enterrado en la prosa:
+              es la puerta de entrada de quien quiere el mapa en su web y antes
+              vivía bajo el pliegue del panel. Deliberadamente por debajo de
+              "Refrescar ahora" en jerarquía —secundario, sin relleno cian y más
+              bajo— porque el visitante que viene a ver incendios es mayoría
+              abrumadora frente al que viene a embeberlos. */}
+          {/* size md (40 px) para que no iguale al primario de 44, pero en móvil
+              sube a 44: la regla de objetivo táctil del sistema no se negocia
+              por jerarquía. La variante `secondary` es la que marca el orden. */}
+          <Button
+            href="/insertar"
+            variant="secondary"
+            size="md"
+            className="w-full max-md:min-h-touch"
+          >
+            <Icon name="code" size={14} />
+            Insertar este mapa en tu web
+          </Button>
         </section>
 
         {/* Estado del servicio de perímetros */}
@@ -489,18 +508,6 @@ export default function Sidebar(props: SidebarProps) {
               de un foco, ahí tienes la explicación.
             </p>
           </details>
-
-          {/* Puerta de entrada al widget: los medios que quieren el mapa en su
-              artículo llegan a la web, no a /insertar. */}
-          <p>
-            <a
-              href="/insertar"
-              className="text-[color:var(--fm-text-link)] underline-offset-2 hover:underline"
-            >
-              Inserta este mapa en tu web
-            </a>{' '}
-            <span className="text-ink-faint">· gratis, con un iframe</span>
-          </p>
 
           <details>
             <summary className="cursor-pointer select-none text-ink-primary">

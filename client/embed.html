@@ -25,17 +25,33 @@
 
     <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin />
     <link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin />
+
+    <!--
+      Tema antes del primer pintado. El bundle llega después del CSS, así que si
+      esto lo decidiera React el widget claro asomaría oscuro un instante — el
+      clásico destello de tema, especialmente feo dentro de un artículo en
+      blanco. Tres líneas sin dependencias; el parser de verdad (con el resto de
+      parámetros) sigue estando en src/lib/embed.ts.
+    -->
+    <script>
+      if (/[?&]tema=claro(&|$)/i.test(location.search)) {
+        document.documentElement.dataset.tema = 'claro';
+      }
+    </script>
   </head>
   <body>
     <div id="root">
+      <!-- Los colores salen de los tokens (con literal de reserva por si el CSS
+           aún no ha llegado): así la pantalla de carga ya sale clara con
+           ?tema=claro, sin destello oscuro. -->
       <div
         style="
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #020617;
-          color: #64748b;
+          background: var(--fm-bg-app, #020617);
+          color: var(--fm-text-faint, #64748b);
           font-family: system-ui, sans-serif;
           font-size: 0.875rem;
         "

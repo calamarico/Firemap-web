@@ -7,7 +7,7 @@ import {
   D2R,
   type WindFieldBlock,
 } from '../lib/windField';
-import { MAP } from '../styles/mapTokens';
+import { MAP, type MapPalette } from '../styles/mapTokens';
 
 /**
  * Campo de flujo como lienzo 2D propio encima del canvas de MapLibre (y por
@@ -73,7 +73,13 @@ export interface WindFieldRenderer {
   destroy(): void;
 }
 
-export function createWindFieldRenderer(map: MapLibreMap): WindFieldRenderer {
+export function createWindFieldRenderer(
+  map: MapLibreMap,
+  // La paleta se fija al crear el lienzo: el tema es constante por documento
+  // (ver mapTokens.mapPalette). En claro la traza pasa a slate oscuro, que sobre
+  // CARTO Positron es lo único que se ve.
+  palette: MapPalette = MAP
+): WindFieldRenderer {
   const container = map.getContainer();
   const canvas = document.createElement('canvas');
   // Encima del canvas de MapLibre y debajo de sus controles y popups: se
@@ -85,7 +91,7 @@ export function createWindFieldRenderer(map: MapLibreMap): WindFieldRenderer {
   else container.appendChild(canvas);
   const g = canvas.getContext('2d');
 
-  const trail = parseRgba(MAP.flowTrail);
+  const trail = parseRgba(palette.flowTrail);
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const particleCount = coarse ? PARTICLES_COARSE : PARTICLES_DESKTOP;
   // En táctil el campo corre con la mitad de partículas sobre una pantalla

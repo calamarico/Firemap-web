@@ -240,6 +240,95 @@
   --fm-z-toast: 50;
 }
 
+/* ============================================================================
+ * Tema claro — SOLO el widget embebible (/embed?tema=claro)
+ * ============================================================================
+ * Existe por los medios que maquetan en blanco: un iframe negro en medio de un
+ * artículo claro se lee como un agujero. La app propia no lo usa: sigue siendo
+ * oscura (el mapa manda y la UI se aparta).
+ *
+ * Se sobrescriben SOLO tokens semánticos (nivel 2), nunca primitivos: los
+ * componentes no se enteran del tema. Los primitivos son los mismos, cambia a
+ * qué rol se asigna cada uno.
+ *
+ * Contrastes medidos sobre #ffffff (el panel claro), no estimados:
+ *   primary 17,9:1 · secondary 10,4:1 · muted 7,6:1 · faint 4,8:1 · link 6,0:1
+ *   ember-text 4,8:1 (ember-500 daba 3,2:1 — de ahí ember-600 aquí)
+ *   texto sobre el botón de acción: 6,0:1 (mismo par que en oscuro)
+ *   action-fg (chip activo) 6,0:1 (accent-500 daba 2,8:1 — de ahí accent-700)
+ * Los colores de MapLibre viven duplicados en styles/mapTokens.ts (MAP_LIGHT):
+ * si se toca uno de los --fm-map-* de aquí, hay que tocar su gemelo allí.
+ */
+:root[data-tema='claro'] {
+  /* Superficies */
+  --fm-bg-app: var(--fm-slate-50);
+  --fm-bg-map-void: #dbe4e6; /* agua de CARTO Positron */
+  --fm-surface-panel: rgb(255 255 255 / 0.92);
+  --fm-surface-panel-solid: #ffffff;
+  --fm-surface-raised: #ffffff;
+  --fm-surface-sunken: rgb(15 23 42 / 0.04);
+  --fm-surface-hover: rgb(15 23 42 / 0.06);
+  --fm-surface-selected: rgb(18 169 204 / 0.14);
+
+  /* Bordes */
+  --fm-border-subtle: rgb(15 23 42 / 0.08);
+  --fm-border-default: var(--fm-slate-200);
+  --fm-border-strong: var(--fm-slate-300);
+  --fm-border-interactive: var(--fm-slate-400);
+  --fm-border-hairline-on-map: rgb(15 23 42 / 0.35);
+
+  /* Texto: los mismos roles que en oscuro, con la escala slate invertida */
+  --fm-text-primary: var(--fm-slate-900);
+  --fm-text-secondary: var(--fm-slate-700);
+  --fm-text-muted: var(--fm-slate-600);
+  --fm-text-faint: var(--fm-slate-500);
+  --fm-text-link: var(--fm-accent-700);
+  --fm-text-link-hover: var(--fm-accent-900);
+
+  /* Acción: el fondo del botón NO cambia (misma marca, mismo par de contraste);
+     sí el cian de texto/borde, que sobre blanco necesita bajar dos peldaños. */
+  --fm-action-bg-subtle: rgb(18 169 204 / 0.12);
+  --fm-action-border: var(--fm-accent-600);
+  --fm-action-fg: var(--fm-accent-700);
+  --fm-focus-ring: var(--fm-accent-600);
+  --fm-focus-shadow: 0 0 0 2px var(--fm-focus-ring), 0 0 0 4px rgb(255 255 255 / 0.95);
+
+  /* Marca: ember-600 en lugar de ember-500 — el 500 sobre blanco se queda en
+     3,2:1, y este token también pinta el fondo de CountBadge (texto blanco). */
+  --fm-brand-ember: var(--fm-ember-600);
+  --fm-brand-ember-text: var(--fm-ember-600);
+  --fm-brand-ember-subtle: rgb(242 100 25 / 0.12);
+
+  /* Severidad: los colores del mapa no se tocan (son el símbolo); el anillo de
+     los puntos de la leyenda sí, que era blanco sobre panel blanco. */
+  --fm-severity-stroke: rgb(15 23 42 / 0.35);
+
+  /* Estado del sistema */
+  --fm-ok-fg: #047857;
+  --fm-ok-dot: #059669;
+  --fm-warn-fg: var(--fm-amber-700);
+  --fm-warn-bg: rgb(251 191 36 / 0.16);
+  --fm-warn-border: var(--fm-amber-700);
+  --fm-danger-fg: var(--fm-red-700);
+  --fm-danger-bg: rgb(156 28 34 / 0.1);
+  --fm-danger-border: var(--fm-red-700);
+
+  /* Cartografía (gemelos de MAP_LIGHT en mapTokens.ts) */
+  --fm-map-smoke-band-1: rgb(18 169 204 / 0.4);
+  --fm-map-smoke-band-2: rgb(18 169 204 / 0.26);
+  --fm-map-smoke-band-3: rgb(18 169 204 / 0.14);
+  --fm-map-smoke-edge: rgb(18 169 204 / 0.35);
+  --fm-map-smoke-wisp: var(--fm-accent-600);
+  --fm-map-wind-chevron: var(--fm-accent-700);
+  --fm-map-wind-label: var(--fm-accent-700);
+  --fm-map-flow-trail: rgb(15 23 42 / 0.32);
+
+  /* Sombras: las del tema oscuro son plomo sobre blanco */
+  --fm-shadow-panel: 0 10px 30px -10px rgb(15 23 42 / 0.25);
+  --fm-shadow-popup: 0 8px 20px rgb(15 23 42 / 0.2);
+  --fm-shadow-control: 0 1px 3px rgb(15 23 42 / 0.2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --fm-duration-fast: 0ms;

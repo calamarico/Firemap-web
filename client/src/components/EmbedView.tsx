@@ -128,6 +128,7 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
         onMapReady={handleMapReady}
         initialCenter={config.center}
         initialZoom={config.zoom}
+        mapTheme={config.theme}
         cooperativeGestures
         fullscreen
         syncHash={false}

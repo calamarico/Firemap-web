@@ -10,6 +10,7 @@ import {
 } from '../lib/embed';
 import { findLocalityByName, findLocalityBySlug, type LocalityHit } from '../lib/locality';
 import type { BasemapId } from '../map/layers';
+import type { MapTheme } from '../styles/mapTokens';
 import Button from './ui/Button';
 import Icon from './ui/Icon';
 import LayerToggle from './ui/LayerToggle';
@@ -36,6 +37,12 @@ const LAYER_FIELD: Record<EmbedLayerKey, keyof EmbedConfig> = {
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
   { value: 'satellite', label: 'Satélite' },
   { value: 'dark', label: 'Oscuro' },
+  { value: 'light', label: 'Claro' },
+];
+
+const THEME_OPTIONS: ReadonlyArray<{ value: MapTheme; label: string }> = [
+  { value: 'dark', label: 'Oscuro' },
+  { value: 'light', label: 'Claro' },
 ];
 
 type SizeMode = 'responsive' | 'fixed';
@@ -226,6 +233,27 @@ export default function EmbedBuilder() {
             </div>
 
             <div className="space-y-1.5">
+              <span className="block text-sm text-ink-secondary">Tema del widget</span>
+              <SegmentedControl
+                options={THEME_OPTIONS}
+                value={config.theme}
+                onChange={(theme) =>
+                  setConfig((c) => ({
+                    ...c,
+                    theme,
+                    // El mapa base sigue al tema salvo que ya se haya elegido
+                    // satélite: ahí la imagen manda y funciona con los dos.
+                    basemap: c.basemap === 'satellite' ? 'satellite' : theme,
+                  }))
+                }
+                ariaLabel="Tema del widget"
+              />
+              <p className="text-micro text-ink-muted">
+                Claro para webs con fondo blanco: paneles claros y mapa base de CARTO Positron.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <span className="block text-sm text-ink-secondary">Mapa base</span>
               <SegmentedControl
                 options={BASEMAP_OPTIONS}
@@ -403,7 +431,12 @@ export default function EmbedBuilder() {
                 animado, apagado por defecto).
               </li>
               <li>
-                <code>base=oscuro</code> — mapa base oscuro en lugar del satelital.
+                <code>tema=claro</code> — interfaz clara y mapa base de CARTO Positron, para webs
+                con fondo blanco.
+              </li>
+              <li>
+                <code>base=oscuro</code> (o <code>satelite</code>, <code>claro</code>) — mapa base,
+                independiente del tema.
               </li>
               <li>
                 <code>controles=0</code>, <code>leyenda=0</code>, <code>ranking=1</code> — quitar

@@ -11,6 +11,7 @@
  * pintaría otra cosa distinta de la que vio en la previsualización.
  */
 import type { BasemapId } from '../map/layers';
+import type { MapTheme } from '../styles/mapTokens';
 
 /** Dominio canónico: los snippets que se copian deben apuntar siempre aquí. */
 export const SITE_ORIGIN = 'https://firemapsspain.online';
@@ -23,6 +24,11 @@ export interface EmbedConfig {
   showWind: boolean;
   showWindField: boolean;
   showBoundaries: boolean;
+  /**
+   * Tema de la interfaz del widget (paneles, chips, leyenda) y de la
+   * cartografía propia. `claro` es para los medios que maquetan en blanco.
+   */
+  theme: MapTheme;
   basemap: BasemapId;
   /** Vista inicial explícita; sin ella manda `locality`, y si no, la de config.ts. */
   center: [number, number] | null;
@@ -50,6 +56,7 @@ export const EMBED_DEFAULTS: EmbedConfig = {
   showWind: true,
   showWindField: false,
   showBoundaries: true,
+  theme: 'dark',
   basemap: 'satellite',
   center: null,
   zoom: null,
@@ -78,7 +85,17 @@ export const EMBED_LAYERS: ReadonlyArray<{ key: EmbedLayerKey; label: string; sw
   { key: 'limites', label: 'Límites administrativos' },
 ];
 
-const BASEMAP_PARAM: Record<string, BasemapId> = { satelite: 'satellite', oscuro: 'dark' };
+const BASEMAP_PARAM: Record<string, BasemapId> = {
+  satelite: 'satellite',
+  oscuro: 'dark',
+  claro: 'light',
+};
+/** Inverso de BASEMAP_PARAM, para escribir la URL. */
+const BASEMAP_NAME: Record<BasemapId, string> = {
+  satellite: 'satelite',
+  dark: 'oscuro',
+  light: 'claro',
+};
 
 /** Configuración a partir de la query del iframe (`?capas=…&base=…`). */
 export function parseEmbedConfig(search: string): EmbedConfig {
@@ -95,7 +112,17 @@ export function parseEmbedConfig(search: string): EmbedConfig {
     }
   }
 
-  const base = params.get('base');
+  // `tema=claro` cambia la interfaz y, si no se pide un mapa base concreto,
+  // arrastra el mapa base a Positron: un tema claro sobre CARTO Dark Matter
+  // sería justo el agujero negro que este parámetro viene a evitar. Con `base`
+  // explícito manda `base` (satélite + interfaz clara es una combinación
+  // legítima, y de hecho buena).
+  if (params.get('tema')?.toLowerCase() === 'claro') {
+    config.theme = 'light';
+    config.basemap = 'light';
+  }
+
+  const base = params.get('base')?.toLowerCase();
   if (base && BASEMAP_PARAM[base]) config.basemap = BASEMAP_PARAM[base];
 
   const centro = params.get('centro');
@@ -139,7 +166,11 @@ export function buildEmbedUrl(config: EmbedConfig, origin: string = SITE_ORIGIN)
     // elección legítima (p. ej. solo límites): se emite `capas=` vacío.
     params.set('capas', active.join(','));
   }
-  if (config.basemap !== EMBED_DEFAULTS.basemap) params.set('base', 'oscuro');
+  if (config.theme !== EMBED_DEFAULTS.theme) params.set('tema', 'claro');
+  // El mapa base solo se escribe si no es el que ya implica el tema: con
+  // `tema=claro` el default pasa a ser Positron.
+  const impliedBasemap: BasemapId = config.theme === 'light' ? 'light' : EMBED_DEFAULTS.basemap;
+  if (config.basemap !== impliedBasemap) params.set('base', BASEMAP_NAME[config.basemap]);
   if (config.locality) params.set('localidad', config.locality);
   if (config.center) {
     params.set('centro', `${config.center[1].toFixed(4)},${config.center[0].toFixed(4)}`);

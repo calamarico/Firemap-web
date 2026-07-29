@@ -124,6 +124,13 @@ h3 {
   background-color: var(--fm-surface-hover);
 }
 
+/* Tema claro: los iconos de MapLibre vienen horneados en gris oscuro y arriba
+   se invierten para que se vean sobre panel oscuro. Con panel blanco hay que
+   dejarlos como venían, o desaparecen. */
+:root[data-tema='claro'] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: none;
+}
+
 /* Atribución a juego con el panel: MapLibre la pinta blanca translúcida (y en
    su forma compacta, blanco sólido con texto negro), que es un fogonazo sobre
    la UI oscura. El icono "i" va horneado en gris oscuro, de ahí el invert. */
@@ -157,6 +164,15 @@ h3 {
   background-color: transparent;
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23fff' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");
 }
+/* Tema claro: el mismo icono en slate oscuro (el blanco sobre panel blanco no
+   se vería). Mismo SVG, otro `fill`. */
+:root[data-tema='claro'] .maplibregl-ctrl-attrib-button,
+:root[data-tema='claro']
+  .maplibregl-ctrl-attrib.maplibregl-compact-show
+  .maplibregl-ctrl-attrib-button {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%230f172a' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");
+}
+
 /* El anillo azul propio de MapLibre lo sustituye el foco global del sistema. */
 .maplibregl-ctrl-attrib-button:focus {
   box-shadow: none;

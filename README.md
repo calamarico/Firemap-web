@@ -158,6 +158,47 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 
 ## Mapa embebible (`/embed`) y generador (`/insertar`)
 
+### Cómo se embebe (lo que copia un medio)
+
+Esto es exactamente lo que genera `/insertar` y lo que un periódico pega en su
+gestor de contenidos. El `<div>` con `padding-bottom` es el truco de proporción
+que hace que el mapa se adapte al ancho de la columna (funciona en cualquier CMS,
+también en los que no dejan tocar el CSS):
+
+```html
+<div style="position:relative;width:100%;padding-bottom:62%">
+  <iframe src="https://firemapsspain.online/embed"
+    title="Mapa de incendios en España y Portugal en tiempo real"
+    loading="lazy" allowfullscreen
+    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"></iframe>
+</div>
+<p style="margin:.5rem 0;font:400 13px/1.4 system-ui,sans-serif">Fuente:
+  <a href="https://firemapsspain.online/" target="_blank" rel="noopener">Mapa de
+  incendios en España y Portugal · Firemaps</a></p>
+```
+
+Variante de alto fijo (para huecos de altura conocida en una plantilla):
+
+```html
+<iframe src="https://firemapsspain.online/embed" title="Mapa de incendios en España y Portugal en tiempo real"
+  width="100%" height="520" style="border:0;display:block" loading="lazy" allowfullscreen></iframe>
+```
+
+Cada pieza está ahí por algo: `loading="lazy"` (no descarga nada hasta que el
+lector se acerca), `allowfullscreen` (habilita el botón de pantalla completa del
+widget), `title` (lo lee un lector de pantalla) y el párrafo de crédito, que es
+la condición de uso y lo que devuelve tráfico y marca.
+
+Un mapa centrado en un municipio, con tema claro y ranking de localidades:
+
+```html
+<iframe src="https://firemapsspain.online/embed?localidad=zamora&zoom=10&tema=claro&ranking=1"
+  title="Mapa de incendios en Zamora en tiempo real"
+  width="100%" height="520" style="border:0;display:block" loading="lazy" allowfullscreen></iframe>
+```
+
+### Cómo está montado
+
 El mapa se puede insertar en cualquier web con un `<iframe>`. No es una ruta de
 la SPA: son **dos documentos más del build de Vite** (`client/embed.html` y
 `client/insertar.html`, con entradas `src/embed.tsx` y `src/insertar.tsx`), así
@@ -172,7 +213,18 @@ serviría la app).
   widget y el generador de `/insertar`: si se duplicara, el código que copia un
   periodista pintaría algo distinto de lo que previsualizó. Parámetros:
   `localidad`, `centro=lat,lon`, `zoom`, `capas=focos,quemado,viento,flujo,limites`,
-  `base=oscuro`, `controles=0`, `leyenda=0`, `ranking=1`.
+  `tema=claro`, `base=satelite|oscuro|claro`, `controles=0`, `leyenda=0`,
+  `ranking=1`.
+- **Tema claro** (`?tema=claro`), para los medios que maquetan en blanco. Cambia
+  dos cosas a la vez: los tokens semánticos de la interfaz (bloque
+  `[data-tema='claro']` de `styles/tokens.css`, con los contrastes medidos anotados
+  ahí) y la cartografía propia (`MAP_LIGHT` en `styles/mapTokens.ts` + mapa base
+  CARTO Positron), porque sobre un fondo casi blanco los límites, el humo y el
+  flujo —claros y translúcidos— desaparecen. El tema es **constante por
+  documento**: se resuelve al crear el mapa, así que no hay repintado en caliente
+  que mantener; el destello inicial lo evita un `<script>` de tres líneas en
+  `embed.html` que pone `data-tema` antes del primer pintado. La app propia sigue
+  siendo solo oscura.
 - **Diferencias con la app** (`EmbedView.tsx`): gestos cooperativos (el zoom con
   rueda exige Ctrl/⌘, si no el mapa se comería el scroll del artículo), botón de
   pantalla completa, sin escritura del hash, marca clicable con el contador de

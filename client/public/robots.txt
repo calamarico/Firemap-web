@@ -2,4 +2,12 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
+# /embed (el interior del iframe embebible) NO se bloquea a propósito, aunque no
+# queremos verlo en los resultados: eso ya lo dice su <meta name="robots"
+# content="noindex, follow"> + la cabecera X-Robots-Tag de _headers. Con un
+# Disallow aquí el rastreador no podría leer ese noindex —la URL podría acabar
+# indexada igualmente, sin descripción— ni seguir el enlace al mapa completo que
+# lleva dentro. La página indexable que explica cómo insertar el mapa es
+# /insertar, y está en el sitemap.
+
 Sitemap: https://firemapsspain.online/sitemap.xml

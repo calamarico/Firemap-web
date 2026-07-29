@@ -4,8 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { INITIAL_ZOOM, MAP_CENTER } from '../config';
 import {
   AppLayer,
-  BASE_STYLE,
   BasemapId,
+  createBaseStyle,
   createBoundariesLayer,
   createCitiesLayer,
   createEffisLayer,
@@ -18,6 +18,7 @@ import {
   SmokePlumeLayer,
 } from '../map/layers';
 import { createWindFieldRenderer, WindFieldRenderer } from '../map/windFieldRenderer';
+import { mapPalette, type MapTheme } from '../styles/mapTokens';
 import type { WindFieldBlock } from '../lib/windField';
 import type { FireHotspot, WindPoint } from '../types';
 import FirePopup from './FirePopup';
@@ -55,6 +56,13 @@ interface MapViewProps {
   initialZoom?: number | null;
   /** Botón de pantalla completa (el iframe necesita `allowfullscreen`). */
   fullscreen?: boolean;
+  /**
+   * Paleta de la cartografía propia (límites, etiquetas, humo, flujo). 'light'
+   * es para el mapa base claro del widget embebible: sobre CARTO Positron, lo
+   * que era claro-translúcido desaparece. Constante por documento —se lee al
+   * crear el mapa—: la app siempre es 'dark'.
+   */
+  mapTheme?: MapTheme;
   /**
    * Refleja la vista en `#map=zoom/lat/lon`. Se apaga en el embed: ahí la URL
    * no la ve nadie y el enlace "ver el mapa completo" ya lleva la vista.
@@ -127,6 +135,7 @@ export default function MapView({
   initialCenter = null,
   initialZoom = null,
   fullscreen = false,
+  mapTheme = 'dark',
   syncHash = true,
   ariaLabel = 'Mapa de focos de calor en España y Portugal',
 }: MapViewProps) {
@@ -147,9 +156,10 @@ export default function MapView({
     if (!containerRef.current) return;
     // Si la URL trae posición (#map=...), el mapa arranca ahí.
     const fromHash = parseMapHash();
+    const palette = mapPalette(mapTheme);
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: BASE_STYLE,
+      style: createBaseStyle(palette),
       center: fromHash?.center ?? initialCenter ?? MAP_CENTER,
       zoom: fromHash?.zoom ?? initialZoom ?? INITIAL_ZOOM,
       // Limita el paneo al entorno de España (con margen para Canarias): no
@@ -204,11 +214,11 @@ export default function MapView({
     // estar el panel de localidades afectadas (?ranking=1).
     if (fullscreen) map.addControl(new maplibregl.FullscreenControl(), 'bottom-right');
 
-    const fires = createFiresLayer();
+    const fires = createFiresLayer(palette);
     const effis = createEffisLayer('7d');
-    const boundaries = createBoundariesLayer();
-    const cities = createCitiesLayer();
-    const wind = createSmokePlumeLayer();
+    const boundaries = createBoundariesLayer(palette);
+    const cities = createCitiesLayer(palette);
+    const wind = createSmokePlumeLayer(palette);
     layersRef.current = { fires, effis, boundaries, wind };
 
     map.on('load', () => {
@@ -221,7 +231,7 @@ export default function MapView({
       wind.add(map);
       // El campo de flujo va en lienzo propio (no es capa MapLibre), encima
       // del canvas del mapa y debajo de controles y popups.
-      windFieldRef.current = createWindFieldRenderer(map);
+      windFieldRef.current = createWindFieldRenderer(map, palette);
       bindFiresPopup(map);
 
       // La URL solo refleja la posición cuando ya no es la de arranque (o si
