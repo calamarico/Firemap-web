@@ -1,4 +1,5 @@
 import { isInCoverage } from './geo';
+import { isIndustrialHeatSource } from './industrial';
 import { computeImpact, loadIndex } from './impact';
 import { ApiError, Env, FireHotspot, FiresResponse } from './types';
 
@@ -208,6 +209,7 @@ async function refreshFires(mapKey: string, env: Env): Promise<FiresResponse> {
     fulfilled
       .flatMap((r) => r.value)
       .filter((h) => isInCoverage(h.longitude, h.latitude))
+      .filter((h) => !isIndustrialHeatSource(h.longitude, h.latitude))
       .filter((h) => acqTimestamp(h) >= cutoff)
   ).sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
 

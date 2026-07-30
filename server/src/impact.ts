@@ -95,6 +95,11 @@ function findArea(areas: IndexedArea[], lon: number, lat: number): string | null
 const MAX_MUNICIPALITIES_PER_REGION = 12;
 // Un único foco suele ser ruido (quema agrícola, industria, falso positivo):
 // solo entran en el ranking los municipios con al menos 2 detecciones.
+// OJO: tras dedupeHotspots `count` cuenta celdas de la última pasada, no
+// detecciones — un fuego pequeño pero persistente queda en 1 foco con
+// `detections` ≥ 2. El umbral se cumple por extensión (≥ 2 celdas) O por
+// confirmación (≥ 2 pasadas sobre la misma celda); si no, la dedupe vaciaba
+// del ranking (y de las plumas de viento) municipios con fuego real.
 const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 
 export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
@@ -102,6 +107,7 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
 
   interface Accum {
     count: number;
+    maxDetections: number;
     maxFrp: number | null;
     lastAcqAt: string;
     bbox: [number, number, number, number];
@@ -121,11 +127,13 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
       munis.get(municipality) ??
       ({
         count: 0,
+        maxDetections: 0,
         maxFrp: null,
         lastAcqAt: '',
         bbox: [Infinity, Infinity, -Infinity, -Infinity],
       } as Accum);
     entry.count += 1;
+    if ((h.detections ?? 1) > entry.maxDetections) entry.maxDetections = h.detections ?? 1;
     if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
     // ISO de ancho fijo: comparar strings equivale a comparar instantes.
     const acqAt = acqIso(h);
@@ -141,6 +149,11 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
   const result: RegionImpact[] = [];
   for (const [region, munis] of byRegion) {
     const relevant: MunicipalityImpact[] = [...munis.entries()]
+      .filter(
+        ([, e]) =>
+          e.count >= MIN_HOTSPOTS_PER_MUNICIPALITY ||
+          e.maxDetections >= MIN_HOTSPOTS_PER_MUNICIPALITY
+      )
       .map(([name, e]) => ({
         name,
         slug: muniSlug(name, region),
@@ -149,7 +162,6 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
         lastAcqAt: e.lastAcqAt,
         bbox: e.bbox,
       }))
-      .filter((m) => m.count >= MIN_HOTSPOTS_PER_MUNICIPALITY)
       // Detección más reciente primero: cuenta la historia del fuego
       // extendiéndose a nuevas localidades. A igual instante (los satélites
       // barren zonas enteras a la vez), desempatan tamaño e intensidad.

@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { isInCoverage } from './geo';
+import { isIndustrialHeatSource } from './industrial';
 import { computeImpact } from './impact';
 import { ApiError, FireHotspot, FiresResponse } from './types';
 
@@ -150,12 +151,14 @@ async function refreshFires(mapKey: string): Promise<FiresResponse> {
 
   const cutoff = Date.now() - WINDOW_HOURS * 3_600_000;
   // El recorte por contorno descarta los focos de países vecinos que entran en
-  // los bbox rectangulares; la deduplicación colapsa las pasadas sucesivas
-  // sobre el mismo fuego (ver dedupeHotspots).
+  // los bbox rectangulares; el filtro industrial quita las plantas que arden
+  // "siempre" (ver industrial.ts); la deduplicación colapsa las pasadas
+  // sucesivas sobre el mismo fuego (ver dedupeHotspots).
   const hotspots = dedupeHotspots(
     fulfilled
       .flatMap((r) => r.value)
       .filter((h) => isInCoverage(h.longitude, h.latitude))
+      .filter((h) => !isIndustrialHeatSource(h.longitude, h.latitude))
       .filter((h) => acqTimestamp(h) >= cutoff)
   ).sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
 

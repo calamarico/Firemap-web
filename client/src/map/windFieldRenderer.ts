@@ -41,6 +41,19 @@ const FIRE_CLEAR_RADIUS_PX = 14;
  */
 const stepPx = (kmh: number) => 0.5 + Math.sqrt(Math.max(0, kmh)) * 0.42;
 
+/**
+ * Con viento débil los puntos vecinos de la rejilla (~55 km) pueden apuntar
+ * casi en círculo (brisas nocturnas de valle): la bilineal de vectores
+ * opuestos deja un residuo de ~1 km/h cuya dirección es ruido, y stepPx lo
+ * pintaría tan decidido como un flujo real — incluso al revés de la pluma de
+ * un foco vecino. Por debajo del suelo la traza no se ve; la opacidad plena
+ * se alcanza donde el flujo vuelve a ser señal.
+ */
+const SPEED_FADE_FLOOR_KMH = 1.5;
+const SPEED_FADE_FULL_KMH = 4.5;
+const speedFade = (kmh: number) =>
+  Math.max(0, Math.min(1, (kmh - SPEED_FADE_FLOOR_KMH) / (SPEED_FADE_FULL_KMH - SPEED_FADE_FLOOR_KMH)));
+
 interface Particle {
   lon: number;
   lat: number;
@@ -265,7 +278,10 @@ export function createWindFieldRenderer(
       // sin(π·edad) hace que la traza entre y salga — la reaparición no se ve.
       const age = p.px / p.maxPx;
       const alpha =
-        trailAlpha * Math.sin(Math.PI * Math.min(1, age)) * edgeFade(block, p.lon, p.lat);
+        trailAlpha *
+        Math.sin(Math.PI * Math.min(1, age)) *
+        edgeFade(block, p.lon, p.lat) *
+        speedFade(wind.speed);
       if (alpha > 0 && !nearFire(from.x, from.y)) {
         g.strokeStyle = `rgba(${trail.r},${trail.g},${trail.b},${alpha})`;
         g.beginPath();

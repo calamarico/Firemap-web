@@ -36,9 +36,9 @@ export interface FireWindSite {
 /**
  * Sitios de viento junto a los focos: por cada cluster, dónde muestrear
  * (centroide estable) y dónde dibujar la pluma (foco real). Solo entran
- * municipios con ≥2 focos, el filtro ya lo aplica el proxy. Devuelve un
- * orden estable por muestra para que reordenaciones del ranking no alteren
- * la clave del fetch.
+ * municipios con ≥2 focos o un foco confirmado por ≥2 pasadas; el filtro ya
+ * lo aplica el proxy. Devuelve un orden estable por muestra para que
+ * reordenaciones del ranking no alteren la clave del fetch.
  */
 export function deriveFireWindSites(
   impact: RegionImpact[],

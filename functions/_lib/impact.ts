@@ -68,6 +68,11 @@ async function fetchIndex(env: Env): Promise<MuniIndex | null> {
 
 const MAX_MUNICIPALITIES_PER_REGION = 12;
 // Un único foco suele ser ruido: solo entran municipios con ≥ 2 detecciones.
+// OJO: tras dedupeHotspots `count` cuenta celdas de la última pasada, no
+// detecciones — un fuego pequeño pero persistente queda en 1 foco con
+// `detections` ≥ 2. El umbral se cumple por extensión (≥ 2 celdas) O por
+// confirmación (≥ 2 pasadas sobre la misma celda); si no, la dedupe vaciaba
+// del ranking (y de las plumas de viento) municipios con fuego real.
 const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 
 export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null): RegionImpact[] {
@@ -75,6 +80,7 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
 
   interface Accum {
     count: number;
+    maxDetections: number;
     maxFrp: number | null;
     lastAcqAt: string;
     bbox: [number, number, number, number];
@@ -90,11 +96,13 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
       byMuni.get(id) ??
       ({
         count: 0,
+        maxDetections: 0,
         maxFrp: null,
         lastAcqAt: '',
         bbox: [Infinity, Infinity, -Infinity, -Infinity],
       } as Accum);
     entry.count += 1;
+    if ((h.detections ?? 1) > entry.maxDetections) entry.maxDetections = h.detections ?? 1;
     if (h.frp !== null && (entry.maxFrp === null || h.frp > entry.maxFrp)) entry.maxFrp = h.frp;
     // ISO de ancho fijo: comparar strings equivale a comparar instantes.
     const acqAt = acqIso(h);
@@ -109,7 +117,12 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
 
   const byRegion = new Map<number, MunicipalityImpact[]>();
   for (const [id, e] of byMuni) {
-    if (e.count < MIN_HOTSPOTS_PER_MUNICIPALITY) continue;
+    if (
+      e.count < MIN_HOTSPOTS_PER_MUNICIPALITY &&
+      e.maxDetections < MIN_HOTSPOTS_PER_MUNICIPALITY
+    ) {
+      continue;
+    }
     const muni = index.municipalities[id - 1];
     if (!muni || muni.r < 0) continue;
     const list = byRegion.get(muni.r) ?? [];
