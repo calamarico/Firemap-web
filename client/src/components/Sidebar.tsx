@@ -8,7 +8,9 @@ import type { MunicipalityImpact, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
+import NearbyLocalities from './NearbyLocalities';
 import VideoPromo from './VideoPromo';
+import type { ActiveLocality, LocalityHit } from '../lib/locality';
 import { localityShareUrl, viewShareUrl } from '../lib/share';
 import Button from './ui/Button';
 import CountBadge from './ui/CountBadge';
@@ -37,11 +39,14 @@ interface SidebarProps extends LayerControls {
   effis: EffisView;
   impact: RegionImpact[];
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
+  /** Salto a una localidad desde el bloque de cercanas (NearbyLocalities). */
+  onSelectLocality: (hit: LocalityHit) => void;
   basemap: BasemapId;
   onBasemapChange: (basemap: BasemapId) => void;
   onRefresh: () => void;
-  /** Localidad activa; sin ella, el menú «Compartir» no ofrece su enlace. */
-  locality: { name: string; slug: string } | null;
+  /** Localidad activa: da título al panel, monta el bloque de cercanas y
+   *  añade su enlace al menú «Compartir». */
+  locality: ActiveLocality | null;
 }
 
 export default function Sidebar(props: SidebarProps) {
@@ -278,7 +283,12 @@ export default function Sidebar(props: SidebarProps) {
         />
         <span className="flex items-center gap-2">
           <img src={logoUrl} alt="" className="h-7 w-7" />
-          <span className="font-display text-sm font-bold leading-tight">Firemaps España</span>
+          {/* Con localidad activa, la barra móvil dice dónde estás (el header
+              con el H1 solo existe en escritorio). Span, no heading: el único
+              h1 sigue siendo el del header. */}
+          <span className="line-clamp-1 font-display text-sm font-bold leading-tight">
+            {props.locality ? `Incendios en ${props.locality.name}` : 'Firemaps España'}
+          </span>
         </span>
         <span className="flex items-center gap-2">
           {isLoading && (
@@ -304,11 +314,21 @@ export default function Sidebar(props: SidebarProps) {
         <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
           <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
           {/* Un solo h1 con marca + descriptor: el descriptor lleva la keyword
-              y así el encabezado principal de la página no es solo la marca. */}
+              y así el encabezado principal de la página no es solo la marca.
+              Con localidad activa, el H1 pasa a ser el de su página — mismo
+              texto que inyecta el server en /incendios/<slug>, que React
+              destruye al montar: sin esto, el crawler que renderiza JS vería
+              el encabezado de la home en las 8.500 páginas. */}
           <h1>
-            <span className="block text-lg font-bold leading-tight">Firemaps España</span>
+            <span className="block text-lg font-bold leading-tight">
+              {props.locality
+                ? `Incendios en ${props.locality.name} hoy, en tiempo real`
+                : 'Firemaps España'}
+            </span>
             <span className="mt-1 block text-xs font-normal text-ink-muted">
-              Mapa de incendios en España y Portugal · satélite en tiempo casi real
+              {props.locality
+                ? 'Firemaps España · satélite en tiempo casi real'
+                : 'Mapa de incendios en España y Portugal · satélite en tiempo casi real'}
             </span>
           </h1>
         </header>
@@ -346,6 +366,11 @@ export default function Sidebar(props: SidebarProps) {
             </StatusNote>
           )}
         </section>
+
+        {/* Con localidad activa: enlaces a las localidades cercanas (o a los
+            distritos, en la vista país). Espejo del bloque server-side de
+            /incendios/<slug>, que React destruye al montar. */}
+        <NearbyLocalities locality={props.locality} onSelectLocality={props.onSelectLocality} />
 
         {/* Ranking de localidades: en móvil vive aquí; en escritorio, en el
             panel flotante de la derecha (ImpactPanel) */}

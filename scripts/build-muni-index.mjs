@@ -131,10 +131,15 @@ const slugs = municipalities.map((m, i) => {
   return baseCount.get(base) > 1 ? `${base}-${slugify(regionNames[muniRegion[i]])}` : base;
 });
 {
+  // Slugs con página propia (landings de país): ningún municipio puede ocuparlos.
+  const RESERVED_SLUGS = new Set(['portugal']);
   const seen = new Set();
   slugs.forEach((s, i) => {
     if (!s || seen.has(s)) {
       throw new Error(`Slug inválido o duplicado: "${s}" (${municipalities[i].name})`);
+    }
+    if (RESERVED_SLUGS.has(s)) {
+      throw new Error(`Slug reservado ocupado por un municipio: "${s}" (${municipalities[i].name})`);
     }
     seen.add(s);
   });

@@ -6,6 +6,7 @@ import { useFireMapData } from '../hooks/useFireMapData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { fullMapUrl, type EmbedConfig } from '../lib/embed';
 import { findLocalityByName, findLocalityBySlug } from '../lib/locality';
+import { PORTUGAL_NAME, PORTUGAL_SLUG, PT_BBOX, PT_DISTRICTS } from '../lib/portugal';
 import { paletteThemeFor } from '../map/layers';
 import { SEVERITY } from '../styles/mapTokens';
 import type { MunicipalityImpact } from '../types';
@@ -78,8 +79,34 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
   useEffect(() => {
     if (!localityParam) return;
     let cancelled = false;
-    const key = localityParam.toLowerCase();
+    const key = localityParam.trim().toLowerCase();
     void (async () => {
+      // Vista país (?localidad=portugal): no es un municipio de muni-meta —
+      // encuadre del país entero en vez de salto a un punto.
+      if (key === PORTUGAL_SLUG) {
+        setSlug(PORTUGAL_SLUG); // el enlace de salida apunta a /incendios/portugal
+        setLocalityName(PORTUGAL_NAME);
+        if (config.center) return;
+        const jump = (map: maplibregl.Map) => {
+          if (config.zoom != null) {
+            map.jumpTo({
+              center: [(PT_BBOX[0] + PT_BBOX[2]) / 2, (PT_BBOX[1] + PT_BBOX[3]) / 2],
+              zoom: config.zoom,
+            });
+          } else {
+            map.fitBounds(
+              [
+                [PT_BBOX[0], PT_BBOX[1]],
+                [PT_BBOX[2], PT_BBOX[3]],
+              ],
+              { padding: 40, duration: 0 }
+            );
+          }
+        };
+        if (mapRef.current) jump(mapRef.current);
+        else pendingJump.current = jump;
+        return;
+      }
       const hit = (await findLocalityBySlug(key)) ?? (await findLocalityByName(localityParam));
       if (cancelled || !hit) return;
       setSlug(hit.slug);
@@ -210,7 +237,13 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
 
       {config.ranking && (
         <ImpactPanel
-          impact={fires.data?.impact ?? []}
+          // Embed centrado en Portugal: el ranking se ciñe a sus distritos,
+          // coherente con lo que el medio que lo inserta está mostrando.
+          impact={
+            slug === PORTUGAL_SLUG
+              ? (fires.data?.impact ?? []).filter((r) => PT_DISTRICTS.has(r.name))
+              : (fires.data?.impact ?? [])
+          }
           onSelectMunicipality={handleSelectMunicipality}
         />
       )}

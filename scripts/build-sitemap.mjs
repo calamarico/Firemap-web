@@ -19,10 +19,16 @@ const meta = JSON.parse(
   readFileSync(path.join(root, 'client', 'public', 'data', 'muni-meta.json'), 'utf8')
 );
 
+// Slugs con página propia (landings de país): ningún municipio puede ocuparlos.
+const RESERVED_SLUGS = new Set(['portugal']);
+
 const seen = new Set();
 for (const m of meta.municipalities) {
   if (!m.s || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(m.s) || seen.has(m.s)) {
     throw new Error(`Slug inválido o duplicado en muni-meta.json: "${m.s}" (${m.n})`);
+  }
+  if (RESERVED_SLUGS.has(m.s)) {
+    throw new Error(`Slug reservado ocupado por un municipio: "${m.s}" (${m.n})`);
   }
   seen.add(m.s);
 }
@@ -32,6 +38,8 @@ const urls = [
   // Generador del código de inserción. /embed (el interior del iframe) NO va al
   // sitemap: es noindex a propósito.
   `  <url>\n    <loc>${ORIGIN}/insertar</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`,
+  // Landing de país (functions/incendios/portugal.ts).
+  `  <url>\n    <loc>${ORIGIN}/incendios/portugal</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>`,
   ...meta.municipalities.map(
     (m) =>
       `  <url>\n    <loc>${ORIGIN}/incendios/${m.s}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.5</priority>\n  </url>`

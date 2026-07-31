@@ -6,6 +6,8 @@
  * estático de municipios (~575 KB, solo se descarga si la URL trae localidad).
  */
 
+import { PT_DISTRICTS } from './portugal';
+
 export const LOCALITY_PARAM = 'localidad';
 const PATH_RE = /^\/incendios\/([^/]+)\/?$/;
 
@@ -13,13 +15,21 @@ const PATH_RE = /^\/incendios\/([^/]+)\/?$/;
 const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps';
 
 interface MuniMetaFile {
-  municipalities: Array<{ n: string; s?: string; c?: [number, number] }>;
+  regions?: string[];
+  municipalities: Array<{ n: string; r?: number; s?: string; c?: [number, number] }>;
 }
 
 export interface LocalityHit {
   name: string;
   slug: string;
   center: [number, number];
+}
+
+/** Localidad activa en la app: municipio elegido o vista de país (Portugal). */
+export interface ActiveLocality {
+  name: string;
+  slug: string;
+  kind: 'municipality' | 'country';
 }
 
 let metaPromise: Promise<MuniMetaFile | null> | null = null;
@@ -59,6 +69,53 @@ export async function findLocalityByName(name: string): Promise<LocalityHit | nu
   const target = normalizeName(name);
   const hit = meta.municipalities.find((m) => normalizeName(m.n) === target);
   return hit ? toHit(hit) : null;
+}
+
+export interface NearbyLocalities {
+  region: string;
+  isPortugal: boolean;
+  neighbors: LocalityHit[];
+}
+
+/**
+ * Municipios más cercanos de la misma región, por distancia euclídea sobre los
+ * centroides. Réplica client-side del bloque de vecinos que el server inyecta
+ * en /incendios/<slug> (functions/incendios/[slug].ts, renderNeighbors): React
+ * lo destruye al montar, y esta versión lo repone en la interfaz.
+ */
+export async function findNearby(slug: string, limit = 10): Promise<NearbyLocalities | null> {
+  const meta = await loadMeta();
+  if (!meta?.regions) return null;
+  const self = meta.municipalities.find((m) => m.s === slug);
+  if (!self || self.r === undefined || !self.c) return null;
+  const region = meta.regions[self.r] ?? '';
+  const [x, y] = self.c;
+  const neighbors = meta.municipalities
+    .filter((m) => m.r === self.r && m.s !== slug)
+    .flatMap((m) => {
+      const hit = toHit(m);
+      return hit ? [{ hit, d: (hit.center[0] - x) ** 2 + (hit.center[1] - y) ** 2 }] : [];
+    })
+    .sort((a, b) => a.d - b.d)
+    .slice(0, limit)
+    .map((entry) => entry.hit);
+  return { region, isPortugal: PT_DISTRICTS.has(region), neighbors };
+}
+
+/** Los 18 concelhos capital de distrito (nombre == nombre del distrito), para
+ *  el bloque de enlaces de la vista país. Misma regla que el server
+ *  (functions/incendios/portugal.ts, districtCapitals). */
+export async function portugalCapitals(): Promise<LocalityHit[]> {
+  const meta = await loadMeta();
+  if (!meta?.regions) return [];
+  const capitals: LocalityHit[] = [];
+  meta.regions.forEach((region, r) => {
+    if (!PT_DISTRICTS.has(region)) return;
+    const capital = meta.municipalities.find((m) => m.r === r && m.n === region);
+    const hit = capital ? toHit(capital) : null;
+    if (hit) capitals.push(hit);
+  });
+  return capitals.sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
 /**
