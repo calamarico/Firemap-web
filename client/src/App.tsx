@@ -139,6 +139,14 @@ export default function App() {
     setLocality({ name: hit.name, slug: hit.slug, kind: 'municipality' });
   }, []);
 
+  // Enlace «Ver situación de la zona» del popup de foco: URL canónica +
+  // localidad activa en la sidebar, SIN vuelo — el usuario ya está mirando
+  // el foco; moverle el mapa solo desorienta.
+  const handleSelectFireLocality = useCallback((name: string, slug: string) => {
+    setLocalityParam(name, slug);
+    setLocality({ name, slug, kind: 'municipality' });
+  }, []);
+
   // En la vista país el ranking se ciñe a los distritos portugueses; en
   // cualquier otra, el nacional completo (ES+PT) de siempre.
   const impact = fires.data?.impact ?? [];
@@ -169,6 +177,8 @@ export default function App() {
         showWindField={showWindField && !reducedMotion}
         windField={windField}
         rain={rain}
+        incidents={incidents}
+        onSelectLocality={handleSelectFireLocality}
         showDanger={showDanger}
         basemap={basemap}
         onMapReady={handleMapReady}

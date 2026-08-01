@@ -1,6 +1,6 @@
 import maplibregl, { MapMouseEvent } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createPortal } from 'react-dom';
 import { INITIAL_ZOOM, MAP_CENTER, RAIN_BADGE_MIN_PROB } from '../config';
 import {
   AppLayer,
@@ -23,7 +23,7 @@ import {
 import { createWindFieldRenderer, WindFieldRenderer } from '../map/windFieldRenderer';
 import { mapPalette, type MapTheme } from '../styles/mapTokens';
 import type { WindFieldBlock } from '../lib/windField';
-import type { FireHotspot, RainForecastPoint, WindPoint } from '../types';
+import type { FireHotspot, OperationalIncident, RainForecastPoint, WindPoint } from '../types';
 import FirePopup from './FirePopup';
 
 interface MapViewProps {
@@ -46,6 +46,15 @@ interface MapViewProps {
   windField: WindFieldBlock[] | null;
   /** Lluvia prevista sobre incendios grandes; visible junto a los focos. */
   rain?: RainForecastPoint[];
+  /** Estado operativo oficial (Bombers/JCyL/EMS); el popup del foco lo cruza
+   *  por proximidad. El embed no lo carga: sin la prop, la fila no aparece. */
+  incidents?: OperationalIncident[];
+  /**
+   * Navegación SPA a la localidad del foco desde su popup (URL + sidebar,
+   * sin vuelo: el usuario ya está mirando el foco). Sin el callback (embed),
+   * el enlace del popup navega de verdad a /incendios/<slug>.
+   */
+  onSelectLocality?: (name: string, slug: string) => void;
   /** Riesgo de incendio (FWI, hoy): raster de fondo, opt-in. */
   showDanger?: boolean;
   basemap: BasemapId;
@@ -89,6 +98,7 @@ const GESTURE_LOCALE = {
 /** Convierte las properties del feature (tipadas como unknown) en un FireHotspot. */
 function propertiesToHotspot(props: Record<string, unknown>): FireHotspot {
   const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const strOrUndef = (v: unknown) => (typeof v === 'string' && v !== '' ? v : undefined);
   const numOrNull = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
   return {
     latitude: numOrNull(props.latitude) ?? 0,
@@ -100,7 +110,20 @@ function propertiesToHotspot(props: Record<string, unknown>): FireHotspot {
     confidence: str(props.confidence),
     frp: numOrNull(props.frp),
     detections: numOrNull(props.detections) ?? undefined,
+    firstAcqAt: strOrUndef(props.firstAcqAt),
+    muniName: strOrUndef(props.muniName),
+    muniSlug: strOrUndef(props.muniSlug),
+    muniRegion: strOrUndef(props.muniRegion),
   };
+}
+
+/** Foco seleccionado: el contenido del popup se renderiza vía portal en su
+ *  contenedor, DENTRO del árbol de React — así ve props frescas de viento,
+ *  lluvia e incidentes en cada render mientras está abierto. */
+interface SelectedFire {
+  fire: FireHotspot;
+  lngLat: [number, number];
+  container: HTMLDivElement;
 }
 
 /**
@@ -137,6 +160,8 @@ export default function MapView({
   showWindField,
   windField,
   rain = [],
+  incidents = [],
+  onSelectLocality,
   showDanger = false,
   basemap,
   onMapReady,
@@ -160,6 +185,7 @@ export default function MapView({
   } | null>(null);
   const windFieldRef = useRef<WindFieldRenderer | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [selectedFire, setSelectedFire] = useState<SelectedFire | null>(null);
 
   // Inicialización única del mapa; los cambios posteriores se sincronizan en
   // los efectos de abajo (por eso este efecto no depende de las props).
@@ -248,7 +274,9 @@ export default function MapView({
       // El campo de flujo va en lienzo propio (no es capa MapLibre), encima
       // del canvas del mapa y debajo de controles y popups.
       windFieldRef.current = createWindFieldRenderer(map, palette);
-      bindFiresPopup(map);
+      bindFiresPopup(map, (fire, lngLat) =>
+        setSelectedFire({ fire, lngLat, container: document.createElement('div') })
+      );
 
       // La URL solo refleja la posición cuando ya no es la de arranque (o si
       // el usuario llegó con hash): la portada queda con URL limpia.
@@ -347,6 +375,25 @@ export default function MapView({
     windFieldRef.current?.setEnabled(showWindField);
   }, [showWindField, mapReady]);
 
+  // Ciclo de vida del popup del foco: MapLibre posee el chrome (caja, tip,
+  // botón de cierre) y React el contenido, vía portal al contenedor. El
+  // setState funcional con comparación de identidad evita que el 'close' del
+  // popup viejo (disparado también por remove() al abrir otro) borre la
+  // selección nueva.
+  useEffect(() => {
+    if (!selectedFire || !mapRef.current) return;
+    const popup = new maplibregl.Popup({ maxWidth: '320px' })
+      .setLngLat(selectedFire.lngLat)
+      .setDOMContent(selectedFire.container)
+      .addTo(mapRef.current)
+      .on('close', () =>
+        setSelectedFire((current) => (current === selectedFire ? null : current))
+      );
+    return () => {
+      popup.remove();
+    };
+  }, [selectedFire]);
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     setBasemap(mapRef.current, basemap);
@@ -355,27 +402,42 @@ export default function MapView({
   return (
     // Mismo azul océano que la capa background del estilo: cubre el instante
     // inicial, antes de que el estilo del mapa exista.
-    <div ref={containerRef} className="h-full w-full bg-void" aria-label={ariaLabel} />
+    <div ref={containerRef} className="h-full w-full bg-void" aria-label={ariaLabel}>
+      {selectedFire &&
+        createPortal(
+          <FirePopup
+            fire={selectedFire.fire}
+            wind={wind}
+            windField={windField}
+            rain={rain}
+            incidents={incidents}
+            onSelectLocality={
+              onSelectLocality
+                ? (name, slug) => {
+                    onSelectLocality(name, slug);
+                    setSelectedFire(null);
+                  }
+                : undefined
+            }
+          />,
+          selectedFire.container
+        )}
+    </div>
   );
 }
 
-function bindFiresPopup(map: maplibregl.Map) {
+/** Solo captura el click y lo eleva: el popup lo gobierna el estado de React. */
+function bindFiresPopup(
+  map: maplibregl.Map,
+  onSelect: (fire: FireHotspot, lngLat: [number, number]) => void
+) {
   map.on('click', FIRES_LAYER_ID, (event: MapMouseEvent) => {
     const feature = map.queryRenderedFeatures(event.point, { layers: [FIRES_LAYER_ID] })[0];
     if (!feature || feature.geometry.type !== 'Point') return;
-
-    const fire = propertiesToHotspot(feature.properties as Record<string, unknown>);
-    const container = document.createElement('div');
-    const root = createRoot(container);
-    root.render(<FirePopup fire={fire} />);
-
-    new maplibregl.Popup({ maxWidth: '320px' })
-      .setLngLat(feature.geometry.coordinates as [number, number])
-      .setDOMContent(container)
-      .addTo(map)
-      // El unmount se difiere: React no permite desmontar de forma síncrona
-      // desde un handler que puede dispararse durante un render.
-      .on('close', () => window.setTimeout(() => root.unmount(), 0));
+    onSelect(
+      propertiesToHotspot(feature.properties as Record<string, unknown>),
+      feature.geometry.coordinates as [number, number]
+    );
   });
 
   map.on('mouseenter', FIRES_LAYER_ID, () => {

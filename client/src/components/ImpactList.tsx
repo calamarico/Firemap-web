@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RAIN_BADGE_MIN_PROB } from '../config';
-import { INCIDENT_SOURCE_LABELS } from '../lib/incidents';
+import { formatRainDay, timeAgo } from '../lib/format';
+import { INCIDENT_SOURCE_LABELS, incidentLine } from '../lib/incidents';
 import type {
   MunicipalityImpact,
   OperationalIncident,
@@ -19,50 +20,6 @@ interface ImpactListProps {
   incidentsBySlug?: ReadonlyMap<string, OperationalIncident>;
   /** Al pulsar una localidad, el mapa vuela a sus focos. */
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
-}
-
-/** "Oficial: activo · 43 operativos · 12 vehículos" o "Emergencia europea EMSR908 en la zona". */
-function incidentLine(incident: OperationalIncident): string {
-  if (incident.source === 'copernicus-ems') {
-    return `Emergencia europea ${incident.level ?? ''} en la zona`.trim();
-  }
-  const parts: string[] = [];
-  if (incident.state) parts.push(`Oficial: ${incident.state}`);
-  if (incident.level) parts.push(`IGR ${incident.level}`);
-  const { personnel, vehicles, aerial } = incident.resources ?? {};
-  if (personnel) parts.push(`${personnel} operativos`);
-  if (vehicles) parts.push(`${vehicles} vehículos`);
-  if (aerial) parts.push(`${aerial} ${aerial === 1 ? 'medio aéreo' : 'medios aéreos'}`);
-  return parts.join(' · ');
-}
-
-/** "hace 5 min", "hace 3 h", "hace 2 días": edad de la última detección. */
-function timeAgo(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  if (mins < 60) return `hace ${mins} min`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `hace ${hours} h`;
-  const days = Math.round(hours / 24);
-  return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
-}
-
-/**
- * Día de la lluvia prevista: "hoy", "mañana" o "el sábado". La fecha viene en
- * UTC de Open-Meteo; a escala de día la diferencia con la hora peninsular no
- * cambia el mensaje.
- */
-function formatRainDay(isoDate: string): string {
-  const target = new Date(`${isoDate}T12:00:00Z`);
-  if (Number.isNaN(target.getTime())) return '';
-  const today = new Date();
-  const diffDays = Math.round(
-    (Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate()) -
-      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) /
-      86_400_000
-  );
-  if (diffDays <= 0) return 'hoy';
-  if (diffDays === 1) return 'mañana';
-  return `el ${target.toLocaleDateString('es-ES', { weekday: 'long' })}`;
 }
 
 /**

@@ -102,6 +102,12 @@ const MAX_MUNICIPALITIES_PER_REGION = 12;
 // del ranking (y de las plumas de viento) municipios con fuego real.
 const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 
+/**
+ * Además del ranking, ANOTA en cada hotspot su municipio (muniName/muniSlug/
+ * muniRegion), en paridad con functions/_lib/impact.ts: el popup del foco lo
+ * enseña y enlaza /incendios/<slug>. Se hace aquí de paso porque el join
+ * espacial por foco (ray-casting, caro) ya está hecho en este bucle.
+ */
 export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
   if (!ensureLoaded() || !municipalities || !regions) return [];
 
@@ -120,6 +126,9 @@ export function computeImpact(hotspots: FireHotspot[]): RegionImpact[] {
     // Un foco puede caer en un hueco entre polígonos simplificados: se omite
     // del ranking (sigue contando en el total del mapa).
     if (!region || !municipality) continue;
+    h.muniName = municipality;
+    h.muniSlug = muniSlug(municipality, region);
+    h.muniRegion = region;
 
     let munis = byRegion.get(region);
     if (!munis) byRegion.set(region, (munis = new Map()));

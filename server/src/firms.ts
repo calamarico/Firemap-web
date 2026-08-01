@@ -212,6 +212,10 @@ function dedupeHotspots(hotspots: FireHotspot[]): FireHotspot[] {
     cell.sort((a, b) => acqTimestamp(b) - acqTimestamp(a));
     const newest = cell[0];
     const newestTs = acqTimestamp(newest);
+    // Primera pasada de la ventana: el popup dice desde cuándo arde la celda
+    // ("detectado hace 7 h"), un dato que la dedupe descartaba.
+    const oldest = cell[cell.length - 1];
+    const firstAcqAt = `${oldest.acqDate}T${oldest.acqTime.slice(0, 2)}:${oldest.acqTime.slice(2)}:00Z`;
 
     let detections = 0;
     const lastBySat = new Map<string, number>();
@@ -224,7 +228,7 @@ function dedupeHotspots(hotspots: FireHotspot[]): FireHotspot[] {
 
     for (const h of cell) {
       if (h.satellite === newest.satellite && newestTs - acqTimestamp(h) <= PASS_SLACK_MS) {
-        out.push({ ...h, detections });
+        out.push({ ...h, detections, firstAcqAt });
       }
     }
   }

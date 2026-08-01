@@ -75,6 +75,11 @@ const MAX_MUNICIPALITIES_PER_REGION = 12;
 // del ranking (y de las plumas de viento) municipios con fuego real.
 const MIN_HOTSPOTS_PER_MUNICIPALITY = 2;
 
+/**
+ * Además del ranking, ANOTA en cada hotspot su municipio (muniName/muniSlug/
+ * muniRegion): el popup del foco lo enseña y enlaza /incendios/<slug>. Se hace
+ * aquí de paso porque el join espacial por foco ya está hecho en este bucle.
+ */
 export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null): RegionImpact[] {
   if (!index) return [];
 
@@ -92,6 +97,12 @@ export function computeImpact(hotspots: FireHotspot[], index: MuniIndex | null):
     if (col < 0 || col >= index.cols || row < 0 || row >= index.rows) continue;
     const id = index.grid[row * index.cols + col];
     if (id === 0) continue; // celda sin municipio (mar, hueco de simplificación)
+    const tag = index.municipalities[id - 1];
+    if (tag) {
+      h.muniName = tag.n;
+      h.muniSlug = tag.s;
+      if (tag.r >= 0) h.muniRegion = index.regions[tag.r];
+    }
     const entry =
       byMuni.get(id) ??
       ({

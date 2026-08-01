@@ -13,7 +13,8 @@ const EMS_RADIUS_KM = 60;
 const KM_PER_DEG_LAT = 110.574;
 const KM_PER_DEG_LON_EQ = 111.32;
 
-function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
+/** Distancia plana en km (suficiente a escala local; no es navegación). */
+export function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
   const dLat = (aLat - bLat) * KM_PER_DEG_LAT;
   const dLon = (aLon - bLon) * KM_PER_DEG_LON_EQ * Math.cos(((aLat + bLat) / 2) * (Math.PI / 180));
   return Math.hypot(dLat, dLon);
@@ -30,10 +31,33 @@ export const INCIDENT_SOURCE_LABELS: Record<IncidentSource, string> = {
 };
 
 /**
- * El incidente más cercano (dentro de su radio) por slug de municipio del
- * ranking. Las fuentes locales (fase + medios) tienen prioridad sobre la
- * señal EMS, que solo dice "emergencia europea activada en la zona".
+ * El incidente más cercano (dentro de su radio) a un punto concreto — el foco
+ * clicado en el popup, o el centroide de los focos de un municipio. Las
+ * fuentes locales (fase + medios) tienen prioridad sobre la señal EMS, que
+ * solo dice "emergencia europea activada en la zona".
  */
+export function matchIncidentToPoint(
+  lat: number,
+  lon: number,
+  incidents: OperationalIncident[]
+): OperationalIncident | null {
+  let best: OperationalIncident | null = null;
+  let bestScore = Infinity;
+  for (const incident of incidents) {
+    const radius = incident.source === 'copernicus-ems' ? EMS_RADIUS_KM : LOCAL_RADIUS_KM;
+    const d = distanceKm(lat, lon, incident.lat, incident.lon);
+    if (d > radius) continue;
+    // Prioridad a las fuentes locales: una EMS solo gana si no hay otra.
+    const score = incident.source === 'copernicus-ems' ? d + 1000 : d;
+    if (score < bestScore) {
+      bestScore = score;
+      best = incident;
+    }
+  }
+  return best;
+}
+
+/** El incidente más cercano por slug de municipio del ranking. */
 export function matchIncidents(
   impact: RegionImpact[],
   incidents: OperationalIncident[]
@@ -43,23 +67,24 @@ export function matchIncidents(
   for (const region of impact) {
     for (const muni of region.municipalities) {
       const [minLon, minLat, maxLon, maxLat] = muni.bbox;
-      const lat = (minLat + maxLat) / 2;
-      const lon = (minLon + maxLon) / 2;
-      let best: OperationalIncident | null = null;
-      let bestScore = Infinity;
-      for (const incident of incidents) {
-        const radius = incident.source === 'copernicus-ems' ? EMS_RADIUS_KM : LOCAL_RADIUS_KM;
-        const d = distanceKm(lat, lon, incident.lat, incident.lon);
-        if (d > radius) continue;
-        // Prioridad a las fuentes locales: una EMS solo gana si no hay otra.
-        const score = incident.source === 'copernicus-ems' ? d + 1000 : d;
-        if (score < bestScore) {
-          bestScore = score;
-          best = incident;
-        }
-      }
+      const best = matchIncidentToPoint((minLat + maxLat) / 2, (minLon + maxLon) / 2, incidents);
       if (best) out.set(muni.slug, best);
     }
   }
   return out;
+}
+
+/** "Oficial: activo · 43 operativos · 12 vehículos" o "Emergencia europea EMSR908 en la zona". */
+export function incidentLine(incident: OperationalIncident): string {
+  if (incident.source === 'copernicus-ems') {
+    return `Emergencia europea ${incident.level ?? ''} en la zona`.trim();
+  }
+  const parts: string[] = [];
+  if (incident.state) parts.push(`Oficial: ${incident.state}`);
+  if (incident.level) parts.push(`IGR ${incident.level}`);
+  const { personnel, vehicles, aerial } = incident.resources ?? {};
+  if (personnel) parts.push(`${personnel} operativos`);
+  if (vehicles) parts.push(`${vehicles} vehículos`);
+  if (aerial) parts.push(`${aerial} ${aerial === 1 ? 'medio aéreo' : 'medios aéreos'}`);
+  return parts.join(' · ');
 }

@@ -15,6 +15,14 @@ export interface FireHotspot {
   frp: number | null;
   /** Nº de pasadas satelitales que detectaron esta celda en la ventana de 24 h. */
   detections?: number;
+  /** Primera detección de la celda en la ventana (ISO 8601 UTC): "arde desde". */
+  firstAcqAt?: string;
+  /** Municipio bajo el foco (rejilla de muni-grid), para el popup. */
+  muniName?: string;
+  /** Slug de la página /incendios/<slug> del municipio. */
+  muniSlug?: string;
+  /** Comunidad autónoma (o distrito, en Portugal) del municipio. */
+  muniRegion?: string;
 }
 
 export interface MunicipalityImpact {
