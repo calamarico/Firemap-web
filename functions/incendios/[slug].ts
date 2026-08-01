@@ -1,3 +1,4 @@
+import { fetchFwiClass } from '../_lib/fwi';
 import { loadPages, MuniPage } from '../_lib/muni-pages';
 import { PORTUGAL_SLUG, PT_DISTRICTS } from '../_lib/portugal';
 import { breadcrumbLd, CANONICAL_HOST, esc, notFoundPage, renderSeoPage } from '../_lib/seo-page';
@@ -60,11 +61,16 @@ const handler: PagesFunction<Env> = async (ctx) => {
   const h1 = `Incendios en ${page.name} hoy, en tiempo real`;
   const [lon, lat] = page.center;
   const coord = `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'}, ${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'O' : 'E'}`;
+  // Riesgo FWI del día (mejor esfuerzo, cacheado por celda): contenido que
+  // cambia a diario para el crawler y dato útil para quien navega sin JS.
+  // Sin dato (GWIS caído, fuera de modelo), la frase se omite y ya está.
+  const fwi = await fetchFwiClass(lat, lon);
   // Redacción neutra ES/PT: las regiones 19-36 son distritos portugueses.
   const intro =
     `Consulta sobre el mapa los incendios activos en ${page.name}, en ${page.region} (${coord}): ` +
     'focos de calor detectados por los satélites de la NASA en las últimas 24 horas, perímetros de ' +
-    'área quemada de Copernicus EFFIS y viento en la zona. Gratuito y sin registro.';
+    'área quemada de Copernicus EFFIS y viento en la zona. Gratuito y sin registro.' +
+    (fwi ? ` Riesgo de incendio previsto para hoy en la zona: ${fwi.label} (índice FWI de Copernicus).` : '');
 
   // Miga de pan: los concelhos cuelgan de la landing /incendios/portugal; los
   // municipios españoles, directamente de la home (no hay páginas de CCAA).

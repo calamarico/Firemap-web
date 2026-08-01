@@ -8,6 +8,7 @@ import type { MunicipalityImpact, RainForecastPoint, RegionImpact } from '../typ
 import ImpactList from './ImpactList';
 import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
+import LocalityRisk from './LocalityRisk';
 import NearbyLocalities from './NearbyLocalities';
 import VideoPromo from './VideoPromo';
 import type { ActiveLocality, LocalityHit } from '../lib/locality';
@@ -369,9 +370,10 @@ export default function Sidebar(props: SidebarProps) {
           )}
         </section>
 
-        {/* Con localidad activa: enlaces a las localidades cercanas (o a los
-            distritos, en la vista país). Espejo del bloque server-side de
-            /incendios/<slug>, que React destruye al montar. */}
+        {/* Con localidad activa: riesgo FWI del día y enlaces a las localidades
+            cercanas (o a los distritos, en la vista país). Espejo del contenido
+            server-side de /incendios/<slug>, que React destruye al montar. */}
+        <LocalityRisk locality={props.locality} />
         <NearbyLocalities locality={props.locality} onSelectLocality={props.onSelectLocality} />
 
         {/* Ranking de localidades: en móvil vive aquí; en escritorio, en el
