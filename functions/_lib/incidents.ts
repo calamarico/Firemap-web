@@ -66,7 +66,9 @@ async function fetchJson(url: string): Promise<unknown> {
     signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
     // UA identificable: el fetch de Workers no manda ninguno y algún WAF
     // (p. ej. el del backend de Copernicus EMS) rechaza peticiones sin él.
-    headers: { 'User-Agent': 'firemapsspain.online (agregador de incendios; contacto en el sitio)' },
+    // Es el MISMO UA declarado en la solicitud de acceso a api.fogos.pt
+    // (formato que ellos piden): si cambia, avisarles.
+    headers: { 'User-Agent': 'FiremapsSpain/1.0 (https://firemapsspain.online)' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
