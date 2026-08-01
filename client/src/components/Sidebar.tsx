@@ -15,6 +15,7 @@ import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
 import LocalityRisk from './LocalityRisk';
 import NearbyLocalities from './NearbyLocalities';
+import RebrandNotice from './RebrandNotice';
 import VideoPromo from './VideoPromo';
 import type { ActiveLocality, LocalityHit } from '../lib/locality';
 import { localityShareUrl, viewShareUrl } from '../lib/share';
@@ -345,6 +346,8 @@ export default function Sidebar(props: SidebarProps) {
         </header>
 
         <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
+        {/* TEMPORAL (rebrand): se elimina en el commit de migración de dominio. */}
+        <RebrandNotice />
         {/* Contador + estado de la capa de focos */}
         <section>
           <Metric
