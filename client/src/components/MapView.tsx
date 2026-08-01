@@ -240,9 +240,8 @@ export default function MapView({
     attribution?.classList.remove('maplibregl-compact-show');
     attribution?.removeAttribute('open');
 
-    // Zoom abajo a la derecha: la esquina superior derecha la ocupa el panel
-    // de localidades afectadas.
-    map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+    // Sin botones de zoom (NavigationControl): estorbaban sobre el mapa y el
+    // gesto ya lo cubren rueda, pellizco y doble toque. Solo la escala.
     map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
     // Pantalla completa solo en el embed: un mapa de 400 px dentro de un
     // artículo se queda corto para seguir un incendio. (MapLibre desactiva los

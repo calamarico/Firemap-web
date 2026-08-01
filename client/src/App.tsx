@@ -23,6 +23,9 @@ import { parseLayersParam } from './lib/share';
 import type { BasemapId } from './map/layers';
 import type { MunicipalityImpact } from './types';
 
+/** Preferencia de mapa base recordada entre visitas. */
+const BASEMAP_KEY = 'fm-basemap';
+
 export default function App() {
   const reducedMotion = usePrefersReducedMotion();
   // Capas que pida la URL (`?capas=`, el enlace «copiar enlace de esta vista»).
@@ -44,7 +47,26 @@ export default function App() {
   const [showWindField, setShowWindField] = useState(fromUrl?.showWindField ?? true);
   // Riesgo de incendio (FWI): opt-in — contexto de fondo, no dato de evento.
   const [showDanger, setShowDanger] = useState(fromUrl?.showDanger ?? false);
-  const [basemap, setBasemapId] = useState<BasemapId>('satellite');
+  // El estilo del mapa base es una preferencia estable de cada usuario (quien
+  // prefiere el oscuro lo prefiere siempre): se recuerda entre visitas. Solo
+  // en la app — el embed lo fija quien lo inserta, con ?base=.
+  const [basemap, setBasemapId] = useState<BasemapId>(() => {
+    try {
+      const stored = localStorage.getItem(BASEMAP_KEY);
+      if (stored === 'satellite' || stored === 'dark') return stored;
+    } catch {
+      // localStorage inaccesible: se usa el estilo por defecto
+    }
+    return 'satellite';
+  });
+  const handleBasemapChange = useCallback((id: BasemapId) => {
+    setBasemapId(id);
+    try {
+      localStorage.setItem(BASEMAP_KEY, id);
+    } catch {
+      // mejor esfuerzo: sin persistencia, el selector sigue funcionando
+    }
+  }, []);
   /**
    * Localidad activa (deep link resuelto o elegida en el ranking). Sube a estado
    * porque el menú «Compartir» necesita ofrecer su enlace, y hasta ahora solo
@@ -245,7 +267,7 @@ export default function App() {
         onShowDangerChange={setShowDanger}
         reducedMotion={reducedMotion}
         basemap={basemap}
-        onBasemapChange={setBasemapId}
+        onBasemapChange={handleBasemapChange}
         onRefresh={refresh}
         locality={locality}
       />

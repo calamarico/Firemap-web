@@ -556,6 +556,14 @@ export default function Sidebar(props: SidebarProps) {
                 (extrema). Se actualizan cada 5 minutos.
               </p>
               <p>
+                <strong className="font-semibold text-ink-primary">La ficha de cada foco:</strong>{' '}
+                al tocar un foco se abre su ficha: en qué municipio está, desde cuándo lo ve el
+                satélite y en cuántas pasadas, su intensidad, el viento en la zona y —en los
+                incendios importantes— la lluvia prevista y el estado oficial de la extinción,
+                con enlace a la página de su localidad. El detalle técnico (coordenadas,
+                satélite, sensor, confianza) queda en un desplegable.
+              </p>
+              <p>
                 <strong className="font-semibold text-ink-primary">Área quemada:</strong>{' '}
                 perímetros de zonas quemadas de los últimos 7 días, del programa europeo
                 Copernicus (EFFIS).
@@ -577,8 +585,18 @@ export default function Sidebar(props: SidebarProps) {
                 mientras la capa está activa.
               </p>
               <p>
+                <strong className="font-semibold text-ink-primary">Riesgo de incendio:</strong>{' '}
+                el índice de peligro meteorológico del día (FWI, del programa europeo Copernicus
+                EFFIS) puede activarse como fondo del mapa: dónde favorecen las condiciones que
+                un fuego prenda y se propague.
+              </p>
+              <p>
                 <strong className="font-semibold text-ink-primary">Localidades afectadas:</strong>{' '}
                 ranking de municipios con focos activos; al tocar uno el mapa vuela a su zona.
+                Donde los servicios de emergencias publican parte en abierto (Bombers de la
+                Generalitat, Junta de Castilla y León) se muestra la fase del incendio y sus
+                medios; Copernicus EMS avisa de las grandes activaciones europeas. Sobre los
+                incendios importantes, también la previsión de lluvia a tres días.
               </p>
             </div>
           </details>
@@ -624,13 +642,24 @@ export default function Sidebar(props: SidebarProps) {
             <summary className="cursor-pointer select-none text-ink-primary">
               Fuentes y actualización de los datos
             </summary>
-            <p className="mt-2">
-              Focos de calor de NASA FIRMS, área quemada de Copernicus EFFIS y viento de
-              Open-Meteo, sobre imagen satelital de Esri. Todo se actualiza automáticamente cada
-              pocos minutos. Gratuito, sin registro y pensado también para el móvil. Puedes
-              compartir el mapa centrado en tu municipio con el enlace{' '}
-              <code className="text-xs">?localidad=Nombre</code>.
-            </p>
+            <div className="mt-2 space-y-2">
+              <p>
+                Focos de calor de NASA FIRMS (satélites VIIRS y MODIS), área quemada y riesgo de
+                incendio del programa europeo Copernicus EFFIS, viento y previsión de lluvia de
+                Open-Meteo, y estado oficial de los incendios de Bombers de la Generalitat, la
+                Junta de Castilla y León y Copernicus EMS, sobre imagen satelital de Esri o
+                cartografía de CARTO. Cada fuente se actualiza automáticamente a su ritmo —los
+                focos, cada 5 minutos—, y la ficha de cada foco y el ranking dicen siempre de
+                cuándo es el dato.
+              </p>
+              <p>
+                Cobertura: España —península, Baleares, Canarias, Ceuta y Melilla— y Portugal
+                continental. Se excluyen las fuentes de calor industriales conocidas (plantas
+                que «arden» todos los días y no son incendios). Gratuito, sin registro y pensado
+                también para el móvil. Puedes compartir el mapa centrado en tu municipio con su
+                página <code className="text-xs">/incendios/tu-municipio</code>.
+              </p>
+            </div>
           </details>
         </section>
 
