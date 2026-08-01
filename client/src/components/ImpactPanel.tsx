@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import type { MunicipalityImpact, RegionImpact } from '../types';
+import type { MunicipalityImpact, RainForecastPoint, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import CollapsibleSection from './ui/CollapsibleSection';
 
 interface ImpactPanelProps {
   impact: RegionImpact[];
+  /** Lluvia prevista por municipio (solo la app; el embed no la pide). */
+  rainBySlug?: ReadonlyMap<string, RainForecastPoint>;
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
 }
 
@@ -13,7 +15,7 @@ interface ImpactPanelProps {
  * En móvil no se renderiza: la misma lista vive dentro de la hoja inferior
  * (sección de Sidebar), para no apilar dos paneles sobre un mapa pequeño.
  */
-export default function ImpactPanel({ impact, onSelectMunicipality }: ImpactPanelProps) {
+export default function ImpactPanel({ impact, rainBySlug, onSelectMunicipality }: ImpactPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -28,7 +30,11 @@ export default function ImpactPanel({ impact, onSelectMunicipality }: ImpactPane
         title={<span className="truncate font-semibold">Localidades más afectadas</span>}
       >
         <div className="overflow-y-auto border-t border-edge">
-          <ImpactList impact={impact} onSelectMunicipality={onSelectMunicipality} />
+          <ImpactList
+            impact={impact}
+            rainBySlug={rainBySlug}
+            onSelectMunicipality={onSelectMunicipality}
+          />
         </div>
       </CollapsibleSection>
     </aside>

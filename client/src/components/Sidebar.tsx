@@ -4,7 +4,7 @@ import { MANUAL_REFRESH_COOLDOWN_MS, REFRESH_INTERVAL_MS } from '../config';
 import type { EffisView } from '../hooks/useEffisStatus';
 import type { FiresView } from '../hooks/useFires';
 import type { BasemapId } from '../map/layers';
-import type { MunicipalityImpact, RegionImpact } from '../types';
+import type { MunicipalityImpact, RainForecastPoint, RegionImpact } from '../types';
 import ImpactList from './ImpactList';
 import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
@@ -38,6 +38,8 @@ interface SidebarProps extends LayerControls {
   fires: FiresView;
   effis: EffisView;
   impact: RegionImpact[];
+  /** Lluvia prevista por municipio con incendio relevante (ranking móvil). */
+  rainBySlug?: ReadonlyMap<string, RainForecastPoint>;
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
   /** Salto a una localidad desde el bloque de cercanas (NearbyLocalities). */
   onSelectLocality: (hit: LocalityHit) => void;
@@ -379,6 +381,7 @@ export default function Sidebar(props: SidebarProps) {
           <div className="overflow-hidden rounded-md border border-edge bg-surface-sunken">
             <ImpactList
               impact={props.impact}
+              rainBySlug={props.rainBySlug}
               onSelectMunicipality={(muni) => {
                 // Pliega la hoja para que el vuelo del mapa se vea.
                 setCollapsed(true);

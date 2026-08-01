@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEffisStatus } from './useEffisStatus';
 import { useFires } from './useFires';
 import { usePrefersReducedMotion } from './usePrefersReducedMotion';
+import { useRainForecast } from './useRainForecast';
 import { useWind } from './useWind';
 import { useWindField } from './useWindField';
-import { deriveFireWindSites } from '../lib/windPoints';
+import { deriveFireWindSites, deriveRainSites } from '../lib/windPoints';
 import { setEffisDown } from '../map/effisTileCache';
-import type { WindPoint } from '../types';
+import type { RainForecastPoint, WindPoint } from '../types';
 import type { EffisView } from './useEffisStatus';
 import type { FiresView } from './useFires';
 import type { WindFieldBlock } from '../lib/windField';
@@ -16,6 +17,11 @@ interface FireMapDataOptions {
   refreshMs: number;
   showWind: boolean;
   showWindField: boolean;
+  /**
+   * Previsión de lluvia sobre incendios grandes. Solo la app completa: en el
+   * embed sobra (espacio mínimo) y cada lector pagaría el cupo de su IP.
+   */
+  withRain?: boolean;
 }
 
 export interface FireMapData {
@@ -24,6 +30,8 @@ export interface FireMapData {
   /** Plumas listas para el mapa: ya ancladas a un foco real del cluster. */
   wind: WindPoint[];
   windField: WindFieldBlock[] | null;
+  /** Lluvia prevista (72 h) sobre municipios con incendio relevante. */
+  rain: RainForecastPoint[];
   /** Se incrementa cuando EFFIS vuelve de una caída (recarga sus teselas). */
   effisRefreshToken: number;
   refresh: () => void;
@@ -40,6 +48,7 @@ export function useFireMapData({
   refreshMs,
   showWind,
   showWindField,
+  withRain = false,
 }: FireMapDataOptions): FireMapData {
   // El campo de flujo ES movimiento: con "reducir movimiento" no queda nada
   // que enseñar, así que no se pide nada. Quien pinta la UI lo consulta con el
@@ -72,6 +81,15 @@ export function useFireMapData({
   // foco funcionan igual con esta capa apagada) y sin ningún fetch mientras
   // el interruptor esté apagado o el sistema pida reducir movimiento.
   const windField = useWindField(showWindField && !reducedMotion);
+
+  // Lluvia prevista sobre incendios grandes: mismo gate que el viento (el
+  // primer fetch espera a los focos) y petición SEPARADA de la de useWind —
+  // fusionarlas multiplicaría su coste ×36 por la cadencia de 15 min.
+  const rainSites = useMemo(() => (withRain ? deriveRainSites(impact ?? []) : []), [
+    withRain,
+    impact,
+  ]);
+  const rain = useRainForecast(withRain && windReady, rainSites);
 
   // La pluma se dibuja anclada a un foco real del cluster (máx. FRP), no al
   // centroide administrativo: el vértice del cono nace de un círculo de
@@ -118,6 +136,7 @@ export function useFireMapData({
     effis,
     wind: windForMap,
     windField: windField.blocks,
+    rain: rain.points,
     effisRefreshToken,
     refresh,
   };

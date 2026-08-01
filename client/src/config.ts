@@ -40,5 +40,20 @@ export const WIND_RETRY_MS = 2 * 60 * 1000;
  */
 export const WIND_FIELD_REFRESH_INTERVAL_MS = 30 * 60_000;
 
+/**
+ * Refresco de la previsión de lluvia sobre incendios grandes (Open-Meteo,
+ * variables `daily`). Los modelos diarios se actualizan pocas veces al día:
+ * pedir más a menudo que cada 3 h devuelve lo mismo y gasta cupo.
+ */
+export const RAIN_REFRESH_INTERVAL_MS = 3 * 60 * 60_000;
+export const RAIN_RETRY_MS = 5 * 60_000;
+
+/**
+ * Probabilidad mínima (%) para que la lluvia prevista merezca badge en el
+ * mapa. Por debajo, el dato solo aparece en el ranking de localidades (donde
+ * el negativo "sin lluvia prevista" también informa). Ajustable en producción.
+ */
+export const RAIN_BADGE_MIN_PROB = 50;
+
 // La escala de severidad FRP y los colores del mapa viven en
 // styles/mapTokens.ts, la fuente única compartida por capas y leyenda.

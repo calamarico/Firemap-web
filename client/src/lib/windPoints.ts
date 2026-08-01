@@ -40,6 +40,65 @@ export interface FireWindSite {
  * lo aplica el proxy. Devuelve un orden estable por muestra para que
  * reordenaciones del ranking no alteren la clave del fetch.
  */
+/**
+ * Umbrales de "incendio relevante" para la previsión de lluvia: entra un
+ * municipio con extensión (≥3 celdas de foco) o con un foco potente (≥40 MW).
+ * Ajustables tras verlo en producción; el techo de puntos acota el cupo de
+ * Open-Meteo (20 × 2 variables/10 = 4 ponderadas por refresco de 3 h).
+ */
+const RAIN_MIN_COUNT = 3;
+const RAIN_MIN_FRP = 40;
+const RAIN_MAX_POINTS = 20;
+
+export interface RainSite {
+  /** Punto de muestreo (centroide del bbox, redondeado): clave estable del fetch. */
+  sample: [number, number];
+  slug: string;
+  name: string;
+}
+
+/**
+ * Municipios con incendio relevante donde pedir la previsión de lluvia.
+ * Mismo dedupe por celda y snap que los sitios de viento (dos municipios de
+ * la misma comarca comparten previsión), pero con filtro de relevancia: la
+ * pregunta "¿va a llover sobre esto?" solo tiene sentido en incendios gordos.
+ */
+export function deriveRainSites(impact: RegionImpact[]): RainSite[] {
+  const byCell = new Map<
+    string,
+    { lon: number; lat: number; count: number; maxFrp: number; slug: string; name: string }
+  >();
+
+  for (const region of impact) {
+    for (const muni of region.municipalities) {
+      if (muni.count < RAIN_MIN_COUNT && (muni.maxFrp ?? 0) < RAIN_MIN_FRP) continue;
+      const [minLon, minLat, maxLon, maxLat] = muni.bbox;
+      const lon = (minLon + maxLon) / 2;
+      const lat = (minLat + maxLat) / 2;
+      const key = `${Math.round(lon / DEDUPE_CELL_DEG)}:${Math.round(lat / DEDUPE_CELL_DEG)}`;
+      const current = byCell.get(key);
+      if (!current || muni.count > current.count) {
+        byCell.set(key, {
+          lon,
+          lat,
+          count: muni.count,
+          maxFrp: muni.maxFrp ?? 0,
+          slug: muni.slug,
+          name: muni.name,
+        });
+      }
+    }
+  }
+
+  const snap = (n: number) => Math.round(Math.round(n / SNAP_DEG) * SNAP_DEG * 100) / 100;
+
+  return [...byCell.values()]
+    .sort((a, b) => b.maxFrp - a.maxFrp || b.count - a.count)
+    .slice(0, RAIN_MAX_POINTS)
+    .map(({ lon, lat, slug, name }): RainSite => ({ sample: [snap(lon), snap(lat)], slug, name }))
+    .sort((a, b) => a.sample[0] - b.sample[0] || a.sample[1] - b.sample[1]);
+}
+
 export function deriveFireWindSites(
   impact: RegionImpact[],
   hotspots: FireHotspot[]

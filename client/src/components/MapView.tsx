@@ -1,7 +1,7 @@
 import maplibregl, { MapMouseEvent } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { INITIAL_ZOOM, MAP_CENTER } from '../config';
+import { INITIAL_ZOOM, MAP_CENTER, RAIN_BADGE_MIN_PROB } from '../config';
 import {
   AppLayer,
   BasemapId,
@@ -10,17 +10,19 @@ import {
   createCitiesLayer,
   createEffisLayer,
   createFiresLayer,
+  createRainLayer,
   createSmokePlumeLayer,
   EffisLayer,
   FIRES_LAYER_ID,
   FiresLayer,
+  RainLayer,
   setBasemap,
   SmokePlumeLayer,
 } from '../map/layers';
 import { createWindFieldRenderer, WindFieldRenderer } from '../map/windFieldRenderer';
 import { mapPalette, type MapTheme } from '../styles/mapTokens';
 import type { WindFieldBlock } from '../lib/windField';
-import type { FireHotspot, WindPoint } from '../types';
+import type { FireHotspot, RainForecastPoint, WindPoint } from '../types';
 import FirePopup from './FirePopup';
 
 interface MapViewProps {
@@ -41,6 +43,8 @@ interface MapViewProps {
   /** Campo de flujo ambiental (desactivable; sin fetch con la capa apagada). */
   showWindField: boolean;
   windField: WindFieldBlock[] | null;
+  /** Lluvia prevista sobre incendios grandes; visible junto a los focos. */
+  rain?: RainForecastPoint[];
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
   onMapReady?: (map: maplibregl.Map) => void;
@@ -129,6 +133,7 @@ export default function MapView({
   wind,
   showWindField,
   windField,
+  rain = [],
   basemap,
   onMapReady,
   cooperativeGestures = false,
@@ -146,6 +151,7 @@ export default function MapView({
     effis: EffisLayer;
     boundaries: AppLayer;
     wind: SmokePlumeLayer;
+    rain: RainLayer;
   } | null>(null);
   const windFieldRef = useRef<WindFieldRenderer | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -219,7 +225,8 @@ export default function MapView({
     const boundaries = createBoundariesLayer(palette);
     const cities = createCitiesLayer(palette);
     const wind = createSmokePlumeLayer(palette);
-    layersRef.current = { fires, effis, boundaries, wind };
+    const rainLayer = createRainLayer(RAIN_BADGE_MIN_PROB, palette);
+    layersRef.current = { fires, effis, boundaries, wind, rain: rainLayer };
 
     map.on('load', () => {
       effis.add(map); // polígonos de área quemada al fondo...
@@ -229,6 +236,8 @@ export default function MapView({
       // ...y el viento el último: las plumas de humo se auto-insertan bajo
       // los círculos de foco; galón y etiqueta quedan encima de todo.
       wind.add(map);
+      // Badges de lluvia sobre todo lo demás: ≤20 símbolos, dato prioritario.
+      rainLayer.add(map);
       // El campo de flujo va en lienzo propio (no es capa MapLibre), encima
       // del canvas del mapa y debajo de controles y popups.
       windFieldRef.current = createWindFieldRenderer(map, palette);
@@ -298,6 +307,18 @@ export default function MapView({
     if (!mapReady || !mapRef.current || !layersRef.current) return;
     layersRef.current.wind.setVisible(mapRef.current, showWind);
   }, [showWind, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current) return;
+    layersRef.current.rain.setData(mapRef.current, rain);
+  }, [rain, mapReady]);
+
+  // La gota describe el incendio: sin los círculos de foco a la vista, un
+  // badge de lluvia flotando en el vacío no significa nada.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current) return;
+    layersRef.current.rain.setVisible(mapRef.current, showFires);
+  }, [showFires, mapReady]);
 
   useEffect(() => {
     if (!mapReady) return;

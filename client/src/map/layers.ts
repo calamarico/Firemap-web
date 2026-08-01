@@ -1,7 +1,7 @@
 import type { FeatureCollection, LineString, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
 import { MAP, SEVERITY, type MapPalette, type MapTheme } from '../styles/mapTokens';
-import type { EffisRange, FireHotspot, WindPoint } from '../types';
+import type { EffisRange, FireHotspot, RainForecastPoint, WindPoint } from '../types';
 import { EFFIS_TILE_PROTOCOL } from './effisTileCache';
 
 /**
@@ -41,6 +41,8 @@ const SMOKE_PLUME_EDGE_LAYER_ID = 'smoke-plume-edge';
 const SMOKE_WISP_LAYER_ID = 'smoke-wisp';
 const WIND_CHEVRON_LAYER_ID = 'wind-chevron';
 const WIND_LABEL_LAYER_ID = 'wind-label';
+const RAIN_SOURCE_ID = 'rain-forecast';
+const RAIN_LAYER_ID = 'rain-forecast-badges';
 
 export type BasemapId = 'satellite' | 'dark' | 'light';
 
@@ -196,6 +198,94 @@ export function createFiresLayer(palette: MapPalette = MAP): FiresLayer {
     setData(map, hotspots) {
       const source = map.getSource(FIRES_SOURCE_ID) as GeoJSONSource | undefined;
       source?.setData(hotspotsToGeoJSON(hotspots));
+    },
+  };
+}
+
+const RAIN_DROP_IMAGE = 'rain-drop';
+
+/** Gota azul con borde claro, dibujada en canvas (sin asset que servir). */
+function addRainDropImage(map: MapLibreMap): void {
+  if (map.hasImage(RAIN_DROP_IMAGE)) return;
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.beginPath();
+  ctx.moveTo(32, 6);
+  ctx.quadraticCurveTo(48, 30, 48, 42);
+  ctx.arc(32, 42, 16, 0, Math.PI, false);
+  ctx.quadraticCurveTo(16, 30, 32, 6);
+  ctx.closePath();
+  ctx.fillStyle = '#38bdf8';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  map.addImage(RAIN_DROP_IMAGE, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
+}
+
+export interface RainLayer extends AppLayer {
+  setData(map: MapLibreMap, points: RainForecastPoint[]): void;
+}
+
+/**
+ * Badges de lluvia prevista sobre incendios grandes: gota + "NN %" junto al
+ * cluster. Solo entran puntos con probabilidad ≥ umbral (el filtro vive en la
+ * capa: quien llama pasa todos los puntos y el negativo "sin lluvia" se cuenta
+ * en el ranking, no en el mapa). Va encima de los focos: son ≤20 símbolos y el
+ * dato responde la pregunta más repetida ante un incendio gordo.
+ */
+export function createRainLayer(minProb: number, palette: MapPalette = MAP): RainLayer {
+  return {
+    id: RAIN_LAYER_ID,
+    add(map) {
+      addRainDropImage(map);
+      map.addSource(RAIN_SOURCE_ID, {
+        type: 'geojson',
+        data: EMPTY_COLLECTION,
+        // El crédito de Open-Meteo ya cuelga de la fuente del viento; repetirlo
+        // aquí duplicaría la línea en la atribución del mapa.
+      });
+      map.addLayer({
+        id: RAIN_LAYER_ID,
+        type: 'symbol',
+        source: RAIN_SOURCE_ID,
+        filter: ['>=', ['get', 'probMax'], minProb],
+        layout: {
+          'icon-image': RAIN_DROP_IMAGE,
+          'icon-size': 0.55,
+          // Anclada arriba-derecha del cluster para no tapar los círculos de foco.
+          'icon-offset': [26, -26],
+          'icon-allow-overlap': true,
+          'text-field': ['concat', ['to-string', ['get', 'probMax']], ' %'],
+          'text-size': 11,
+          'text-offset': [2.6, -1.6],
+          'text-anchor': 'left',
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#e0f2fe',
+          'text-halo-color': palette.labelHalo,
+          'text-halo-width': 1.2,
+        },
+      });
+    },
+    setVisible(map, visible) {
+      map.setLayoutProperty(RAIN_LAYER_ID, 'visibility', visible ? 'visible' : 'none');
+    },
+    setData(map, points) {
+      const source = map.getSource(RAIN_SOURCE_ID) as GeoJSONSource | undefined;
+      source?.setData({
+        type: 'FeatureCollection',
+        features: points.map((p) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+          properties: { probMax: Math.round(p.probMax) },
+        })),
+      });
     },
   };
 }

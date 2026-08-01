@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import type { MunicipalityImpact, RegionImpact } from '../types';
+import { RAIN_BADGE_MIN_PROB } from '../config';
+import type { MunicipalityImpact, RainForecastPoint, RegionImpact } from '../types';
 import CollapsibleSection from './ui/CollapsibleSection';
 import CountBadge from './ui/CountBadge';
 import StatusNote from './ui/StatusNote';
 
 interface ImpactListProps {
   impact: RegionImpact[];
+  /** Lluvia prevista (72 h) por municipio con incendio relevante. */
+  rainBySlug?: ReadonlyMap<string, RainForecastPoint>;
   /** Al pulsar una localidad, el mapa vuela a sus focos. */
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
 }
@@ -18,6 +21,25 @@ function timeAgo(iso: string): string {
   if (hours < 24) return `hace ${hours} h`;
   const days = Math.round(hours / 24);
   return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+}
+
+/**
+ * Día de la lluvia prevista: "hoy", "mañana" o "el sábado". La fecha viene en
+ * UTC de Open-Meteo; a escala de día la diferencia con la hora peninsular no
+ * cambia el mensaje.
+ */
+function formatRainDay(isoDate: string): string {
+  const target = new Date(`${isoDate}T12:00:00Z`);
+  if (Number.isNaN(target.getTime())) return '';
+  const today = new Date();
+  const diffDays = Math.round(
+    (Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate()) -
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) /
+      86_400_000
+  );
+  if (diffDays <= 0) return 'hoy';
+  if (diffDays === 1) return 'mañana';
+  return `el ${target.toLocaleDateString('es-ES', { weekday: 'long' })}`;
 }
 
 /**
@@ -45,7 +67,7 @@ function formatAcq(iso: string): string {
  * Se usa en dos contenedores: el panel flotante de escritorio (ImpactPanel)
  * y una sección de la hoja inferior en móvil (Sidebar).
  */
-export default function ImpactList({ impact, onSelectMunicipality }: ImpactListProps) {
+export default function ImpactList({ impact, rainBySlug, onSelectMunicipality }: ImpactListProps) {
   const [openRegions, setOpenRegions] = useState<ReadonlySet<string>>(new Set());
 
   const toggleRegion = (name: string) => {
@@ -125,6 +147,23 @@ export default function ImpactList({ impact, onSelectMunicipality }: ImpactListP
                           <span className="shrink-0 tabular-nums">máx {muni.maxFrp.toFixed(0)} MW</span>
                         )}
                       </span>
+                      {/* Previsión de lluvia (solo incendios relevantes): la
+                          pregunta que todo el mundo se hace ante un incendio
+                          gordo, respondida también en negativo. */}
+                      {(() => {
+                        const rainInfo = rainBySlug?.get(muni.slug);
+                        if (!rainInfo) return null;
+                        return rainInfo.probMax >= RAIN_BADGE_MIN_PROB ? (
+                          <span className="mt-0.5 block text-micro text-[color:var(--fm-text-link)]">
+                            💧 lluvia {Math.round(rainInfo.probMax)} %{' '}
+                            {formatRainDay(rainInfo.bestDate)}
+                          </span>
+                        ) : (
+                          <span className="mt-0.5 block text-micro text-ink-faint">
+                            sin lluvia prevista (3 días)
+                          </span>
+                        );
+                      })()}
                     </a>
                   </li>
                 ))}

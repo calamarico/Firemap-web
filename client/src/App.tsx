@@ -49,10 +49,11 @@ export default function App() {
    */
   const [locality, setLocality] = useState<ActiveLocality | null>(null);
 
-  const { fires, effis, wind, windField, effisRefreshToken, refresh } = useFireMapData({
+  const { fires, effis, wind, windField, rain, effisRefreshToken, refresh } = useFireMapData({
     refreshMs: REFRESH_INTERVAL_MS,
     showWind,
     showWindField,
+    withRain: true,
   });
 
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -140,6 +141,9 @@ export default function App() {
   const visibleImpact =
     locality?.kind === 'country' ? impact.filter((r) => PT_DISTRICTS.has(r.name)) : impact;
 
+  // Lluvia prevista indexada por municipio, para la línea del ranking.
+  const rainBySlug = useMemo(() => new Map(rain.map((p) => [p.slug, p])), [rain]);
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <MapView
@@ -155,6 +159,7 @@ export default function App() {
         wind={wind}
         showWindField={showWindField && !reducedMotion}
         windField={windField}
+        rain={rain}
         basemap={basemap}
         onMapReady={handleMapReady}
       />
@@ -200,6 +205,7 @@ export default function App() {
         fires={fires}
         effis={effis}
         impact={visibleImpact}
+        rainBySlug={rainBySlug}
         onSelectMunicipality={handleSelectMunicipality}
         onSelectLocality={handleSelectLocality}
         showFires={showFires}
@@ -218,7 +224,11 @@ export default function App() {
         onRefresh={refresh}
         locality={locality}
       />
-      <ImpactPanel impact={visibleImpact} onSelectMunicipality={handleSelectMunicipality} />
+      <ImpactPanel
+        impact={visibleImpact}
+        rainBySlug={rainBySlug}
+        onSelectMunicipality={handleSelectMunicipality}
+      />
     </div>
   );
 }

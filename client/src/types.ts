@@ -95,3 +95,18 @@ export interface WindPoint {
   /** Grados meteorológicos: de dónde VIENE el viento (la pluma se dibuja a 180°). */
   directionFrom: number;
 }
+
+/** Previsión de lluvia (72 h) sobre un municipio con incendio relevante. */
+export interface RainForecastPoint {
+  lon: number;
+  lat: number;
+  /** Slug del municipio (cruce con el ranking de localidades). */
+  slug: string;
+  name: string;
+  /** Probabilidad máxima de precipitación en la ventana (%). */
+  probMax: number;
+  /** Día ('YYYY-MM-DD') en que se alcanza esa probabilidad máxima. */
+  bestDate: string;
+  /** Precipitación total prevista en la ventana (mm). */
+  sumMm: number;
+}
