@@ -21,7 +21,7 @@ interface ImpactListProps {
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
 }
 
-/** "Oficial: activo · 4 vehículos" o "Emergencia europea EMSR908 en la zona". */
+/** "Oficial: activo · 43 operativos · 12 vehículos" o "Emergencia europea EMSR908 en la zona". */
 function incidentLine(incident: OperationalIncident): string {
   if (incident.source === 'copernicus-ems') {
     return `Emergencia europea ${incident.level ?? ''} en la zona`.trim();
@@ -29,7 +29,10 @@ function incidentLine(incident: OperationalIncident): string {
   const parts: string[] = [];
   if (incident.state) parts.push(`Oficial: ${incident.state}`);
   if (incident.level) parts.push(`IGR ${incident.level}`);
-  if (incident.resources?.vehicles) parts.push(`${incident.resources.vehicles} vehículos`);
+  const { personnel, vehicles, aerial } = incident.resources ?? {};
+  if (personnel) parts.push(`${personnel} operativos`);
+  if (vehicles) parts.push(`${vehicles} vehículos`);
+  if (aerial) parts.push(`${aerial} ${aerial === 1 ? 'medio aéreo' : 'medios aéreos'}`);
   return parts.join(' · ');
 }
 

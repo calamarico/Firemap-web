@@ -19,11 +19,14 @@ function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number): num
   return Math.hypot(dLat, dLon);
 }
 
-/** Etiquetas de procedencia SIEMPRE visibles: el dato es de quien lo publica. */
+/** Etiquetas de procedencia SIEMPRE visibles: el dato es de quien lo publica.
+ *  La de Portugal es además la atribución que exigen los términos de su API
+ *  (junto al crédito enlazado del footer de la sidebar). */
 export const INCIDENT_SOURCE_LABELS: Record<IncidentSource, string> = {
   'bombers-cat': 'Bombers Generalitat',
   jcyl: 'Junta de Castilla y León',
   'copernicus-ems': 'Copernicus EMS',
+  'fogos-pt': 'Fogos.pt · Proteção Civil',
 };
 
 /**

@@ -6,7 +6,11 @@
  * las activaciones Rapid Mapping de Copernicus EMS (señal de "incendio
  * grande" a escala europea). El resto de CCAA no publica API; se documenta la
  * cobertura parcial en la UI antes que scrapear webs que se romperán.
- * Portugal (ANEPC vía fogos.pt) llegará cuando concedan el acceso a su API.
+ * Portugal: ocorrências de ANEPC/Protección Civil vía api.fogos.pt (acceso
+ * concedido 2026-08-01; requiere FOGOS_API_KEY en el entorno — sin ella la
+ * fuente no se consulta). Atribución "Fonte: Fogos.pt" obligatoria: está en
+ * el footer de la sidebar y en la etiqueta de procedencia del ranking.
+ * Límite autenticado 2 req/min; este agregador hace ~1 cada 10 min.
  *
  * Cada fuente es OPCIONAL: se consultan en paralelo con timeout propio y la
  * caída de una no tumba la respuesta (sources[].ok lo cuenta). Caché en
@@ -14,7 +18,7 @@
  * /api/fires, cuya fuente sí raciona peticiones.
  */
 
-export type IncidentSource = 'bombers-cat' | 'jcyl' | 'copernicus-ems';
+export type IncidentSource = 'bombers-cat' | 'jcyl' | 'copernicus-ems' | 'fogos-pt';
 export type IncidentState = 'activo' | 'estabilizado' | 'controlado' | 'extinguido' | null;
 
 export interface OperationalIncident {
@@ -25,7 +29,7 @@ export interface OperationalIncident {
   state: IncidentState;
   /** IGR 0-2 (JCyL) o código de activación (EMSR···). */
   level?: string;
-  resources?: { vehicles?: number };
+  resources?: { vehicles?: number; personnel?: number; aerial?: number };
   /** Medios en texto libre (JCyL no los estructura). */
   resourcesText?: string;
   municipality?: string;
@@ -61,14 +65,16 @@ const JCYL_URL =
 const EMS_URL =
   'https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations-info/?limit=60';
 
-async function fetchJson(url: string): Promise<unknown> {
+const FOGOS_URL = 'https://api.fogos.pt/v2/incidents/active';
+
+async function fetchJson(url: string, headers: Record<string, string> = {}): Promise<unknown> {
   const res = await fetch(url, {
     signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
     // UA identificable: el fetch de Workers no manda ninguno y algún WAF
     // (p. ej. el del backend de Copernicus EMS) rechaza peticiones sin él.
     // Es el MISMO UA declarado en la solicitud de acceso a api.fogos.pt
     // (formato que ellos piden): si cambia, avisarles.
-    headers: { 'User-Agent': 'FiremapsSpain/1.0 (https://firemapsspain.online)' },
+    headers: { 'User-Agent': 'FiremapsSpain/1.0 (https://firemapsspain.online)', ...headers },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -191,7 +197,60 @@ async function fetchEms(): Promise<OperationalIncident[]> {
   return out;
 }
 
+/**
+ * Fases ANEPC → contrato, por TEXTO normalizado: el statusCode de fogos.pt
+ * no es una escalera 1..N estable (se han visto códigos 4 y 9), el nombre sí.
+ * Despacho/Em Curso/Chegada = trabajándose; Em Resolução = ya no avanza;
+ * Conclusão = rescaldo; Vigilância = extinguido con vigilancia posterior.
+ */
+function fogosState(status: string): IncidentState {
+  const s = status
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+  if (s.includes('vigilancia')) return 'extinguido';
+  if (s.includes('conclusao')) return 'controlado';
+  if (s.includes('resolucao')) return 'estabilizado';
+  if (s.includes('despacho') || s.includes('curso') || s.includes('chegada')) return 'activo';
+  return null;
+}
+
+async function fetchFogos(apiKey: string): Promise<OperationalIncident[]> {
+  const body = (await fetchJson(FOGOS_URL, { 'X-API-Key': apiKey })) as {
+    success?: boolean;
+    data?: Array<Record<string, unknown>>;
+  };
+  if (body.success !== true) throw new Error('fogos.pt devolvió success=false');
+  const out: OperationalIncident[] = [];
+  for (const f of body.data ?? []) {
+    if (f.isFire !== true) continue; // fuera accidentes/otras ocorrências
+    const lat = num(f.lat);
+    const lon = num(f.lng);
+    if (lat === null || lon === null) continue;
+    const resources: { vehicles?: number; personnel?: number; aerial?: number } = {};
+    const personnel = num(f.man);
+    const vehicles = num(f.terrain);
+    const aerial = num(f.aerial);
+    if (personnel) resources.personnel = personnel;
+    if (vehicles) resources.vehicles = vehicles;
+    if (aerial) resources.aerial = aerial;
+    const startedSec = num((f.dateTime as { sec?: number } | undefined)?.sec);
+    out.push({
+      source: 'fogos-pt',
+      lat,
+      lon,
+      state: fogosState(str(f.status) ?? ''),
+      ...(Object.keys(resources).length > 0 ? { resources } : {}),
+      municipality: str(f.concelho) ?? undefined,
+      startedAt: startedSec ? new Date(startedSec * 1000).toISOString() : undefined,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  return out;
+}
+
 export async function getIncidents(
+  env: { FOGOS_API_KEY?: string },
   waitUntil?: (p: Promise<unknown>) => void
 ): Promise<IncidentsResponse> {
   const now = Date.now();
@@ -213,16 +272,21 @@ export async function getIncidents(
     // mejor-esfuerzo
   }
 
-  const [bombers, jcyl, ems] = await Promise.allSettled([
-    fetchBombers(),
-    fetchJcyl(),
-    fetchEms(),
-  ]);
+  // Portugal solo con token configurado: sin él ni se intenta (y sources no
+  // lo lista, para no aparentar una fuente caída).
+  const fogosKey = env.FOGOS_API_KEY;
+  const tasks: Array<{ id: IncidentSource; run: Promise<OperationalIncident[]> }> = [
+    { id: 'bombers-cat', run: fetchBombers() },
+    { id: 'jcyl', run: fetchJcyl() },
+    { id: 'copernicus-ems', run: fetchEms() },
+    ...(fogosKey ? [{ id: 'fogos-pt' as const, run: fetchFogos(fogosKey) }] : []),
+  ];
+  const settled = await Promise.allSettled(tasks.map((t) => t.run));
   const pick = (r: PromiseSettledResult<OperationalIncident[]>) =>
     r.status === 'fulfilled' ? r.value : null;
 
-  const lists = [pick(bombers), pick(jcyl), pick(ems)];
-  const ids: IncidentSource[] = ['bombers-cat', 'jcyl', 'copernicus-ems'];
+  const lists = settled.map(pick);
+  const ids = tasks.map((t) => t.id);
   const incidents = lists.flatMap((list) => list ?? []);
   const response: IncidentsResponse = {
     count: incidents.length,

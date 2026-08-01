@@ -78,6 +78,9 @@ export class ApiError extends Error {
 /** Bindings del proyecto Pages: secreto de FIRMS + estáticos del propio deploy. */
 export interface Env {
   FIRMS_MAP_KEY?: string;
+  /** Token de api.fogos.pt (header X-API-Key). Sin él, la fuente PT del
+   *  agregador de incidentes simplemente no se consulta. */
+  FOGOS_API_KEY?: string;
   ASSETS: Fetcher;
   // Cache global de la respuesta de /api/fires (opcional: sin el binding, la
   // app funciona solo con las caches por datacenter).

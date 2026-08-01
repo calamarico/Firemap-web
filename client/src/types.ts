@@ -99,7 +99,7 @@ export interface WindPoint {
 // Contrato de /api/incidents. Mantener en sincronía con
 // functions/_lib/incidents.ts (el server Express no sirve este endpoint:
 // solo existe en el despliegue Cloudflare, como /api/warm).
-export type IncidentSource = 'bombers-cat' | 'jcyl' | 'copernicus-ems';
+export type IncidentSource = 'bombers-cat' | 'jcyl' | 'copernicus-ems' | 'fogos-pt';
 export type IncidentState = 'activo' | 'estabilizado' | 'controlado' | 'extinguido' | null;
 
 export interface OperationalIncident {
@@ -108,7 +108,7 @@ export interface OperationalIncident {
   lon: number;
   state: IncidentState;
   level?: string;
-  resources?: { vehicles?: number };
+  resources?: { vehicles?: number; personnel?: number; aerial?: number };
   resourcesText?: string;
   municipality?: string;
   title?: string;

@@ -645,7 +645,8 @@ export default function Sidebar(props: SidebarProps) {
             <span className="mx-1">·</span>
             Auto-refresco cada {Math.round(REFRESH_INTERVAL_MS / 60_000)} min
           </p>
-          {/* Única mención a las fuentes: la piden las condiciones de uso de los datos. */}
+          {/* Única mención a las fuentes: la piden las condiciones de uso de los datos.
+              El enlace a Fogos.pt es atribución OBLIGATORIA de su API (ocorrências PT). */}
           <p>
             Datos: NASA FIRMS · Copernicus EFFIS ·{' '}
             <a
@@ -655,6 +656,15 @@ export default function Sidebar(props: SidebarProps) {
               className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
             >
               Open-Meteo
+            </a>
+            <span className="mx-1">·</span>
+            <a
+              href="https://fogos.pt/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
+            >
+              Fogos.pt
             </a>
             <span className="mx-1">·</span>
             By{' '}
