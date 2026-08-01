@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { RAIN_BADGE_MIN_PROB } from '../config';
-import type { MunicipalityImpact, RainForecastPoint, RegionImpact } from '../types';
+import { INCIDENT_SOURCE_LABELS } from '../lib/incidents';
+import type {
+  MunicipalityImpact,
+  OperationalIncident,
+  RainForecastPoint,
+  RegionImpact,
+} from '../types';
 import CollapsibleSection from './ui/CollapsibleSection';
 import CountBadge from './ui/CountBadge';
 import StatusNote from './ui/StatusNote';
@@ -9,8 +15,22 @@ interface ImpactListProps {
   impact: RegionImpact[];
   /** Lluvia prevista (72 h) por municipio con incendio relevante. */
   rainBySlug?: ReadonlyMap<string, RainForecastPoint>;
+  /** Estado operativo oficial por municipio (Bombers/JCyL/EMS). */
+  incidentsBySlug?: ReadonlyMap<string, OperationalIncident>;
   /** Al pulsar una localidad, el mapa vuela a sus focos. */
   onSelectMunicipality: (municipality: MunicipalityImpact) => void;
+}
+
+/** "Oficial: activo · 4 vehículos" o "Emergencia europea EMSR908 en la zona". */
+function incidentLine(incident: OperationalIncident): string {
+  if (incident.source === 'copernicus-ems') {
+    return `Emergencia europea ${incident.level ?? ''} en la zona`.trim();
+  }
+  const parts: string[] = [];
+  if (incident.state) parts.push(`Oficial: ${incident.state}`);
+  if (incident.level) parts.push(`IGR ${incident.level}`);
+  if (incident.resources?.vehicles) parts.push(`${incident.resources.vehicles} vehículos`);
+  return parts.join(' · ');
 }
 
 /** "hace 5 min", "hace 3 h", "hace 2 días": edad de la última detección. */
@@ -67,7 +87,12 @@ function formatAcq(iso: string): string {
  * Se usa en dos contenedores: el panel flotante de escritorio (ImpactPanel)
  * y una sección de la hoja inferior en móvil (Sidebar).
  */
-export default function ImpactList({ impact, rainBySlug, onSelectMunicipality }: ImpactListProps) {
+export default function ImpactList({
+  impact,
+  rainBySlug,
+  incidentsBySlug,
+  onSelectMunicipality,
+}: ImpactListProps) {
   const [openRegions, setOpenRegions] = useState<ReadonlySet<string>>(new Set());
 
   const toggleRegion = (name: string) => {
@@ -147,6 +172,30 @@ export default function ImpactList({ impact, rainBySlug, onSelectMunicipality }:
                           <span className="shrink-0 tabular-nums">máx {muni.maxFrp.toFixed(0)} MW</span>
                         )}
                       </span>
+                      {/* Estado oficial del incendio (fase + medios) donde hay
+                          fuente estructurada, SIEMPRE con su procedencia: el
+                          satélite detecta calor; la fase la declara quien lo
+                          está apagando (y pueden no coincidir). */}
+                      {(() => {
+                        const incident = incidentsBySlug?.get(muni.slug);
+                        if (!incident) return null;
+                        const line = incidentLine(incident);
+                        if (!line) return null;
+                        return (
+                          <span
+                            className={`mt-0.5 block text-micro ${
+                              incident.state === 'activo' ? 'text-ink-secondary' : 'text-ink-faint'
+                            }`}
+                            title={incident.resourcesText}
+                          >
+                            {line}
+                            <span className="text-ink-faint">
+                              {' '}
+                              · {INCIDENT_SOURCE_LABELS[incident.source]}
+                            </span>
+                          </span>
+                        );
+                      })()}
                       {/* Previsión de lluvia (solo incendios relevantes): la
                           pregunta que todo el mundo se hace ante un incendio
                           gordo, respondida también en negativo. */}

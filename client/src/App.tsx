@@ -6,7 +6,9 @@ import MapView from './components/MapView';
 import Sidebar from './components/Sidebar';
 import { REFRESH_INTERVAL_MS } from './config';
 import { useFireMapData } from './hooks/useFireMapData';
+import { useIncidents } from './hooks/useIncidents';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion';
+import { matchIncidents } from './lib/incidents';
 import {
   findLocalityByName,
   findLocalityBySlug,
@@ -146,6 +148,11 @@ export default function App() {
   // Lluvia prevista indexada por municipio, para la línea del ranking.
   const rainBySlug = useMemo(() => new Map(rain.map((p) => [p.slug, p])), [rain]);
 
+  // Estado operativo oficial (Bombers/JCyL/EMS) cruzado con el ranking por
+  // proximidad: "qué dicen los que están apagando el fuego".
+  const incidents = useIncidents();
+  const incidentsBySlug = useMemo(() => matchIncidents(impact, incidents), [impact, incidents]);
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <MapView
@@ -211,6 +218,7 @@ export default function App() {
         effis={effis}
         impact={visibleImpact}
         rainBySlug={rainBySlug}
+        incidentsBySlug={incidentsBySlug}
         onSelectMunicipality={handleSelectMunicipality}
         onSelectLocality={handleSelectLocality}
         showFires={showFires}
@@ -234,6 +242,7 @@ export default function App() {
       <ImpactPanel
         impact={visibleImpact}
         rainBySlug={rainBySlug}
+        incidentsBySlug={incidentsBySlug}
         onSelectMunicipality={handleSelectMunicipality}
       />
     </div>

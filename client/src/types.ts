@@ -96,6 +96,34 @@ export interface WindPoint {
   directionFrom: number;
 }
 
+// Contrato de /api/incidents. Mantener en sincronía con
+// functions/_lib/incidents.ts (el server Express no sirve este endpoint:
+// solo existe en el despliegue Cloudflare, como /api/warm).
+export type IncidentSource = 'bombers-cat' | 'jcyl' | 'copernicus-ems';
+export type IncidentState = 'activo' | 'estabilizado' | 'controlado' | 'extinguido' | null;
+
+export interface OperationalIncident {
+  source: IncidentSource;
+  lat: number;
+  lon: number;
+  state: IncidentState;
+  level?: string;
+  resources?: { vehicles?: number };
+  resourcesText?: string;
+  municipality?: string;
+  title?: string;
+  startedAt?: string;
+  updatedAt: string;
+}
+
+export interface IncidentsResponse {
+  count: number;
+  fetchedAt: string;
+  cached: boolean;
+  sources: Array<{ id: IncidentSource; ok: boolean; count: number }>;
+  incidents: OperationalIncident[];
+}
+
 /** Previsión de lluvia (72 h) sobre un municipio con incendio relevante. */
 export interface RainForecastPoint {
   lon: number;
