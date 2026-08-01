@@ -19,6 +19,8 @@ const APP_DEFAULTS: LayerState = {
   showWind: true,
   showWindField: true,
   showBoundaries: true,
+  // Opt-in también en la app: es contexto de fondo, no dato de evento.
+  showDanger: false,
 };
 
 const layerParams = () => Object.keys(LAYER_KEYS) as EmbedLayerKey[];

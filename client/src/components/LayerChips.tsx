@@ -1,6 +1,6 @@
 import ToggleChip from './ui/ToggleChip';
 
-/** Estado de las 5 capas del mapa + la reducción de movimiento; lo eleva App. */
+/** Estado de las 6 capas del mapa + la reducción de movimiento; lo eleva App. */
 export interface LayerControls {
   showFires: boolean;
   onShowFiresChange: (value: boolean) => void;
@@ -12,6 +12,8 @@ export interface LayerControls {
   onShowWindChange: (value: boolean) => void;
   showWindField: boolean;
   onShowWindFieldChange: (value: boolean) => void;
+  showDanger: boolean;
+  onShowDangerChange: (value: boolean) => void;
   /** Con "reducir movimiento" el campo de flujo no existe: solo es animación. */
   reducedMotion: boolean;
 }
@@ -65,6 +67,14 @@ export default function LayerChips(props: LayerControls) {
         pressed={props.showWindField}
         onPressedChange={props.onShowWindFieldChange}
         disabledReason={props.reducedMotion ? REDUCED_MOTION_HINT : undefined}
+      />
+      <ToggleChip
+        label="Riesgo"
+        ariaLabel="Riesgo de incendio (previsión de hoy)"
+        // Clase "Alto" de la leyenda FWI (lib/fwi.ts).
+        swatch="#e6ac00"
+        pressed={props.showDanger}
+        onPressedChange={props.onShowDangerChange}
       />
       <ToggleChip
         label="Límites"

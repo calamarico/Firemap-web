@@ -40,6 +40,8 @@ export default function App() {
   // de 10.000/día de la IP del propio visitante— y apagarlo sigue cortando
   // toda descarga. (En el widget embebible arranca apagado: ver lib/embed.ts.)
   const [showWindField, setShowWindField] = useState(fromUrl?.showWindField ?? true);
+  // Riesgo de incendio (FWI): opt-in — contexto de fondo, no dato de evento.
+  const [showDanger, setShowDanger] = useState(fromUrl?.showDanger ?? false);
   const [basemap, setBasemapId] = useState<BasemapId>('satellite');
   /**
    * Localidad activa (deep link resuelto o elegida en el ranking). Sube a estado
@@ -160,6 +162,7 @@ export default function App() {
         showWindField={showWindField && !reducedMotion}
         windField={windField}
         rain={rain}
+        showDanger={showDanger}
         basemap={basemap}
         onMapReady={handleMapReady}
       />
@@ -181,6 +184,8 @@ export default function App() {
           onShowWindChange={setShowWind}
           showWindField={showWindField}
           onShowWindFieldChange={setShowWindField}
+          showDanger={showDanger}
+          onShowDangerChange={setShowDanger}
           reducedMotion={reducedMotion}
         />
         {/* La única pista de espera era el spinner diminuto de la barra
@@ -218,6 +223,8 @@ export default function App() {
         onShowWindChange={setShowWind}
         showWindField={showWindField}
         onShowWindFieldChange={setShowWindField}
+        showDanger={showDanger}
+        onShowDangerChange={setShowDanger}
         reducedMotion={reducedMotion}
         basemap={basemap}
         onBasemapChange={setBasemapId}

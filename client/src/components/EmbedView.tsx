@@ -38,6 +38,7 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
   const [showBoundaries, setShowBoundaries] = useState(config.showBoundaries);
   const [showWind, setShowWind] = useState(config.showWind);
   const [showWindField, setShowWindField] = useState(config.showWindField);
+  const [showDanger, setShowDanger] = useState(config.showDanger);
 
   const reducedMotion = usePrefersReducedMotion();
   const { fires, wind, windField, effisRefreshToken } = useFireMapData({
@@ -154,6 +155,7 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
         wind={wind}
         showWindField={showWindField && !reducedMotion}
         windField={windField}
+        showDanger={showDanger}
         basemap={config.basemap}
         onMapReady={handleMapReady}
         initialCenter={config.center}
@@ -230,6 +232,8 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
             onShowWindChange={setShowWind}
             showWindField={showWindField}
             onShowWindFieldChange={setShowWindField}
+            showDanger={showDanger}
+            onShowDangerChange={setShowDanger}
             reducedMotion={reducedMotion}
           />
         )}

@@ -8,6 +8,7 @@ import {
   createBaseStyle,
   createBoundariesLayer,
   createCitiesLayer,
+  createDangerLayer,
   createEffisLayer,
   createFiresLayer,
   createRainLayer,
@@ -45,6 +46,8 @@ interface MapViewProps {
   windField: WindFieldBlock[] | null;
   /** Lluvia prevista sobre incendios grandes; visible junto a los focos. */
   rain?: RainForecastPoint[];
+  /** Riesgo de incendio (FWI, hoy): raster de fondo, opt-in. */
+  showDanger?: boolean;
   basemap: BasemapId;
   /** Entrega la instancia del mapa a App (para vuelos desde el ranking, etc.). */
   onMapReady?: (map: maplibregl.Map) => void;
@@ -134,6 +137,7 @@ export default function MapView({
   showWindField,
   windField,
   rain = [],
+  showDanger = false,
   basemap,
   onMapReady,
   cooperativeGestures = false,
@@ -152,6 +156,7 @@ export default function MapView({
     boundaries: AppLayer;
     wind: SmokePlumeLayer;
     rain: RainLayer;
+    danger: AppLayer;
   } | null>(null);
   const windFieldRef = useRef<WindFieldRenderer | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -226,9 +231,11 @@ export default function MapView({
     const cities = createCitiesLayer(palette);
     const wind = createSmokePlumeLayer(palette);
     const rainLayer = createRainLayer(RAIN_BADGE_MIN_PROB, palette);
-    layersRef.current = { fires, effis, boundaries, wind, rain: rainLayer };
+    const danger = createDangerLayer();
+    layersRef.current = { fires, effis, boundaries, wind, rain: rainLayer, danger };
 
     map.on('load', () => {
+      danger.add(map); // el riesgo (FWI) es contexto: al fondo del todo...
       effis.add(map); // polígonos de área quemada al fondo...
       boundaries.add(map); // ...límites y nombres autonómicos encima...
       cities.add(map); // ...referencias urbanas (sin toggle: son "mobiliario base")...
@@ -319,6 +326,11 @@ export default function MapView({
     if (!mapReady || !mapRef.current || !layersRef.current) return;
     layersRef.current.rain.setVisible(mapRef.current, showFires);
   }, [showFires, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !layersRef.current) return;
+    layersRef.current.danger.setVisible(mapRef.current, showDanger);
+  }, [showDanger, mapReady]);
 
   useEffect(() => {
     if (!mapReady) return;

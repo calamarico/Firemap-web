@@ -1,3 +1,4 @@
+import { FWI_LEGEND } from '../lib/fwi';
 import { SEVERITY } from '../styles/mapTokens';
 import { SeverityDot } from './ui/Severity';
 
@@ -6,10 +7,12 @@ export default function Legend({
   showEffis,
   showWind,
   showWindField,
+  showDanger = false,
 }: {
   showEffis: boolean;
   showWind: boolean;
   showWindField: boolean;
+  showDanger?: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -51,6 +54,19 @@ export default function Legend({
               La pluma se abre hacia donde va el humo · cada banda, 15 min de recorrido
             </span>
           </div>
+        </div>
+      )}
+      {showDanger && (
+        <div>
+          <h3 className="fm-eyebrow mb-1.5">Riesgo de incendio (hoy)</h3>
+          <ul className="space-y-1">
+            {FWI_LEGEND.map((cls) => (
+              <li key={cls.id} className="flex items-center gap-2 text-sm">
+                <SeverityDot color={cls.color} shape="square" size={14} className="opacity-75" />
+                <span className="text-ink-secondary">{cls.label}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {showWindField && (

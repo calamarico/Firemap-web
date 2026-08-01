@@ -211,6 +211,7 @@ export default function Sidebar(props: SidebarProps) {
           showWind: props.showWind,
           showWindField: props.showWindField,
           showBoundaries: props.showBoundaries,
+          showDanger: props.showDanger,
         }),
     },
     ...(props.locality
@@ -443,6 +444,14 @@ export default function Sidebar(props: SidebarProps) {
               }
             />
             <LayerToggle
+              label="Riesgo de incendio"
+              checked={props.showDanger}
+              onChange={props.onShowDangerChange}
+              // Clase "Alto" de la leyenda FWI (lib/fwi.ts).
+              swatch="#e6ac00"
+              description="Previsión de hoy (índice FWI) · Copernicus EFFIS"
+            />
+            <LayerToggle
               label="Límites administrativos"
               checked={props.showBoundaries}
               onChange={props.onShowBoundariesChange}
@@ -510,6 +519,7 @@ export default function Sidebar(props: SidebarProps) {
             showEffis={props.showEffis}
             showWind={props.showWind}
             showWindField={props.showWindField && !props.reducedMotion}
+            showDanger={props.showDanger}
           />
         </section>
 

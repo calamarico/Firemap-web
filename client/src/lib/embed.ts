@@ -24,6 +24,8 @@ export interface EmbedConfig {
   showWind: boolean;
   showWindField: boolean;
   showBoundaries: boolean;
+  /** Riesgo de incendio (FWI de EFFIS, previsión de hoy). Opt-in en app y widget. */
+  showDanger: boolean;
   /**
    * Tema de la interfaz del widget (paneles, chips, leyenda) y de la
    * cartografía propia. `claro` es para los medios que maquetan en blanco.
@@ -56,6 +58,9 @@ export const EMBED_DEFAULTS: EmbedConfig = {
   showWind: true,
   showWindField: false,
   showBoundaries: true,
+  // El riesgo es contexto, no evento: arranca apagado en app y widget y se
+  // pide con `capas=...,riesgo`.
+  showDanger: false,
   theme: 'dark',
   basemap: 'satellite',
   center: null,
@@ -78,6 +83,7 @@ export const LAYER_KEYS = {
   viento: 'showWind',
   flujo: 'showWindField',
   limites: 'showBoundaries',
+  riesgo: 'showDanger',
 } as const satisfies Record<string, keyof EmbedConfig>;
 
 export type EmbedLayerKey = keyof typeof LAYER_KEYS;
@@ -91,6 +97,8 @@ export const EMBED_LAYERS: ReadonlyArray<{ key: EmbedLayerKey; label: string; sw
   { key: 'viento', label: 'Viento junto a los incendios', swatch: 'var(--fm-map-smoke-band-1)' },
   { key: 'flujo', label: 'Flujo de viento', swatch: 'var(--fm-map-flow-trail)' },
   { key: 'limites', label: 'Límites administrativos' },
+  // Color de la clase "Alto" de la leyenda FWI (lib/fwi.ts).
+  { key: 'riesgo', label: 'Riesgo de incendio (previsión de hoy)', swatch: '#e6ac00' },
 ];
 
 const BASEMAP_PARAM: Record<string, BasemapId> = {

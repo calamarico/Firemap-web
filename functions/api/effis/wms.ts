@@ -1,16 +1,21 @@
-import { fetchEffisTile } from '../../_lib/effis';
+import { fetchEffisTile, type EffisProduct } from '../../_lib/effis';
 import { errorResponse } from '../../_lib/http';
 import { Env } from '../../_lib/types';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
     const params = new URL(ctx.request.url).searchParams;
+    // Sin ?layer= es el área quemada de siempre (compatible con embeds ya
+    // desplegados); layer=danger sirve el riesgo de incendio (FWI), cuyo
+    // parámetro temporal es ?day=0..8 en vez de ?range=.
+    const product: EffisProduct = params.get('layer') === 'danger' ? 'danger' : 'ba';
     const tile = await fetchEffisTile(
-      params.get('range') ?? '7d',
+      product === 'danger' ? (params.get('day') ?? '0') : (params.get('range') ?? '7d'),
       params.get('bbox') ?? '',
       params.get('width') ?? '256',
       params.get('height') ?? '256',
-      (p) => ctx.waitUntil(p)
+      (p) => ctx.waitUntil(p),
+      product
     );
     return new Response(tile.body, {
       headers: {

@@ -43,6 +43,8 @@ const WIND_CHEVRON_LAYER_ID = 'wind-chevron';
 const WIND_LABEL_LAYER_ID = 'wind-label';
 const RAIN_SOURCE_ID = 'rain-forecast';
 const RAIN_LAYER_ID = 'rain-forecast-badges';
+const DANGER_SOURCE_ID = 'fwi-danger';
+const DANGER_LAYER_ID = 'fwi-danger-raster';
 
 export type BasemapId = 'satellite' | 'dark' | 'light';
 
@@ -457,6 +459,45 @@ export function createCitiesLayer(palette: MapPalette = MAP): AppLayer {
       const value = visible ? 'visible' : 'none';
       map.setLayoutProperty(CITIES_DOTS_LAYER_ID, 'visibility', value);
       map.setLayoutProperty(CITIES_LABELS_LAYER_ID, 'visibility', value);
+    },
+  };
+}
+
+/**
+ * Riesgo de incendio (FWI, previsión de hoy) como raster WMS por el mismo
+ * proxy que el área quemada (?layer=danger). Sin latido: es contexto, no
+ * evento — opacidad fija y discreta. Se añade ANTES que el resto de capas de
+ * datos (MapView) para quedar al fondo del todo. Arranca oculta: es un toggle
+ * opt-in.
+ */
+export function createDangerLayer(): AppLayer {
+  return {
+    id: DANGER_LAYER_ID,
+    add(map) {
+      map.addSource(DANGER_SOURCE_ID, {
+        type: 'raster',
+        tiles: [
+          `${EFFIS_TILE_PROTOCOL}://${window.location.origin}/api/effis/wms?layer=danger&day=0&width=512&height=512&bbox={bbox-epsg-3857}`,
+        ],
+        tileSize: 512,
+        bounds: [-19.5, 26.5, 5.5, 45],
+        // El modelo ECMWF es de ~8 km: desde z8 solo se estiraría la misma
+        // tesela, y cada nivel extra duplicaría los GetMaps (= invocaciones).
+        maxzoom: 8,
+        // Idéntica a la del área quemada a propósito: MapLibre deduplica
+        // atribuciones repetidas, así no sale dos veces.
+        attribution: '© <a href="https://forest-fire.emergency.copernicus.eu/">EFFIS / Copernicus</a>',
+      });
+      map.addLayer({
+        id: DANGER_LAYER_ID,
+        type: 'raster',
+        source: DANGER_SOURCE_ID,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.5 },
+      });
+    },
+    setVisible(map, visible) {
+      map.setLayoutProperty(DANGER_LAYER_ID, 'visibility', visible ? 'visible' : 'none');
     },
   };
 }

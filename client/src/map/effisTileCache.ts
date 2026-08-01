@@ -145,12 +145,18 @@ export function registerEffisTileProtocol(): void {
       return { data: cached ?? TRANSPARENT_PNG };
     }
 
+    // El raster de riesgo (layer=danger) es opaco POR DISEÑO: cobertura
+    // continua de 6 clases cuyos extremos (Low ~229 y Very Extreme ~14 de
+    // luminancia) caen justo en los umbrales del poison-check — lo descartaría
+    // como placa. Su modo degradado (PNG vacío) lo detecta la sonda del proxy.
+    const isDanger = new URL(url).searchParams.get('layer') === 'danger';
+
     try {
       const res = await fetch(url, { signal: abortController.signal });
       if (!res.ok) throw new Error(`El WMS de EFFIS devolvió HTTP ${res.status}.`);
       const contentType = res.headers.get('content-type') ?? 'image/png';
       const data = await res.arrayBuffer();
-      if (await isPoisonedTile(data, contentType)) {
+      if (!isDanger && (await isPoisonedTile(data, contentType))) {
         // Placa opaca del modo degradado: ni se pinta ni se guarda. Mejor la
         // última copia buena (o nada) que oscurecer el mapa.
         const cached = cache ? await readFresh(cache, key) : null;

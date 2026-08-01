@@ -86,8 +86,10 @@ function unfilter(raw: Uint8Array, width: number, height: number, bpp: number): 
   return out;
 }
 
-/** RGBA del píxel central de un PNG de 8 bits (colorType 6 RGBA o 2 RGB). */
-async function centerPixel(png: Uint8Array): Promise<[number, number, number, number] | null> {
+/** RGBA del píxel central de un PNG de 8 bits (colorType 6 RGBA o 2 RGB).
+ *  Exportado: la sonda de la capa de riesgo (effis.ts) lo reutiliza para
+ *  distinguir "capa viva" de su modo sin-datos (PNG 100 % transparente). */
+export async function centerPixel(png: Uint8Array): Promise<[number, number, number, number] | null> {
   // Firma PNG
   if (png.length < 8 || png[0] !== 0x89 || png[1] !== 0x50) return null;
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
