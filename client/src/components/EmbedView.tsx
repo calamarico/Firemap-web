@@ -185,7 +185,7 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
           >
             <img src={logoUrl} alt="" className="h-7 w-7 shrink-0" />
             <span className="leading-tight">
-              <span className="block font-display text-xs font-bold">Firemaps España</span>
+              <span className="block font-display text-xs font-bold">Radar de Incendios</span>
               <span className="block text-micro text-ink-muted">
                 {count === null ? (
                   'Cargando focos…'

@@ -1,4 +1,4 @@
-# 🔥 Firemaps · España
+# 🔥 Radar de Incendios · España y Portugal
 
 Aplicación web centrada en el **momento actual**: muestra en un mapa los
 **focos de calor** detectados por satélite en las **últimas 24 horas**
@@ -168,20 +168,20 @@ también en los que no dejan tocar el CSS):
 
 ```html
 <div style="position:relative;width:100%;padding-bottom:62%">
-  <iframe src="https://firemapsspain.online/embed?base=claro"
+  <iframe src="https://radarincendios.com/embed?base=claro"
     title="Mapa de incendios en España y Portugal en tiempo real"
     loading="lazy" allowfullscreen
     style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"></iframe>
 </div>
 <p style="margin:.5rem 0;font:400 13px/1.4 system-ui,sans-serif">Fuente:
-  <a href="https://firemapsspain.online/" target="_blank" rel="noopener">Mapa de
-  incendios en España y Portugal · Firemaps</a></p>
+  <a href="https://radarincendios.com/" target="_blank" rel="noopener">Mapa de
+  incendios en España y Portugal · Radar de Incendios</a></p>
 ```
 
 Variante de alto fijo (para huecos de altura conocida en una plantilla):
 
 ```html
-<iframe src="https://firemapsspain.online/embed?base=claro" title="Mapa de incendios en España y Portugal en tiempo real"
+<iframe src="https://radarincendios.com/embed?base=claro" title="Mapa de incendios en España y Portugal en tiempo real"
   width="100%" height="520" style="border:0;display:block" loading="lazy" allowfullscreen></iframe>
 ```
 
@@ -193,7 +193,7 @@ la condición de uso y lo que devuelve tráfico y marca.
 Un mapa centrado en un municipio, con tema claro y ranking de localidades:
 
 ```html
-<iframe src="https://firemapsspain.online/embed?localidad=zamora&zoom=10&tema=claro&ranking=1"
+<iframe src="https://radarincendios.com/embed?localidad=zamora&zoom=10&tema=claro&ranking=1"
   title="Mapa de incendios en Zamora en tiempo real"
   width="100%" height="520" style="border:0;display:block" loading="lazy" allowfullscreen></iframe>
 ```

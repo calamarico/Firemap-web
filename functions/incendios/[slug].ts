@@ -54,7 +54,7 @@ const handler: PagesFunction<Env> = async (ctx) => {
 
   const origin = `https://${CANONICAL_HOST}`;
   const canonical = `${origin}/incendios/${slug}`;
-  const title = `Incendios en ${page.name} (${page.region}) hoy · Firemaps`;
+  const title = `Incendios en ${page.name} (${page.region}) hoy · Radar de Incendios`;
   const description =
     `Mapa de incendios en ${page.name} (${page.region}) hoy: focos activos detectados por ` +
     'satélite NASA en las últimas 24 horas, área quemada de Copernicus y viento con la dirección del humo.';

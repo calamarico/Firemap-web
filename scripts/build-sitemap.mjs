@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ORIGIN = 'https://firemapsspain.online';
+const ORIGIN = 'https://radarincendios.com';
 
 const meta = JSON.parse(
   readFileSync(path.join(root, 'client', 'public', 'data', 'muni-meta.json'), 'utf8')

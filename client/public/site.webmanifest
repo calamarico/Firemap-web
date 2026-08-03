@@ -1,6 +1,6 @@
 {
-  "name": "Firemaps España",
-  "short_name": "Firemaps",
+  "name": "Radar de Incendios",
+  "short_name": "Incendios",
   "description": "Mapa de incendios en España y Portugal en tiempo real: focos de calor por satélite, área quemada y municipios afectados",
   "lang": "es",
   "start_url": "/",

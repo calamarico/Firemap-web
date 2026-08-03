@@ -14,7 +14,7 @@ import type { BasemapId } from '../map/layers';
 import type { MapTheme } from '../styles/mapTokens';
 
 /** Dominio canónico: los snippets que se copian deben apuntar siempre aquí. */
-export const SITE_ORIGIN = 'https://firemapsspain.online';
+export const SITE_ORIGIN = 'https://radarincendios.com';
 
 export const EMBED_PATH = '/embed';
 

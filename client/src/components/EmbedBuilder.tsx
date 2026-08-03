@@ -66,7 +66,7 @@ const BUILDER_DEFAULTS: EmbedConfig = { ...EMBED_DEFAULTS, theme: 'dark', basema
 function buildSnippet(src: string, mode: SizeMode, height: number, ratio: number): string {
   const credit =
     `<p style="margin:.5rem 0;font:400 13px/1.4 system-ui,sans-serif">Fuente: ` +
-    `<a href="${SITE_ORIGIN}/" target="_blank" rel="noopener">Mapa de incendios en España y Portugal · Firemaps</a></p>`;
+    `<a href="${SITE_ORIGIN}/" target="_blank" rel="noopener">Mapa de incendios en España y Portugal · Radar de Incendios</a></p>`;
 
   if (mode === 'fixed') {
     return (
@@ -170,8 +170,8 @@ export default function EmbedBuilder() {
       <header className="border-b border-edge">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-5 py-4">
           <a href="/" className="flex items-center gap-3">
-            <img src={logoUrl} alt="Firemaps España" className="h-10 w-10" />
-            <span className="font-display text-sm font-bold">Firemaps España</span>
+            <img src={logoUrl} alt="Radar de Incendios" className="h-10 w-10" />
+            <span className="font-display text-sm font-bold">Radar de Incendios</span>
           </a>
           <a
             href="/"
@@ -396,12 +396,12 @@ export default function EmbedBuilder() {
               </li>
               <li>
                 Mantén el crédito enlazado que acompaña al código (<em>Fuente: Mapa de incendios en
-                España y Portugal · Firemaps</em>), con enlace seguible a{' '}
+                España y Portugal · Radar de Incendios</em>), con enlace seguible a{' '}
                 <a
                   href={`${SITE_ORIGIN}/`}
                   className="text-[color:var(--fm-text-link)] hover:underline"
                 >
-                  firemapsspain.online
+                  radarincendios.com
                 </a>
                 .
               </li>

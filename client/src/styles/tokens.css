@@ -1,5 +1,5 @@
 /**
- * Design tokens de Firemaps España — única fuente de verdad del tema.
+ * Design tokens de Radar de Incendios — única fuente de verdad del tema.
  * Dos niveles: primitivos (paleta) y semánticos (lo que consumen los
  * componentes). Los componentes NO deben referenciar primitivos.
  * Los colores que consume MapLibre viven duplicados como literales en

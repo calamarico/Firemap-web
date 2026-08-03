@@ -1,13 +1,20 @@
 /**
  * Host canónico para SEO: todo el tráfico que llegue por alias
- * (firemap-web.pages.dev, www.firemapsspain.online) se redirige con 301 al
- * dominio canónico, conservando ruta y query. Así los buscadores no reparten
- * la autoridad entre dominios duplicados.
+ * (firemap-web.pages.dev, www.radarincendios.com y el dominio antiguo
+ * firemapsspain.online) se redirige con 301 al dominio canónico, conservando
+ * ruta y query. Así los buscadores no reparten la autoridad entre dominios.
+ *
+ * El dominio antiguo tiene su redirección primaria en una Redirect Rule de su
+ * zona de Cloudflare (cubre también /assets/* y /sitemap.xml, que _routes.json
+ * deja fuera de este middleware); aquí queda además como defensa en
+ * profundidad por si esa regla se borrara.
  *
  * Los previews de ramas (<hash>.<proyecto>.pages.dev, 4 etiquetas) NO se
  * redirigen: siguen siendo útiles para probar antes de mergear.
  */
-const CANONICAL_HOST = 'firemapsspain.online';
+const CANONICAL_HOST = 'radarincendios.com';
+/** Dominio anterior (migración 2026-08): 301 permanente ≥1 año, ver plan. */
+const LEGACY_HOSTS = new Set(['firemapsspain.online', 'www.firemapsspain.online']);
 
 export const onRequest: PagesFunction = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -15,6 +22,7 @@ export const onRequest: PagesFunction = async (ctx) => {
 
   const isProductionAlias =
     host === `www.${CANONICAL_HOST}` ||
+    LEGACY_HOSTS.has(host) ||
     (host.endsWith('.pages.dev') && host.split('.').length === 3);
 
   if (isProductionAlias) {

@@ -12,7 +12,7 @@ export const LOCALITY_PARAM = 'localidad';
 const PATH_RE = /^\/incendios\/([^/]+)\/?$/;
 
 /** Debe coincidir con el <title> de index.html. */
-const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real · Firemaps';
+const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real · Radar de Incendios';
 
 interface MuniMetaFile {
   regions?: string[];
@@ -128,7 +128,7 @@ export function setLocalityParam(name: string | null, slug?: string): void {
   url.searchParams.delete(LOCALITY_PARAM); // el formato legacy nunca se re-emite
   url.pathname = name && slug ? `/incendios/${slug}` : '/';
   window.history.replaceState(null, '', url);
-  document.title = name ? `Incendios en ${name} · Firemaps España` : DEFAULT_TITLE;
+  document.title = name ? `Incendios en ${name} · Radar de Incendios` : DEFAULT_TITLE;
 }
 
 /** Slug de la URL actual (/incendios/<slug>), o null. */

@@ -9,7 +9,7 @@ import { Env } from './types';
  * existe para el crawler; el usuario ve el mapa.
  */
 
-export const CANONICAL_HOST = 'firemapsspain.online';
+export const CANONICAL_HOST = 'radarincendios.com';
 
 export const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

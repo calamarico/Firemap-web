@@ -15,7 +15,6 @@ import type { LayerControls } from './LayerChips';
 import Legend from './Legend';
 import LocalityRisk from './LocalityRisk';
 import NearbyLocalities from './NearbyLocalities';
-import RebrandNotice from './RebrandNotice';
 import VideoPromo from './VideoPromo';
 import type { ActiveLocality, LocalityHit } from '../lib/locality';
 import { localityShareUrl, viewShareUrl } from '../lib/share';
@@ -299,7 +298,7 @@ export default function Sidebar(props: SidebarProps) {
               con el H1 solo existe en escritorio). Span, no heading: el único
               h1 sigue siendo el del header. */}
           <span className="line-clamp-1 font-display text-sm font-bold leading-tight">
-            {props.locality ? `Incendios en ${props.locality.name}` : 'Firemaps España'}
+            {props.locality ? `Incendios en ${props.locality.name}` : 'Radar de Incendios'}
           </span>
         </span>
         <span className="flex items-center gap-2">
@@ -324,7 +323,7 @@ export default function Sidebar(props: SidebarProps) {
         className="flex min-h-0 flex-col overflow-hidden md:min-h-0 md:flex-1"
       >
         <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
-          <img src={logoUrl} alt="Logo de Firemaps España" className="h-14 w-14 shrink-0" />
+          <img src={logoUrl} alt="Logo de Radar de Incendios" className="h-14 w-14 shrink-0" />
           {/* Un solo h1 con marca + descriptor: el descriptor lleva la keyword
               y así el encabezado principal de la página no es solo la marca.
               Con localidad activa, el H1 pasa a ser el de su página — mismo
@@ -335,19 +334,17 @@ export default function Sidebar(props: SidebarProps) {
             <span className="block text-lg font-bold leading-tight">
               {props.locality
                 ? `Incendios en ${props.locality.name} hoy, en tiempo real`
-                : 'Firemaps España'}
+                : 'Radar de Incendios'}
             </span>
             <span className="mt-1 block text-xs font-normal text-ink-muted">
               {props.locality
-                ? 'Firemaps España · satélite en tiempo casi real'
+                ? 'Radar de Incendios · satélite en tiempo casi real'
                 : 'Mapa de incendios en España y Portugal · satélite en tiempo casi real'}
             </span>
           </h1>
         </header>
 
         <div className="max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4 md:max-h-none">
-        {/* TEMPORAL (rebrand): se elimina en el commit de migración de dominio. */}
-        <RebrandNotice />
         {/* Contador + estado de la capa de focos */}
         <section>
           <Metric

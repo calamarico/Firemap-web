@@ -66,7 +66,7 @@ export async function renderPortugalPage(
 
   const origin = `https://${CANONICAL_HOST}`;
   const canonical = `${origin}/incendios/${PORTUGAL_SLUG}`;
-  const title = 'Mapa de incendios en Portugal hoy, en tiempo real · Firemaps';
+  const title = 'Mapa de incendios en Portugal hoy, en tiempo real · Radar de Incendios';
   const description =
     'Mapa de incendios en Portugal hoy: focos activos detectados por satélite NASA en las ' +
     'últimas 24 horas, área quemada de Copernicus y viento con la dirección del humo, ' +
