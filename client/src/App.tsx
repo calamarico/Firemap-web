@@ -1,5 +1,6 @@
 import type maplibregl from 'maplibre-gl';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import FeedbackCard from './components/FeedbackCard';
 import ImpactPanel from './components/ImpactPanel';
 import LayerChips from './components/LayerChips';
 import MapView from './components/MapView';
@@ -8,6 +9,7 @@ import { REFRESH_INTERVAL_MS } from './config';
 import { useFireMapData } from './hooks/useFireMapData';
 import { useIncidents } from './hooks/useIncidents';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion';
+import { registerVisit, shouldShowFeedback } from './lib/feedback';
 import { matchIncidents } from './lib/incidents';
 import {
   findLocalityByName,
@@ -178,6 +180,24 @@ export default function App() {
   // Lluvia prevista indexada por municipio, para la línea del ranking.
   const rainBySlug = useMemo(() => new Map(rain.map((p) => [p.slug, p])), [rain]);
 
+  // Micro-encuesta: nunca al aterrizar. Se registra la visita del día y cada
+  // 15 s (solo con la pestaña visible) se re-evalúa si toca mostrarla — la
+  // condición real (2ª visita u 90 s de sesión) vive en lib/feedback.ts.
+  const [showFeedback, setShowFeedback] = useState(false);
+  useEffect(() => {
+    registerVisit();
+    let visibleSeconds = 0;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      visibleSeconds += 15;
+      if (shouldShowFeedback(visibleSeconds)) {
+        setShowFeedback(true);
+        window.clearInterval(timer);
+      }
+    }, 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // Estado operativo oficial (Bombers/JCyL/EMS) cruzado con el ranking por
   // proximidad: "qué dicen los que están apagando el fuego".
   const incidents = useIncidents();
@@ -277,6 +297,9 @@ export default function App() {
         incidentsBySlug={incidentsBySlug}
         onSelectMunicipality={handleSelectMunicipality}
       />
+      {showFeedback && (
+        <FeedbackCard localitySlug={locality?.slug} onClose={() => setShowFeedback(false)} />
+      )}
     </div>
   );
 }

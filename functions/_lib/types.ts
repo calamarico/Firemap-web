@@ -89,6 +89,9 @@ export interface Env {
   /** Token de api.fogos.pt (header X-API-Key). Sin él, la fuente PT del
    *  agregador de incidentes simplemente no se consulta. */
   FOGOS_API_KEY?: string;
+  /** Base D1 de la app (feedback; futuras alertas push). Opcional: sin el
+   *  binding, /api/feedback responde 503 y la card degrada sin romper. */
+  APP_DB?: D1Database;
   ASSETS: Fetcher;
   // Cache global de la respuesta de /api/fires (opcional: sin el binding, la
   // app funciona solo con las caches por datacenter).

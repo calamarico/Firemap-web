@@ -143,6 +143,19 @@ Function intercepta los `.pmtiles`, los mantiene en memoria del isolate y emula
 el byte serving (206 + Content-Range). Si el volumen de teselas creciera, la
 evolución natural es moverlas a R2 (Range nativo, también free plan).
 
+## Micro-encuesta de feedback
+
+La app muestra (una sola vez, tras engagement real) una tarjeta de 2 preguntas
+cuyo resultado va a la base D1 `radar-db` (binding `APP_DB`), anónimo: sin IP,
+sin UA, solo un hash IP+día para el rate limit que caduca a medianoche. La
+segunda pregunta valida la demanda del futuro sistema de alertas. Consultar
+resultados:
+
+```bash
+npx wrangler d1 execute radar-db --remote --command \
+  "SELECT useful, wants_alerts, COUNT(*) n FROM feedback GROUP BY 1,2 ORDER BY n DESC"
+```
+
 ## Endpoints del proxy
 
 | Endpoint | Descripción |

@@ -10,3 +10,9 @@ pages_build_output_dir = "client/dist"
 [[kv_namespaces]]
 binding = "FIRES_KV"
 id = "cd729ecaa93c4cec8e8b703a71ba9f37"
+
+# Base de datos de la app (feedback hoy; alertas push en el futuro).
+[[d1_databases]]
+binding = "APP_DB"
+database_name = "radar-db"
+database_id = "d317fa52-66a0-4054-95c0-f1f3ed345c10"
