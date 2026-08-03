@@ -26,12 +26,12 @@ const VIDEOS: readonly Video[] = [
   {
     id: '4XMQa6ULVeA',
     label: 'El mapa en 18 s',
-    title: 'Firemaps Spain — Mapa de incendios de España y Portugal',
+    title: 'Radar Incendios — Mapa de incendios de España y Portugal (gratis, sin anuncios, sin registro)',
   },
   {
     id: '2lmSNd2Yztk',
     label: 'Short',
-    title: 'Firemaps Spain — Mapa de incendios forestales en España y Portugal',
+    title: 'Radar Incendios — Mapa de incendios forestales en España y Portugal',
     vertical: true,
   },
 ];
