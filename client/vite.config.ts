@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type PluginOption } from 'vite';
@@ -19,8 +20,49 @@ const htmlPages = (): PluginOption => ({
   },
 });
 
+/**
+ * Los comentarios de los HTML son documentación INTERNA (decisiones SEO, notas
+ * de mantenimiento) y solo deben vivir en el repo: servirlos expondría la
+ * estrategia en el "ver código fuente" de cualquiera y suma bytes a cada una
+ * de las ~8.500 páginas (el index es la plantilla de todas). Se retiran en
+ * build; en dev se conservan (ahí ayudan). 404.html no pasa por
+ * transformIndexHtml (vive en public/ y se copia verbatim): se limpia en
+ * closeBundle sobre dist.
+ */
+const stripHtmlComments = (): PluginOption => ({
+  name: 'fm-strip-html-comments',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler: (html) => html.replace(/<!--[\s\S]*?-->\n?/g, ''),
+  },
+  closeBundle() {
+    const notFound = resolve(__dirname, 'dist/404.html');
+    try {
+      writeFileSync(notFound, readFileSync(notFound, 'utf8').replace(/<!--[\s\S]*?-->\n?/g, ''));
+    } catch {
+      // sin 404.html en el bundle (p. ej. build parcial): nada que limpiar
+    }
+    // robots.txt: mismas razones — sus comentarios # (p. ej. por qué /embed no
+    // se bloquea) documentan estrategia y solo deben vivir en el repo.
+    const robots = resolve(__dirname, 'dist/robots.txt');
+    try {
+      writeFileSync(
+        robots,
+        readFileSync(robots, 'utf8')
+          .split('\n')
+          .filter((line) => !line.startsWith('#'))
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+      );
+    } catch {
+      // ídem
+    }
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), htmlPages()],
+  plugins: [react(), htmlPages(), stripHtmlComments()],
   build: {
     rollupOptions: {
       // Tres documentos, tres entradas: la app (index.html), el widget
