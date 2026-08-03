@@ -4,8 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- SEO: título con la keyword principal delante y la marca detrás -->
-    <title>Mapa de incendios en España y Portugal hoy, en tiempo real · Radar de Incendios</title>
+    <!-- SEO: título = keyword pura, SIN sufijo de marca. La marca "Radar de
+         Incendios" repetiría la keyword ("incendios" ×2) y truncaría el título
+         en previews de WhatsApp/Facebook; el site name lo aportan og:site_name
+         y el JSON-LD WebSite de abajo (Google lo muestra por separado). Las
+         páginas interiores SÍ llevan el sufijo (títulos cortos, decisión
+         2026-08-03). DEBE coincidir con DEFAULT_TITLE de lib/locality.ts. -->
+    <title>Mapa de incendios en España y Portugal hoy, en tiempo real</title>
     <meta
       name="description"
       content="Incendios en España y Portugal hoy en tiempo casi real: focos por satélite NASA, área quemada de Copernicus, viento con la dirección del humo y municipios afectados."
@@ -17,25 +22,25 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Radar de Incendios" />
     <meta property="og:locale" content="es_ES" />
-    <meta property="og:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real · Radar de Incendios" />
+    <meta property="og:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real" />
     <meta
       property="og:description"
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
     <meta property="og:url" content="https://radarincendios.com/" />
-    <meta property="og:image" content="https://radarincendios.com/og-image-v4.jpg" />
+    <meta property="og:image" content="https://radarincendios.com/og-image-v5.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Captura real del mapa de Radar de Incendios: focos de calor activos, flujo de viento y previsión de lluvia sobre España y Portugal" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real · Radar de Incendios" />
+    <meta name="twitter:title" content="Mapa de incendios en España y Portugal hoy, en tiempo real" />
     <meta
       name="twitter:description"
       content="Focos por satélite, área quemada, viento con la dirección del humo y municipios afectados. Actualizado cada pocos minutos."
     />
-    <meta name="twitter:image" content="https://radarincendios.com/og-image-v4.jpg" />
+    <meta name="twitter:image" content="https://radarincendios.com/og-image-v5.jpg" />
 
     <!-- ?v=4: el cache de favicons de Google (resultados de búsqueda) va por
          URL y no tiene invalidación manual; al cambiar de logo hay que subir
@@ -57,6 +62,18 @@
     <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin />
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
     <link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin />
+
+    <!-- Site name para Google (lo muestra encima del título en resultados —
+         por eso el <title> ya no lleva sufijo de marca). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Radar de Incendios",
+        "alternateName": ["RadarIncendios", "radarincendios.com"],
+        "url": "https://radarincendios.com/"
+      }
+    </script>
 
     <!-- Datos estructurados: la app como WebApplication gratuita en español -->
     <script type="application/ld+json">
@@ -82,7 +99,7 @@
         "browserRequirements": "Requiere JavaScript",
         "inLanguage": "es",
         "isAccessibleForFree": true,
-        "image": "https://radarincendios.com/og-image-v4.jpg",
+        "image": "https://radarincendios.com/og-image-v5.jpg",
         "author": {
           "@type": "Person",
           "name": "Kalamarico",

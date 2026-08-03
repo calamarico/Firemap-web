@@ -12,7 +12,7 @@ export const LOCALITY_PARAM = 'localidad';
 const PATH_RE = /^\/incendios\/([^/]+)\/?$/;
 
 /** Debe coincidir con el <title> de index.html. */
-const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real · Radar de Incendios';
+const DEFAULT_TITLE = 'Mapa de incendios en España y Portugal hoy, en tiempo real';
 
 interface MuniMetaFile {
   regions?: string[];
