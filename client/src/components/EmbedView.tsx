@@ -15,6 +15,7 @@ import LayerChips from './LayerChips';
 import MapView from './MapView';
 import Icon from './ui/Icon';
 import { SeverityDot } from './ui/Severity';
+import Wordmark from './ui/Wordmark';
 
 /**
  * Widget embebible: el mapa desnudo para vivir dentro de un <iframe> ajeno.
@@ -183,9 +184,11 @@ export default function EmbedView({ config }: { config: EmbedConfig }) {
             className="pointer-events-auto flex items-center gap-2 rounded-lg bg-surface-panel px-2.5
               py-1.5 text-ink-primary shadow-panel backdrop-blur hover:bg-surface-hover"
           >
-            <img src={logoUrl} alt="" className="h-7 w-7 shrink-0" />
+            <img src={logoUrl} alt="" className="h-[26px] w-[26px] shrink-0" />
             <span className="leading-tight">
-              <span className="block font-display text-xs font-bold">Radar de Incendios</span>
+              {/* Lockup compacto del handoff (símbolo 26 + tinte 10 px). El
+                  wordmark lleva su propio aria-label. */}
+              <Wordmark className="block h-[10px] w-auto" />
               <span className="block text-micro text-ink-muted">
                 {count === null ? (
                   'Cargando focos…'

@@ -14,6 +14,7 @@ import type { BasemapId } from '../map/layers';
 import type { MapTheme } from '../styles/mapTokens';
 import Button from './ui/Button';
 import Icon from './ui/Icon';
+import Wordmark from './ui/Wordmark';
 import LayerToggle from './ui/LayerToggle';
 import SegmentedControl from './ui/SegmentedControl';
 
@@ -170,8 +171,8 @@ export default function EmbedBuilder() {
       <header className="border-b border-edge">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-5 py-4">
           <a href="/" className="flex items-center gap-3">
-            <img src={logoUrl} alt="Radar de Incendios" className="h-10 w-10" />
-            <span className="font-display text-sm font-bold">Radar de Incendios</span>
+            <img src={logoUrl} alt="Radar de Incendios" className="h-9 w-9" />
+            <Wordmark className="h-[11px] w-auto" />
           </a>
           <a
             href="/"

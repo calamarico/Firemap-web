@@ -26,6 +26,7 @@ import Metric from './ui/Metric';
 import SegmentedControl from './ui/SegmentedControl';
 import ShareMenu, { type ShareMenuItem } from './ui/ShareMenu';
 import StatusNote from './ui/StatusNote';
+import Wordmark from './ui/Wordmark';
 
 const BASEMAP_OPTIONS: ReadonlyArray<{ value: BasemapId; label: string }> = [
   { value: 'satellite', label: 'Satélite' },
@@ -293,13 +294,18 @@ export default function Sidebar(props: SidebarProps) {
           className="pointer-events-none absolute left-1/2 top-1.5 h-1 w-10 -translate-x-1/2 rounded-full bg-[color:var(--fm-slate-600)]"
         />
         <span className="flex items-center gap-2">
-          <img src={logoUrl} alt="" className="h-7 w-7" />
+          <img src={logoUrl} alt="" className="h-[26px] w-[26px]" />
           {/* Con localidad activa, la barra móvil dice dónde estás (el header
-              con el H1 solo existe en escritorio). Span, no heading: el único
-              h1 sigue siendo el del header. */}
-          <span className="line-clamp-1 font-display text-sm font-bold leading-tight">
-            {props.locality ? `Incendios en ${props.locality.name}` : 'Radar de Incendios'}
-          </span>
+              con el H1 solo existe en escritorio). Span/svg, no heading: el
+              único h1 sigue siendo el del header. Lockup compacto del handoff:
+              símbolo 26 + texto de cuerpo 13 (tinte del wordmark ≈ 10 px). */}
+          {props.locality ? (
+            <span className="line-clamp-1 font-display text-sm font-bold leading-tight">
+              Incendios en {props.locality.name}
+            </span>
+          ) : (
+            <Wordmark className="h-[10px] w-auto" />
+          )}
         </span>
         <span className="flex items-center gap-2">
           {isLoading && (
@@ -323,19 +329,25 @@ export default function Sidebar(props: SidebarProps) {
         className="flex min-h-0 flex-col overflow-hidden md:min-h-0 md:flex-1"
       >
         <header className="hidden items-center gap-3 border-b border-edge px-5 py-4 md:flex">
-          <img src={logoUrl} alt="Logo de Radar de Incendios" className="h-14 w-14 shrink-0" />
+          <img src={logoUrl} alt="Logo de Radar de Incendios" className="h-[52px] w-[52px] shrink-0" />
           {/* Un solo h1 con marca + descriptor: el descriptor lleva la keyword
               y así el encabezado principal de la página no es solo la marca.
-              Con localidad activa, el H1 pasa a ser el de su página — mismo
-              texto que inyecta el server en /incendios/<slug>, que React
-              destruye al montar: sin esto, el crawler que renderiza JS vería
-              el encabezado de la home en las 8.500 páginas. */}
+              Sin localidad, la marca es el wordmark (lockup del handoff:
+              símbolo 52 + cuerpo 19 → tinte 14 px), con el nombre como texto
+              real para el crawler (sr-only). Con localidad activa, el H1 pasa
+              a ser el de su página — mismo texto que inyecta el server en
+              /incendios/<slug>, que React destruye al montar. */}
           <h1>
-            <span className="block text-lg font-bold leading-tight">
-              {props.locality
-                ? `Incendios en ${props.locality.name} hoy, en tiempo real`
-                : 'Radar de Incendios'}
-            </span>
+            {props.locality ? (
+              <span className="block text-lg font-bold leading-tight">
+                Incendios en {props.locality.name} hoy, en tiempo real
+              </span>
+            ) : (
+              <>
+                <span className="sr-only">Radar de Incendios</span>
+                <Wordmark className="h-[14px] w-auto" />
+              </>
+            )}
             <span className="mt-1 block text-xs font-normal text-ink-muted">
               {props.locality
                 ? 'Radar de Incendios · satélite en tiempo casi real'
