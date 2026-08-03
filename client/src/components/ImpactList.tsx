@@ -9,6 +9,8 @@ import type {
   RegionImpact,
 } from '../types';
 import CollapsibleSection from './ui/CollapsibleSection';
+import ResourceCounts from './ui/ResourceCounts';
+import StatusBadge from './ui/StatusBadge';
 import CountBadge from './ui/CountBadge';
 import StatusNote from './ui/StatusNote';
 
@@ -132,25 +134,36 @@ export default function ImpactList({
                           <span className="shrink-0 tabular-nums">máx {muni.maxFrp.toFixed(0)} MW</span>
                         )}
                       </span>
-                      {/* Estado oficial del incendio (fase + medios) donde hay
-                          fuente estructurada, SIEMPRE con su procedencia: el
-                          satélite detecta calor; la fase la declara quien lo
-                          está apagando (y pueden no coincidir). */}
+                      {/* Estado oficial del incendio (StatusBadge, handoff
+                          2026-08-03) + medios como micro-iconos, SIEMPRE con la
+                          procedencia visible (condición de uso de las fuentes;
+                          puede saltar de línea, nunca truncarse). El title
+                          conserva la frase completa (y los medios en texto
+                          libre de JCyL, que no tienen iconos). */}
                       {(() => {
                         const incident = incidentsBySlug?.get(muni.slug);
                         if (!incident) return null;
-                        const line = incidentLine(incident);
-                        if (!line) return null;
+                        const isEms = incident.source === 'copernicus-ems';
                         return (
                           <span
-                            className={`mt-0.5 block text-micro ${
-                              incident.state === 'activo' ? 'text-ink-secondary' : 'text-ink-faint'
-                            }`}
-                            title={incident.resourcesText}
+                            className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-micro"
+                            title={[incidentLine(incident), incident.resourcesText]
+                              .filter(Boolean)
+                              .join(' — ')}
                           >
-                            {line}
+                            {isEms ? (
+                              <StatusBadge state="ems" level={incident.level} size="sm" />
+                            ) : (
+                              incident.state && (
+                                <StatusBadge
+                                  state={incident.state}
+                                  level={incident.level}
+                                  size="sm"
+                                />
+                              )
+                            )}
+                            <ResourceCounts size="sm" {...incident.resources} />
                             <span className="text-ink-faint">
-                              {' '}
                               · {INCIDENT_SOURCE_LABELS[incident.source]}
                             </span>
                           </span>

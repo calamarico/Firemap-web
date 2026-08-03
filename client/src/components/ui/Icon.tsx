@@ -10,6 +10,7 @@ import {
   Copy,
   ExternalLink,
   Flame,
+  Globe,
   Info,
   Layers,
   Link,
@@ -17,11 +18,16 @@ import {
   Map,
   MapPin,
   Minus,
+  Plane,
   Play,
   Plus,
   RefreshCw,
   Share2,
+  Shield,
+  ShieldCheck,
   TriangleAlert,
+  Truck,
+  Users,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -53,6 +59,13 @@ const ICONS = {
   plus: Plus,
   minus: Minus,
   play: Play,
+  // Estado oficial del incendio (StatusBadge / ResourceCounts).
+  users: Users,
+  truck: Truck,
+  plane: Plane,
+  shield: Shield,
+  'shield-check': ShieldCheck,
+  globe: Globe,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

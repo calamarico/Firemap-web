@@ -57,6 +57,12 @@
   --fm-red-200: #fecaca;
   --fm-red-700: #9c1c22;
   --fm-red-950: #3c0a0c;
+  /* Estado operativo oficial (StatusBadge) — nunca en el mapa ni en otro rol */
+  --fm-magenta-300: #f9a8d4;
+  --fm-magenta-400: #f472b6;
+  --fm-magenta-700: #be185d;
+  --fm-indigo-300: #a5b4fc;
+  --fm-indigo-700: #4338ca;
 
   /* ============ Nivel 2 · Semánticos ============ */
 
@@ -124,6 +130,17 @@
   --fm-danger-bg: rgb(60 10 12 / 0.75);
   --fm-danger-border: var(--fm-red-700);
   --fm-disabled-opacity: 0.55;
+
+  /* Estado oficial del incendio (StatusBadge). Familias propias: magenta e
+     índigo no existen en ningún otro rol — imposible confundir con severidad
+     FRP (rampa amarillo→roja), acción (cian) o marca (ember). Estabilizado/
+     controlado usan la tinta normal (text-secondary) con indicador de forma;
+     extinguido, text-faint. */
+  --fm-status-active-fg: var(--fm-magenta-300); /* 9,8:1 sobre panel oscuro */
+  --fm-status-active-bg: rgb(236 72 153 / 0.15);
+  --fm-status-shape: var(--fm-slate-300);
+  --fm-status-resolved-shape: var(--fm-slate-500);
+  --fm-status-ems-fg: var(--fm-indigo-300); /* 9,2:1 sobre panel oscuro */
 
   /* Cartografía */
   --fm-map-boundary-ccaa: rgb(226 232 240 / 0.55);
@@ -311,6 +328,12 @@
   --fm-danger-fg: var(--fm-red-700);
   --fm-danger-bg: rgb(156 28 34 / 0.1);
   --fm-danger-border: var(--fm-red-700);
+
+  /* Estado oficial del incendio */
+  --fm-status-active-fg: var(--fm-magenta-700); /* 5,9:1 sobre blanco */
+  --fm-status-active-bg: rgb(190 24 93 / 0.10);
+  --fm-status-shape: var(--fm-slate-600);
+  --fm-status-ems-fg: var(--fm-indigo-700); /* 8,0:1 sobre blanco */
 
   /* Sombras: las del tema oscuro son plomo sobre blanco */
   --fm-shadow-panel: 0 10px 30px -10px rgb(15 23 42 / 0.25);

@@ -10,7 +10,9 @@ import {
 import { blockContaining, sampleWindField, type WindFieldBlock } from '../lib/windField';
 import type { FireHotspot, OperationalIncident, RainForecastPoint, WindPoint } from '../types';
 import Icon from './ui/Icon';
+import ResourceCounts from './ui/ResourceCounts';
 import { SeverityChip, severityForFrp } from './ui/Severity';
+import StatusBadge from './ui/StatusBadge';
 
 const CONFIDENCE_LABELS: Record<string, string> = {
   l: 'Baja',
@@ -229,18 +231,39 @@ export default function FirePopup({
         </dl>
       )}
 
-      {/* Estado oficial del incendio, SIEMPRE con su procedencia: el satélite
-          detecta calor; la fase la declara quien lo está apagando. */}
+      {/* Estado oficial del incendio (StatusBadge md, handoff 2026-08-03),
+          SIEMPRE con su procedencia visible como fila propia: el satélite
+          detecta calor; la fase la declara quien lo está apagando. Con parte
+          sin fase (state null, no-EMS) solo se muestran medios + fuente. */}
       {incident && incidentText && (
-        <p
-          className={`mt-2 text-micro ${
-            incident.state === 'activo' ? 'text-ink-secondary' : 'text-ink-faint'
-          }`}
-          title={incident.resourcesText}
-        >
-          {incidentText}
-          <span className="text-ink-faint"> · {INCIDENT_SOURCE_LABELS[incident.source]}</span>
-        </p>
+        <div className="mt-2 space-y-1 border-t border-edge-strong pt-2 text-micro">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-ink-muted">Estado oficial</span>
+            {incident.source === 'copernicus-ems' ? (
+              <StatusBadge state="ems" level={incident.level} size="md" />
+            ) : incident.state ? (
+              <StatusBadge state={incident.state} level={incident.level} size="md" />
+            ) : (
+              <span className="text-ink-faint">sin fase en el último parte</span>
+            )}
+          </div>
+          {(incident.resources || incident.resourcesText) && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-ink-muted">Medios</span>
+              {incident.resources ? (
+                <ResourceCounts size="md" {...incident.resources} />
+              ) : (
+                <span
+                  className="max-w-[170px] truncate text-ink-secondary"
+                  title={incident.resourcesText}
+                >
+                  {incident.resourcesText}
+                </span>
+              )}
+            </div>
+          )}
+          <p className="text-ink-faint">Fuente: {INCIDENT_SOURCE_LABELS[incident.source]}</p>
+        </div>
       )}
 
       {fire.muniSlug && fire.muniName && (
