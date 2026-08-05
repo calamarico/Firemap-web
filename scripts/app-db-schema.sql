@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS feedback (
   useful       INTEGER,           -- 1 | 0 | NULL (pregunta sin responder)
   wants_alerts INTEGER,           -- 1 | 0 | NULL
   locality     TEXT,              -- slug de la localidad activa al responder (contexto)
+  comment      TEXT,              -- texto libre opcional (≤500 chars, llega en un envío aparte)
   -- SHA-256(ip + fecha UTC + salt) truncado: permite limitar envíos por IP y día
   -- SIN guardar la IP. El hash cambia cada día: no identifica a nadie entre días.
   ip_day_hash  TEXT NOT NULL

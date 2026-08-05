@@ -146,14 +146,22 @@ evolución natural es moverlas a R2 (Range nativo, también free plan).
 ## Micro-encuesta de feedback
 
 La app muestra (una sola vez, tras engagement real) una tarjeta de 2 preguntas
-cuyo resultado va a la base D1 `radar-db` (binding `APP_DB`), anónimo: sin IP,
-sin UA, solo un hash IP+día para el rate limit que caduca a medianoche. La
-segunda pregunta valida la demanda del futuro sistema de alertas. Consultar
-resultados:
+de un clic más un comentario de texto libre opcional, cuyo resultado va a la
+base D1 `radar-db` (binding `APP_DB`), anónimo: sin IP, sin UA, solo un hash
+IP+día para el rate limit que caduca a medianoche. La segunda pregunta valida
+la demanda del futuro sistema de alertas. El comentario viaja en un envío
+aparte (fila propia, sin enlace con los votos); a quien votó antes de existir
+el texto libre se le pide una única vez. Consultar resultados:
 
 ```bash
+# Votos agregados
 npx wrangler d1 execute radar-db --remote --command \
   "SELECT useful, wants_alerts, COUNT(*) n FROM feedback GROUP BY 1,2 ORDER BY n DESC"
+
+# Comentarios de texto libre (más recientes primero)
+npx wrangler d1 execute radar-db --remote --command \
+  "SELECT datetime(created_at/1000,'unixepoch') fecha, locality, comment
+   FROM feedback WHERE comment IS NOT NULL ORDER BY id DESC"
 ```
 
 ## Endpoints del proxy

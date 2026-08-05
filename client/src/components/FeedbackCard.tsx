@@ -1,27 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
-import { markDismissed, submitFeedback, type FeedbackAnswers } from '../lib/feedback';
+import {
+  FEEDBACK_COMMENT_MAX,
+  markCommentDone,
+  markDismissed,
+  submitComment,
+  submitFeedback,
+  type FeedbackAnswers,
+  type FeedbackMode,
+} from '../lib/feedback';
 import Button from './ui/Button';
 import Icon from './ui/Icon';
 
 /**
- * Micro-encuesta de 2 clics, flotante y NO modal: dos preguntas encadenadas
- * (¿útil? → ¿querrías alertas de proximidad?) y gracias. La segunda valida la
- * feature de alertas push antes de construirla. App solamente — el widget
- * embebido jamás muestra encuestas. Quien la cierra no vuelve a verla en
- * semanas; quien responde, nunca más (lib/feedback.ts).
+ * Micro-encuesta flotante y NO modal: dos preguntas de un clic (¿útil? →
+ * ¿querrías alertas de proximidad?) más un comentario de texto libre opcional.
+ * En modo 'comment' (quien ya votó antes de existir el texto libre) la card va
+ * directa al comentario. App solamente — el widget embebido jamás muestra
+ * encuestas. Quien la cierra no vuelve a verla en semanas; quien vota y zanja
+ * el comentario (enviado o declinado), nunca más (lib/feedback.ts).
  */
 
 interface FeedbackCardProps {
+  /** 'survey': flujo completo. 'comment': solo el texto libre. */
+  mode: FeedbackMode;
   /** Slug de la localidad activa (contexto anónimo de la respuesta). */
   localitySlug?: string | null;
   /** Aviso al padre para desmontar. */
   onClose: () => void;
 }
 
-type Step = 'useful' | 'alerts' | 'thanks';
+type Step = 'useful' | 'alerts' | 'comment' | 'thanks';
 
-export default function FeedbackCard({ localitySlug, onClose }: FeedbackCardProps) {
-  const [step, setStep] = useState<Step>('useful');
+export default function FeedbackCard({ mode, localitySlug, onClose }: FeedbackCardProps) {
+  const [step, setStep] = useState<Step>(mode === 'comment' ? 'comment' : 'useful');
+  const [comment, setComment] = useState('');
   const answers = useRef<FeedbackAnswers>({ useful: null, wantsAlerts: null });
 
   // El "gracias" se despide solo: nadie debería tener que cerrar un gracias.
@@ -38,14 +50,27 @@ export default function FeedbackCard({ localitySlug, onClose }: FeedbackCardProp
 
   const answerAlerts = (value: boolean) => {
     answers.current.wantsAlerts = value;
+    // Los votos se envían YA (no se arriesgan a perderse si abandona el
+    // comentario a medias); el texto libre viajará en un envío aparte.
     void submitFeedback(answers.current, localitySlug);
+    setStep('comment');
+  };
+
+  const sendComment = () => {
+    const text = comment.trim().slice(0, FEEDBACK_COMMENT_MAX);
+    if (!text) return;
+    void submitComment(text, localitySlug);
     setStep('thanks');
   };
 
   const dismiss = () => {
-    // Cerrada a mitad: si ya contestó algo, vale oro igual — se envía parcial
-    // (submitFeedback marca "answered"); si no contestó nada, silencio 45 días.
-    if (answers.current.useful !== null) {
+    if (step === 'comment') {
+      // Los votos (si los hubo) ya están enviados; declinar el comentario lo
+      // zanja para siempre.
+      markCommentDone();
+    } else if (answers.current.useful !== null) {
+      // Cerrada a mitad: lo contestado vale oro igual — se envía parcial
+      // (submitFeedback marca "answered"; el comentario se pedirá otro día).
       void submitFeedback(answers.current, localitySlug);
     } else {
       markDismissed();
@@ -66,6 +91,10 @@ export default function FeedbackCard({ localitySlug, onClose }: FeedbackCardProp
           {step === 'useful' && '¿Te está resultando útil este mapa?'}
           {step === 'alerts' &&
             '¿Te gustaría poder recibir un aviso si se detecta un incendio cerca de tu zona?'}
+          {step === 'comment' &&
+            (mode === 'comment'
+              ? '¿Echas algo en falta o mejorarías algo en el mapa?'
+              : '¡Gracias! Última cosa: ¿echas algo en falta o mejorarías algo?')}
           {step === 'thanks' && '¡Gracias! Nos ayuda a decidir qué construir 🔥'}
         </p>
         {step !== 'thanks' && (
@@ -99,6 +128,25 @@ export default function FeedbackCard({ localitySlug, onClose }: FeedbackCardProp
             No
           </Button>
         </div>
+      )}
+      {step === 'comment' && (
+        <>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={FEEDBACK_COMMENT_MAX}
+            rows={3}
+            placeholder="Escríbelo aquí (opcional)…"
+            aria-label="Tu comentario"
+            className="mt-2.5 w-full resize-none rounded-md border border-edge-strong bg-surface-raised
+              p-2 text-sm text-ink-primary placeholder:text-ink-faint"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button size="sm" onClick={sendComment} disabled={!comment.trim()}>
+              Enviar
+            </Button>
+          </div>
+        </>
       )}
     </section>
   );

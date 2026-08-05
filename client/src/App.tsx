@@ -9,7 +9,7 @@ import { REFRESH_INTERVAL_MS } from './config';
 import { useFireMapData } from './hooks/useFireMapData';
 import { useIncidents } from './hooks/useIncidents';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion';
-import { registerVisit, shouldShowFeedback } from './lib/feedback';
+import { registerVisit, shouldShowFeedback, type FeedbackMode } from './lib/feedback';
 import { matchIncidents } from './lib/incidents';
 import {
   findLocalityByName,
@@ -181,17 +181,19 @@ export default function App() {
   const rainBySlug = useMemo(() => new Map(rain.map((p) => [p.slug, p])), [rain]);
 
   // Micro-encuesta: nunca al aterrizar. Se registra la visita del día y cada
-  // 15 s (solo con la pestaña visible) se re-evalúa si toca mostrarla — la
+  // 15 s (solo con la pestaña visible) se re-evalúa si toca mostrarla y en qué
+  // modo (flujo completo, o solo el comentario para quien ya votó) — la
   // condición real (2ª visita u 90 s de sesión) vive en lib/feedback.ts.
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode | null>(null);
   useEffect(() => {
     registerVisit();
     let visibleSeconds = 0;
     const timer = window.setInterval(() => {
       if (document.hidden) return;
       visibleSeconds += 15;
-      if (shouldShowFeedback(visibleSeconds)) {
-        setShowFeedback(true);
+      const mode = shouldShowFeedback(visibleSeconds);
+      if (mode) {
+        setFeedbackMode(mode);
         window.clearInterval(timer);
       }
     }, 15_000);
@@ -297,8 +299,12 @@ export default function App() {
         incidentsBySlug={incidentsBySlug}
         onSelectMunicipality={handleSelectMunicipality}
       />
-      {showFeedback && (
-        <FeedbackCard localitySlug={locality?.slug} onClose={() => setShowFeedback(false)} />
+      {feedbackMode && (
+        <FeedbackCard
+          mode={feedbackMode}
+          localitySlug={locality?.slug}
+          onClose={() => setFeedbackMode(null)}
+        />
       )}
     </div>
   );
