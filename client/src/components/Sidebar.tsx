@@ -725,6 +725,13 @@ export default function Sidebar(props: SidebarProps) {
             >
               Insertar el mapa
             </a>
+            <span className="mx-1">·</span>
+            <a
+              href="mailto:contact@radarincendios.com"
+              className="text-ink-muted underline-offset-2 hover:text-ink-primary hover:underline"
+            >
+              contact@radarincendios.com
+            </a>
           </p>
         </footer>
       </div>
